@@ -1,0 +1,1295 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.pl.dao.IPlMapper">
+
+	<resultMap type="PlMaster" id="PlMasterMap" autoMapping="true">
+		<id property="plSeq" column="plSeq"/>
+		<collection property="plResDeploys" columnPrefix="pd_" resultMap="PlResDeployMap" />
+		<collection property="plResBuilds" columnPrefix="pb_" resultMap="PlResBuildMap" />
+	</resultMap>
+
+	<resultMap type="PlResDeploy" id="PlResDeployMap" autoMapping="true">
+		<id property="plResDeploySeq" column="plResDeploySeq"/>
+		<id property="plSeq" column="plSeq"/>
+		<collection property="plResBuilds" columnPrefix="prb_" resultMap="PlResBuildMap" />
+	</resultMap>
+
+	<resultMap type="PlResBuild" id="PlResBuildMap" autoMapping="true">
+		<id property="plResBuildSeq" column="plResBuildSeq"/>
+		<id property="plSeq" column="plSeq"/>
+		<collection property="buildDeployMapping" columnPrefix="pbdm_" resultMap="PlResBuildDeployMappingMap" />
+	</resultMap>
+
+	<resultMap type="PlResBuildDeployMapping" id="PlResBuildDeployMappingMap" autoMapping="true">
+		<id property="plResBuildSeq" column="plResBuildSeq"/>
+		<id property="plResDeploySeq" column="plResDeploySeq"/>
+		<id property="containerName" column="containerName"/>
+	</resultMap>
+
+	<resultMap type="PlRun" id="PlRunMap" autoMapping="true">
+		<id property="plRunSeq" column="plRunSeq"/>
+		<collection property="plRunDeploys" columnPrefix="pd_" resultMap="PlRunDeployMap" />
+		<collection property="plRunBuilds" columnPrefix="pb_" resultMap="PlRunBuildMap" />
+	</resultMap>
+
+	<resultMap type="PlRunDeploy" id="PlRunDeployMap" autoMapping="true">
+		<id property="plRunDeploySeq" column="plRunDeploySeq"/>
+		<collection property="plRunBuilds" columnPrefix="prb_" resultMap="PlRunBuildMap" />
+	</resultMap>
+
+	<resultMap type="PlRunBuild" id="PlRunBuildMap" autoMapping="true">
+		<id property="plRunBuildSeq" column="plRunBuildSeq" />
+		<collection property="runBuildDeployMapping" columnPrefix="pbdm_" resultMap="PlRunBuildDeployMappingMap" />
+	</resultMap>
+
+	<resultMap type="PlRunBuildDeployMapping" id="PlRunBuildDeployMappingMap" autoMapping="true">
+		<id property="plRunBuildSeq" column="plRunBuildSeq"/>
+		<id property="plRunDeploySeq" column="plRunDeploySeq"/>
+		<id property="containerName" column="containerName"/>
+	</resultMap>
+
+	<resultMap type="PlMasterList" id="PlMasterListMap" autoMapping="true">
+		<id property="plSeq" column="plSeq"/>
+		<association property="cluster" column="clusterSeq" select="run.acloud.api.configuration.dao.IAccountMapper.getClusterSummary" />
+	</resultMap>
+
+	<select id="getPlList" parameterType="map" resultMap="PlMasterListMap">
+		select /* [Pl.xml].[getPlMasterList].[01] 변경일자(20200118) */
+			  pm.pl_seq as plSeq
+			, pm.name as name
+			, cl.cluster_seq as clusterSeq
+			, pm.namespace as namespace
+			, pm.ver as ver
+			, IFNULL(run.run_status,'CREATED') as status
+			, run.begin_time as lastRunTime
+			, rel.ver as releaseVer
+			, count(deploy.pl_run_deploy_seq) as releaseResCount
+			, rel.begin_time as releaseTime
+			, (select count(*) from pl_res_build where pl_seq = pm.pl_seq and created != updated) + (select count(*) from pl_res_deploy where pl_seq = pm.pl_seq and created != updated) as updateResCount
+		 from pl_master pm
+			inner join servicemaps sm on sm.cluster_seq = pm.cluster_seq and sm.namespace_name = pm.namespace and sm.use_yn = 'Y'
+			inner join clusters cl on cl.cluster_seq = sm.cluster_seq and cl.use_yn = 'Y'
+		<if test="serviceSeq != null">
+			inner join service_servicemap_mapping ssmm on ssmm.servicemap_seq = sm.servicemap_seq
+			inner join services s on s.service_seq = ssmm.service_seq and s.use_yn = 'Y' and s.service_seq = #{serviceSeq}
+		</if>
+		<if test="accountSeq != null">
+			inner join account_provider_account_mapping apam on apam.provider_account_seq = cl.provider_account_seq and apam.account_seq = #{accountSeq}
+		</if>
+			left outer join pl_run run on run.pl_run_seq = pm.pl_run_seq
+			left outer join pl_run rel on rel.pl_seq = pm.pl_seq and rel.pl_run_seq = (select max(latest.pl_run_seq) from pl_run latest where latest.pl_seq = pm.pl_seq and latest.run_status = 'DONE' and latest.use_yn = 'Y')
+			left outer join pl_run_deploy deploy on deploy.pl_run_seq = rel.pl_run_seq
+		where pm.use_yn = 'Y'
+        group by pm.pl_seq
+	</select>
+
+	<select id="getPlDetail" parameterType="map" resultMap="PlMasterMap">
+		select /* [Pl.xml].[getPlDetail].[01] 변경일자(20200119) */
+			   pm.pl_seq as plSeq
+			 , pm.name as name
+			 , pm.ver as ver
+			 , pm.cluster_seq as clusterSeq
+			 , pm.namespace as namespace
+		     , pm.pl_run_seq as plRunSeq
+			 , IFNULL(run.run_status,'CREATED') as status
+			 , rel.ver as releaseVer
+		     , rel.pl_run_seq as releasePlRunSeq
+			 , rel.run_note as releaseRunNote
+
+			 , pd.pl_res_deploy_seq  as pd_plResDeploySeq
+			 , pd.res_type as pd_resType
+			 , pd.res_name as pd_resName
+			 , pd.res_cont as pd_resCont
+			 , pd.run_yn   as pd_runYn
+			 , pd.run_order as pd_runOrder
+			 , pd.created  as pd_created
+			 , pd.creator  as pd_creator
+			 , pd.updated  as pd_updated
+			 , pd.updater  as pd_updater
+
+			 , pb.pl_res_build_seq  as pb_plResBuildSeq
+			 , pb.img_url          	as pb_imgUrl
+			 , pb.build_seq        	as pb_buildSeq
+			 , pb.build_run_seq    	as pb_buildRunSeq
+			 , pb.build_tag        	as pb_buildTag
+			 , pb.build_cont  		as pb_buildCont
+			 , pb.run_yn     	    as pb_runYn
+			 , pb.run_order    	    as pb_runOrder
+			 , pb.created          	as pb_created
+			 , pb.creator          	as pb_creator
+			 , pb.updated          	as pb_updated
+			 , pb.updater          	as pb_updater
+
+			 , pbdm.pl_res_build_seq 	as pb_pbdm_plResBuildSeq
+			 , pbdm.pl_res_deploy_seq 	as pb_pbdm_plResDeploySeq
+			 , pbdm.res_type 			as pb_pbdm_resType
+			 , pbdm.res_name 			as pb_pbdm_resName
+			 , pbdm.container_name 		as pb_pbdm_containerName
+		from  pl_master pm
+				  left outer join pl_res_deploy pd on pd.pl_seq = pm.pl_seq
+				  left outer join pl_res_build pb on pb.pl_seq = pm.pl_seq
+		  		  left outer join pl_res_build_deploy_mapping pbdm on pbdm.pl_res_build_seq = pb.pl_res_build_seq
+				  left outer join pl_run run on run.pl_run_seq = pm.pl_run_seq
+				  left outer join pl_run rel on rel.pl_seq = pm.pl_seq and rel.pl_run_seq = (select max(latest.pl_run_seq) from pl_run latest where latest.pl_seq = pm.pl_seq and latest.run_status = 'DONE' and latest.use_yn = 'Y')
+		where pm.pl_seq = #{plSeq}
+		  and pm.use_yn = 'Y'
+		order by pb.run_order, pd.run_order
+	</select>
+
+	<select id="getPlMasterByNameAndWorkspace" parameterType="map" resultType="PlMaster">
+		select /* [Pl.xml].[getPlMasterListByNameAndWorkspace].[01] 변경일자(20211020) */
+			   pm.pl_seq as plSeq
+			 , pm.name as name
+			 , cl.cluster_seq as clusterSeq
+			 , pm.namespace as namespace
+			 , pm.ver as ver
+		from pl_master pm
+				inner join servicemaps sm on sm.cluster_seq = pm.cluster_seq and sm.namespace_name = pm.namespace and sm.use_yn = 'Y'
+				inner join clusters cl on cl.cluster_seq = sm.cluster_seq and cl.use_yn = 'Y'
+				inner join service_servicemap_mapping ssmm on ssmm.servicemap_seq = sm.servicemap_seq
+				inner join services s on s.service_seq = ssmm.service_seq and s.use_yn = 'Y' and s.service_seq = #{serviceSeq}
+		where pm.use_yn = 'Y'
+		  and pm.name = #{name}
+	</select>
+
+	<select id="getPlResBuild" parameterType="map" resultMap="PlResBuildMap">
+		select /* [Pl.xml].[getPlResBuild].[01] 변경일자(20200201) */
+			   pbi.pl_res_build_seq 	as plResBuildSeq
+			 , pbi.pl_seq       	    as plSeq
+			 , pbi.img_url          	as imgUrl
+			 , pbi.build_seq        	as buildSeq
+			 , pbi.build_run_seq    	as buildRunSeq
+			 , pbi.build_tag        	as buildTag
+			 , pbi.build_cont  			as buildCont
+			 , pbi.run_yn     	        as runYn
+			 , pbi.run_order    	    as runOrder
+			 , pbi.created          	as created
+			 , pbi.creator          	as creator
+			 , pbi.updated          	as updated
+			 , pbi.updater          	as updater
+			 , pbdm.pl_res_build_seq    as pbdm_plResBuildSeq
+			 , pbdm.pl_res_deploy_seq   as pbdm_plResDeploySeq
+			 , pbdm.res_type			as pbdm_resType
+			 , pbdm.res_name			as pbdm_resName
+			 , pbdm.container_name		as pbdm_containerName
+		from  pl_res_build pbi
+			left outer join pl_res_build_deploy_mapping pbdm on pbdm.pl_res_build_seq = pbi.pl_res_build_seq
+		where pbi.pl_res_build_seq = #{plResBuildSeq}
+		<if test="plSeq != null">
+			and pbi.pl_seq = #{plSeq}
+		</if>
+	</select>
+
+	<select id="getAccountSeq" parameterType="map" resultType="int">
+		select /* [Pl.xml].[getAccountSeq].[01] 변경일자(20200302) */
+			apam.account_seq as account_seq
+		from pl_master pm
+				 inner join clusters cl on cl.cluster_seq = pm.cluster_seq and cl.use_yn = 'Y'
+				 inner join account_provider_account_mapping apam on apam.provider_account_seq = cl.provider_account_seq
+		where pm.pl_seq = #{plSeq}
+	</select>
+
+	<update id="updatePlResBuild" parameterType="PlResBuild">
+		update /* [Pl.xml].[editPlBuildInfo].[01] 변경일자(20200126) */
+			pl_res_build
+		  set img_url = #{imgUrl}
+			, build_tag = #{buildTag}
+		    , build_cont = #{buildCont}
+		    , run_yn = #{runYn}
+		    , run_order = #{runOrder}
+		    , updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		where pl_res_build_seq = #{plResBuildSeq}
+          and pl_seq = #{plSeq}
+	</update>
+
+	<update id="updatePlResBuildsForRunYn" parameterType="map">
+		update /* [Pl.xml].[updatePlResBuildsForRunYn].[01] 변경일자(20200316) */
+			pl_res_build
+		  set run_yn = #{runYn}
+		where pl_seq = #{plSeq}
+	</update>
+
+	<update id="updatePlResBuildsToSameDate" parameterType="map">
+		update /* [Pl.xml].[updatePlResBuildToSameDate].[01] 변경일자(20210309) */
+			pl_res_build
+		set created = UTC_TIMESTAMP()
+		  , updated = UTC_TIMESTAMP()
+		where pl_seq = #{plSeq}
+	</update>
+
+	<delete id="deletePlResBuild" parameterType="map">
+		delete /* [Pl.xml].[deletePlResBuild].[01] 변경일자(20210204) */
+		  from pl_res_build
+		 where pl_res_build_seq = #{plResBuildSeq}
+	</delete>
+
+	<delete id="deletePlResBuilds" parameterType="map">
+		delete /* [Pl.xml].[deletePlResBuilds].[01] 변경일자(20210311) */
+		from pl_res_build
+		where pl_seq = #{plSeq}
+	</delete>
+
+	<update id="updatePlResBuildRunOrderForDel" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResBuildRunOrderForDel].[01] 변경일자(20210205) */
+			pl_res_build
+		SET run_order = run_order - 1
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		  AND run_order > #{delRunOrder}
+	</update>
+
+	<update id="updatePlResBuildRunOrder" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResBuildRunOrder].[01] 변경일자(20210205) */
+			pl_res_build
+		SET run_order = #{updateRunOrder}
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		<if test="plResBuildSeq != null">
+			AND pl_res_build_seq = #{plResBuildSeq}
+		</if>
+		<if test="runOrder != null">
+			AND run_order = #{runOrder}
+		</if>
+	</update>
+
+	<update id="updatePlResBuildRunYn" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResBuildRunYn].[01] 변경일자(20210308) */
+			pl_res_build
+		SET run_yn = #{runYn}
+		, updated = UTC_TIMESTAMP()
+		, updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		<if test="plResBuildSeq != null">
+			AND pl_res_build_seq = #{plResBuildSeq}
+		</if>
+	</update>
+
+	<delete id="deletePlResDeploy" parameterType="map">
+		delete /* [Pl.xml].[deletePlResDeploy].[01] 변경일자(20210204) */
+		  from pl_res_deploy
+		 where pl_res_deploy_seq = #{plResDeploySeq}
+	</delete>
+
+	<delete id="deletePlResDeploys" parameterType="map">
+		delete /* [Pl.xml].[deletePlResDeploys].[01] 변경일자(20210312) */
+		from pl_res_deploy
+		where pl_seq = #{plSeq}
+	</delete>
+
+	<insert id="insertPlMaster" parameterType="PlMaster" useGeneratedKeys="true" keyProperty="plSeq" keyColumn="pl_seq">
+		INSERT	/* [Pl.xml].[insertPlMaster].[01] 변경일자(20210118) */
+		INTO pl_master (
+			  name
+			, cluster_seq
+			, namespace
+			, ver
+			, pl_run_seq
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES(
+			  #{name}
+			, #{clusterSeq}
+			, #{namespace}
+			, #{ver}
+			, #{plRunSeq}
+			, 'Y'
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{updater}
+		)
+	</insert>
+
+	<update id="updatePlMasterName" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlMasterName].[01] 변경일자(20210118) */
+			pl_master
+		SET name = #{name}
+			, updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+	</update>
+
+    <insert id="insertPlResDeploy" parameterType="PlResDeploy" useGeneratedKeys="true" keyProperty="plResDeploySeq" keyColumn="pl_res_deploy_seq">
+		INSERT /* [Pl.xml].[insertPlResDeploy].[01] 변경일자(20210118) */
+		INTO pl_res_deploy (
+				pl_seq
+			   , res_type
+			   , res_name
+			   , res_cont
+			   , run_order
+			   , run_yn
+			   , created
+			   , creator
+			   , updated
+			   , updater
+		)
+		VALUES (
+		        #{plSeq}
+			   , #{resType}
+			   , #{resName}
+			   , #{resCont}
+			   , CASE WHEN #{resType} IN ('REPLICA_SERVER', 'STATEFUL_SET_SERVER', 'DAEMON_SET_SERVER', 'JOB_SERVER', 'CRON_JOB_SERVER')
+			     		THEN (
+			     		  		CASE WHEN #{runOrder} > 0 THEN #{runOrder}
+			     		  			ELSE (
+										SELECT COUNT(i_prd.run_order) + 1
+										FROM pl_res_deploy i_prd
+										WHERE i_prd.pl_seq = #{plSeq}
+			     		  			  	AND i_prd.res_type IN ('REPLICA_SERVER', 'STATEFUL_SET_SERVER', 'DAEMON_SET_SERVER', 'JOB_SERVER', 'CRON_JOB_SERVER')
+									)
+			     		  		END
+							)
+				ELSE #{runOrder} END
+			   , IFNULL(#{runYn}, 'Y')
+			   , UTC_TIMESTAMP()
+			   , #{creator}
+			   , UTC_TIMESTAMP()
+			   , #{updater})
+	</insert>
+
+    <insert id="insertPlResDeploysFromRunDeploy" parameterType="map">
+		INSERT INTO pl_res_deploy
+			(pl_seq, res_type, res_name, res_cont, run_yn, run_order, created, creator, updated, updater)
+		SELECT pr.pl_seq as pl_seq
+			 , prd.res_type
+			 , prd.res_name
+			 , prd.res_cont
+			 , prd.run_yn
+			 , prd.run_order
+			 , utc_timestamp() as created
+			 , prd.creator
+			 , utc_timestamp() as updated
+			 , prd.updater
+		 FROM pl_run_deploy prd
+			inner join pl_run pr on pr.pl_run_seq = prd.pl_run_seq
+		where prd.pl_run_seq = #{plRunSeq}
+	</insert>
+
+	<insert id="insertPlResBuild" parameterType="PlResBuild" useGeneratedKeys="true" keyProperty="plResBuildSeq" keyColumn="pl_res_build_seq">
+		INSERT	/* [Pl.xml].[insertPlResBuild].[01] 변경일자(20210118) */
+		INTO pl_res_build (
+			  pl_seq
+			, img_url
+			, build_seq
+			, build_run_seq
+			, build_tag
+			, build_cont
+			, run_yn
+			, run_order
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES(
+			  #{plSeq}
+			, #{imgUrl}
+			, #{buildSeq}
+			, #{buildRunSeq}
+			, #{buildTag}
+			, #{buildCont}
+			, #{runYn}
+			, IFNULL(
+                      (
+                          SELECT COUNT(i_prb.run_order) + 1
+                          FROM pl_res_build i_prb
+                          WHERE i_prb.pl_seq = #{plSeq}
+                      ),
+                      1
+                  )
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{updater}
+		)
+	</insert>
+
+	<insert id="insertPlResBuildsFromRunBuild" parameterType="map">
+		INSERT /* [Pl.xml].[insertPlResBuildFromRunBuild].[01] 변경일자(20210312) */
+		  INTO pl_res_build (pl_seq, img_url , build_seq, build_run_seq, build_tag, build_cont, run_yn, run_order, created, creator, updated, updater)
+		SELECT pr.pl_seq as pl_seq
+			 , prb.img_url
+			 , prb.build_seq
+			 , ifnull(prb.build_run_seq,prb.build_prev_run_seq) as build_run_seq
+			 , prb.build_tag
+			 , prb.build_cont
+			 , prb.run_yn
+			 , prb.run_order
+			 , utc_timestamp() as created
+			 , prb.creator
+			 , utc_timestamp() as updated
+			 , prb.updater
+		FROM pl_run_build prb
+				 inner join pl_run pr on pr.pl_run_seq = prb.pl_run_seq
+		where prb.pl_run_seq = #{plRunSeq}
+	</insert>
+
+	<update id="updatePlMasterForRunSeqAndVersion" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlMasterFromRun].[01] 변경일자(20210311) */
+			pl_master
+		  SET pl_run_seq = #{plRunSeq}
+		<if test="ver != null">
+		    , ver = #{ver}
+		</if>
+		WHERE pl_seq = #{plSeq}
+	</update>
+
+	<update id="deletePlMaster" parameterType="map">
+		UPDATE /* [Pl.xml].[deletePlMaster].[01] 변경일자(20210323) */
+			pl_master
+		  SET use_yn = 'N'
+		    , updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+	</update>
+
+	<update id="updatePlResDeploy" parameterType="PlResDeploy">
+		UPDATE /* [Pl.xml].[updatePlResDeploy].[01] 변경일자(20210118) */
+			pl_res_deploy
+		SET res_cont = #{resCont}
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		  AND pl_res_deploy_seq = #{plResDeploySeq}
+	</update>
+
+	<update id="updatePlResDeploysToSameDate" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResDeployToSameDate].[01] 변경일자(20210309) */
+			pl_res_deploy
+		SET created = UTC_TIMESTAMP()
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_seq = #{plSeq}
+	</update>
+
+	<update id="updatePlResDeployWorkloadRunOrderForDel" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResDeployWorkloadRunOrderForDel].[01] 변경일자(20210118) */
+			pl_res_deploy
+		SET run_order = run_order - 1
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		  AND res_type IN ('REPLICA_SERVER', 'STATEFUL_SET_SERVER', 'DAEMON_SET_SERVER', 'JOB_SERVER', 'CRON_JOB_SERVER')
+		  AND run_order > #{delRunOrder}
+	</update>
+
+	<update id="updatePlResDeployWorkloadRunOrder" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResDeployWorkloadRunOrder].[01] 변경일자(20210118) */
+			pl_res_deploy
+		SET run_order = #{updateRunOrder}
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		  AND res_type IN ('REPLICA_SERVER', 'STATEFUL_SET_SERVER', 'DAEMON_SET_SERVER', 'JOB_SERVER', 'CRON_JOB_SERVER')
+		<if test="plResDeploySeq != null">
+			AND pl_res_deploy_seq = #{plResDeploySeq}
+		</if>
+		<if test="runOrder != null">
+			AND run_order = #{runOrder}
+		</if>
+	</update>
+
+	<update id="updatePlResDeployRunYn" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlResDeployRunYn].[01] 변경일자(20210308) */
+			pl_res_deploy
+		SET run_yn = #{runYn}
+		, updated = UTC_TIMESTAMP()
+		, updater = #{updater}
+		WHERE pl_seq = #{plSeq}
+		<if test="plResDeploySeq != null">
+			AND pl_res_deploy_seq = #{plResDeploySeq}
+		</if>
+	</update>
+
+
+	<select id="getPlResDeployWorkloadCount" parameterType="map" resultType="int">
+		SELECT /* [Pl.xml].[getPlResDeployWorkloadCount].[01] 변경일자(20210118) */
+		       count(1)
+		FROM pl_res_deploy
+		WHERE pl_seq = #{plSeq}
+		  AND res_type IN ('REPLICA_SERVER', 'STATEFUL_SET_SERVER', 'DAEMON_SET_SERVER', 'JOB_SERVER', 'CRON_JOB_SERVER')
+	</select>
+
+    <insert id="insertPlResBuildDeployMapping" parameterType="PlResBuildDeployMapping">
+        INSERT /* [Pl.xml].[insertPlResBuildDeployMapping].[01] 변경일자(20210118) */
+        INTO pl_res_build_deploy_mapping (
+              pl_res_build_seq
+            , pl_res_deploy_seq
+            , res_type
+            , res_name
+            , container_name
+        ) VALUES (
+              #{plResBuildSeq}
+            , #{plResDeploySeq}
+            , #{resType}
+            , #{resName}
+            , #{containerName}
+        )
+    </insert>
+
+	<insert id="insertPlResBuildDeployMappingFromRun" parameterType="map">
+		INSERT /* [Pl.xml].[insertPlResBuildDeployMappingFromRun].[01] 변경일자(20210316) */
+		  INTO pl_res_build_deploy_mapping (
+			   pl_res_build_seq
+			 , pl_res_deploy_seq
+			 , res_type
+			 , res_name
+			 , container_name
+		)
+		select b.pl_res_build_seq, d.pl_res_deploy_seq, rdm.res_type, rdm.res_name, rdm.container_name
+		  from pl_run_build rb
+				 inner join pl_run r on r.pl_run_seq = rb.pl_run_seq
+				 inner join pl_run_build_deploy_mapping rdm on rdm.pl_run_build_seq = rb.pl_run_build_seq
+				 inner join pl_res_build b on (b.build_run_seq = rb.build_run_seq or b.build_run_seq = rb.build_prev_run_seq) and b.pl_seq = r.pl_seq
+				 inner join pl_res_deploy d on d.res_type = rdm.res_type and d.res_name = rdm.res_name and d.pl_seq = r.pl_seq
+		where rb.pl_run_seq = #{plRunSeq}
+	</insert>
+
+	<delete id="deletePlResBuildDeployMapping" parameterType="map">
+		delete /* [Pl.xml].[deletePlResBuildDeployMapping].[01] 변경일자(20210204) */
+		  from pl_res_build_deploy_mapping
+		<where>
+			<choose>
+				<when test="plResBuildSeq != null">
+					and pl_res_build_seq = #{plResBuildSeq}
+				</when>
+				<when test="plResDeploySeq != null">
+					and pl_res_deploy_seq = #{plResDeploySeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+	</delete>
+
+	<select id="getPlResDeploy" parameterType="map" resultMap="PlResDeployMap">
+		SELECT /* [Pl.xml].[getPlResDeploy].[01] 변경일자(20210119) */
+			   prd.pl_res_deploy_seq      AS plResDeploySeq
+			 , prd.pl_seq                 AS plSeq
+			 , prd.res_type               AS resType
+			 , prd.res_name               AS resName
+			 , prd.res_cont               AS resCont
+			 , prd.run_order              AS runOrder
+			 , prd.run_yn                 AS runYn
+			 , pm.cluster_seq             AS clusterSeq
+			 , pm.namespace               AS namespace
+			 , prd.created                AS created
+			 , prd.creator                AS creator
+			 , prd.updated                AS updated
+			 , prd.updater                AS updater
+
+			 , prb.pl_res_build_seq       AS prb_plResBuildSeq
+			 , prb.pl_seq                 AS prb_plSeq
+			 , prb.img_url                AS prb_imgUrl
+			 , prb.build_seq              AS prb_buildSeq
+			 , prb.build_run_seq          AS prb_buildRunSeq
+			 , prb.build_tag              AS prb_buildTag
+
+		     , prbdm.pl_res_build_seq     AS prb_pbdm_plResBuildSeq
+             , prbdm.pl_res_deploy_seq    AS prb_pbdm_plResDeploySeq
+             , prbdm.res_type             AS prb_pbdm_resType
+             , prbdm.res_name             AS prb_pbdm_resName
+             , prbdm.container_name       AS prb_pbdm_containerName
+		FROM pl_master pm
+				INNER JOIN pl_res_deploy prd ON pm.pl_seq = prd.pl_seq AND prd.pl_res_deploy_seq = #{plResDeploySeq}
+		        LEFT OUTER JOIN pl_res_build_deploy_mapping prbdm ON prd.pl_res_deploy_seq = prbdm.pl_res_deploy_seq
+				LEFT OUTER JOIN pl_res_build prb ON prbdm.pl_res_build_seq = prb.pl_res_build_seq
+		WHERE pm.use_yn = 'Y'
+		AND pm.pl_seq = #{plSeq}
+	</select>
+
+	<select id="getPlMaster" parameterType="map" resultMap="PlMasterMap">
+		SELECT /* [Pl.xml].[getPlMaster].[01] 변경일자(20210119) */
+			   pm.name       	AS name
+			 , pm.pl_seq        AS plSeq
+			 , pm.cluster_seq   AS clusterSeq
+			 , pm.namespace     AS namespace
+			 , pm.ver           AS ver
+			 , pm.pl_run_seq    AS plRunSeq
+			 , pm.use_yn        AS useYn
+			 , pm.created       AS created
+			 , pm.creator       AS creator
+			 , pm.updated       AS updated
+			 , pm.updater       AS updater
+		FROM pl_master pm
+		WHERE pm.use_yn = 'Y'
+		AND pm.pl_seq = #{plSeq}
+	</select>
+
+	<insert id="insertPlRun" parameterType="PlRun" useGeneratedKeys="true" keyProperty="plRunSeq" keyColumn="pl_run_seq">
+		INSERT	/* [Pl.xml].[insertPlRun].[01] 변경일자(20210118) */
+		INTO pl_run (
+					pl_seq
+				  , run_note
+				  , ver
+				  , run_status
+				  , callback_url
+				  , begin_time
+				  , use_yn
+				  , created
+				  , creator
+				  , updated
+				  , updater
+		) VALUES(
+				  #{plSeq}
+				, #{runNote}
+				, #{ver}
+				, #{runStatus}
+				, #{callbackUrl}
+				, UTC_TIMESTAMP()
+				, 'Y'
+				, UTC_TIMESTAMP()
+				, #{creator}
+				, UTC_TIMESTAMP()
+				, #{updater}
+		)
+	</insert>
+
+	<insert id="insertPlRunBuild" parameterType="PlRunBuild" useGeneratedKeys="true" keyProperty="plRunBuildSeq" keyColumn="pl_run_build_seq">
+		INSERT	/* [Pl.xml].[insertPlRunBuild].[01] 변경일자(20210118) */
+		INTO pl_run_build (
+					pl_run_seq
+				  , pl_res_build_seq
+				  , build_seq
+				  , build_prev_run_seq
+				  , build_run_seq
+				  , img_url
+				  , build_tag
+				  , build_cont
+				  , run_order
+				  , run_yn
+				  , run_status
+				  , run_log
+				  , begin_time
+				  , end_time
+				  , created
+				  , creator
+				  , updated
+				  , updater
+		)
+		VALUES(
+				  #{plRunSeq}
+				, #{plResBuildSeq}
+				, #{buildSeq}
+				, #{buildPrevRunSeq}
+				, #{buildRunSeq}
+				, #{imgUrl}
+				, #{buildTag}
+				, #{buildCont}
+				, #{runOrder}
+				, #{runYn}
+				, #{runStatus}
+				, #{runLog}
+				, #{beginTime}
+				, #{endTime}
+				, UTC_TIMESTAMP()
+				, #{creator}
+				, UTC_TIMESTAMP()
+				, #{updater}
+		)
+	</insert>
+
+	<insert id="insertPlRunBuildWithRes" parameterType="map" useGeneratedKeys="true" keyColumn="pl_run_build_seq">
+		INSERT	/* [Pl.xml].[insertPlRunBuildWithRes].[01] 변경일자(20210118) */
+		INTO pl_run_build (
+					pl_run_seq
+				  , pl_res_build_seq
+				  , build_seq
+				  , build_prev_run_seq
+				  , build_run_seq
+				  , img_url
+				  , build_tag
+				  , build_cont
+				  , run_order
+				  , run_yn
+				  , run_status
+				  , created
+				  , creator
+				  , updated
+				  , updater
+		)
+		SELECT
+				  #{plRunSeq}
+				, prb.pl_res_build_seq
+				, prb.build_seq
+				, prb.build_run_seq
+				, null
+		     	, img_url
+				, prb.build_tag
+				, prb.build_cont
+				, prb.run_order
+		     <choose>
+				 <when test="runYn != null">
+					 , #{runYn}
+				 </when>
+		     	 <otherwise>
+					 , prb.run_yn
+				 </otherwise>
+			 </choose>
+				, #{runStatus}
+				, UTC_TIMESTAMP()
+				, #{creator}
+				, UTC_TIMESTAMP()
+				, #{creator}
+		FROM pl_master pm
+				 INNER JOIN pl_res_build prb ON pm.pl_seq = prb.pl_seq
+		WHERE pm.use_yn = 'Y'
+		  AND pm.pl_seq = #{plSeq}
+	</insert>
+
+	<insert id="insertPlRunDeploy" parameterType="PlRunDeploy" useGeneratedKeys="true" keyProperty="plRunDeploySeq" keyColumn="pl_run_deploy_seq">
+		INSERT	/* [Pl.xml].[insertPlRunDeploy].[01] 변경일자(20210118) */
+		INTO pl_run_deploy (
+				pl_run_seq
+			  , pl_res_deploy_seq
+			  , res_type
+			  , res_name
+			  , res_cont
+			  , run_order
+			  , run_yn
+			  , run_status
+			  , run_log
+			  , begin_time
+			  , end_time
+			  , created
+			  , creator
+			  , updated
+			  , updater
+		)
+		VALUES(
+				#{plRunSeq}
+			  , #{plResDeploySeq}
+			  , #{resType}
+			  , #{resName}
+			  , #{resCont}
+			  , #{runOrder}
+			  , #{runYn}
+			  , #{runStatus}
+			  , #{runLog}
+			  , #{beginTime}
+			  , #{endTime}
+			  , UTC_TIMESTAMP()
+			  , #{creator}
+			  , UTC_TIMESTAMP()
+			  , #{updater}
+		)
+	</insert>
+
+	<insert id="insertPlRunDeployWithRes" parameterType="map" useGeneratedKeys="true" keyColumn="pl_run_deploy_seq">
+		INSERT	/* [Pl.xml].[insertPlRunDeployWithRes].[01] 변경일자(20210118) */
+		INTO pl_run_deploy (
+				pl_run_seq
+			  , pl_res_deploy_seq
+			  , res_type
+			  , res_name
+			  , res_cont
+			  , run_order
+			  , run_yn
+			  , run_status
+			  , created
+			  , creator
+			  , updated
+			  , updater
+		)
+		SELECT
+				#{plRunSeq}
+			  , prd.pl_res_deploy_seq
+			  , prd.res_type
+			  , prd.res_name
+			  , prd.res_cont
+			  , prd.run_order
+		<choose>
+			<when test="runYn != null">
+				, #{runYn}
+			</when>
+			<otherwise>
+				, prd.run_yn
+			</otherwise>
+		</choose>
+			  , #{runStatus}
+			  , UTC_TIMESTAMP()
+			  , #{creator}
+			  , UTC_TIMESTAMP()
+			  , #{creator}
+		FROM pl_master pm
+				 INNER JOIN pl_res_deploy prd ON pm.pl_seq = prd.pl_seq
+		WHERE pm.use_yn = 'Y'
+		  AND pm.pl_seq = #{plSeq}
+	</insert>
+
+	<insert id="insertPlRunBuildDeployMappingWithRes" parameterType="map">
+		INSERT	/* [Pl.xml].[insertPlRunBuildDeployMappingWithRes].[01] 변경일자(20210118) */
+		INTO pl_run_build_deploy_mapping (
+				pl_run_build_seq
+			  , pl_run_deploy_seq
+			  , res_type
+			  , res_name
+			  , container_name
+		)
+		SELECT
+			   prb2.pl_run_build_seq
+		     , prd2.pl_run_deploy_seq
+			 , prbdm.res_type
+			 , prbdm.res_name
+			 , prbdm.container_name
+		FROM pl_run pr
+				 INNER JOIN pl_res_build prb ON prb.pl_seq = pr.pl_seq
+				 INNER JOIN pl_res_deploy prd ON prd.pl_seq = pr.pl_seq
+				 INNER JOIN pl_res_build_deploy_mapping prbdm ON prbdm.pl_res_build_seq = prb.pl_res_build_seq AND prbdm.pl_res_deploy_seq = prd.pl_res_deploy_seq
+				 INNER JOIN pl_run_build prb2 ON prb2.pl_run_seq = pr.pl_run_seq AND prb2.pl_res_build_seq = prb.pl_res_build_seq
+				 INNER JOIN pl_run_deploy prd2 ON prd2.pl_run_seq = pr.pl_run_seq AND prd2.pl_res_deploy_seq = prd.pl_res_deploy_seq
+		WHERE pr.pl_run_seq = #{plRunSeq}
+	</insert>
+
+	<select id="getPlRunCount" parameterType="map" resultType="int">
+		select /* [Pl.xml].[getPlRunCount].[01] 변경일자(20210302) */
+		       count(1) cnt
+		  from pl_run
+		 where pl_seq = #{plSeq}
+		   and run_status = 'RUNNING'
+		   and use_yn = 'Y'
+	</select>
+
+	<sql id="plRunCondition">
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(exceptRunningStatus)">
+			and not exists (
+				select 1
+				from pl_run i_pr
+				where i_pr.pl_seq = pr.pl_seq
+				and i_pr.pl_run_seq = pr.pl_run_seq
+				and i_pr.run_status in (<foreach collection="exceptRunningStatus" item="runStatus" separator=", ">#{runStatus}</foreach>)
+			)
+		</if>
+		<if test="startDate != null and endDate != null">
+			AND pr.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+	</sql>
+
+	<select id="getPlRunList" parameterType="PlRunListSearch" resultMap="PlRunMap">
+		select /* [Pl.xml].[getPlRunList].[01] 변경일자(20210309) */
+			  pr.pl_run_seq as plRunSeq
+			, pr.pl_seq as plSeq
+			, pr.run_note as runNote
+			, pr.ver as ver
+			, pr.run_status as runStatus
+			, pr.begin_time as beginTime
+			, pr.end_time as endTime
+			, IFNULL(TIMESTAMPDIFF(SECOND, pr.begin_time, pr.end_time), 0) AS runTimeBySec
+			, pr.created  as created
+			, pr.creator  as creator
+			, pr.updated  as updated
+			, pr.updater  as updater
+		from  pl_run pr
+		<where>
+			and pr.pl_seq = #{plSeq}
+			and pr.use_yn = 'Y'
+			<include refid="plRunCondition" />
+		</where>
+		order by pr.pl_run_seq desc
+		<if test="paging != null and paging.nextPage != null and paging.itemPerPage != null">
+			LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+		</if>
+	</select>
+
+	<select id="getPlRunListCount" parameterType="PlRunListSearch" resultType="ListCount">
+		SELECT /* [Pl.xml].[getPlRunListCount].[01] 변경일자(20210615) */
+			count(*) as cnt
+		from  pl_run pr
+		<where>
+			and pr.pl_seq = #{plSeq}
+			and pr.use_yn = 'Y'
+			<include refid="plRunCondition" />
+		</where>
+	</select>
+
+	<select id="getPlVerList" parameterType="map" resultType="PlRun">
+		select /* [Pl.xml].[getPlVersions].[01] 변경일자(20210309) */
+			   pr.pl_seq
+			 , pr.pl_run_seq
+			 , pr.run_note
+			 , pr.ver
+			 , pr.run_status as runStatus
+			 , pr.begin_time as beginTime
+			 , pr.end_time as endTime
+		  from pl_run pr
+				inner join (
+					select max(tmp.pl_run_seq) as pl_run_seq
+					  from pl_run tmp
+					 where tmp.use_yn = 'Y'
+					   and tmp.run_status = 'DONE'
+					 group by tmp.pl_seq, tmp.ver
+				) tmp_pr on tmp_pr.pl_run_seq = pr.pl_run_seq
+		where pr.use_yn = 'Y'
+		  and pr.run_status = 'DONE'
+		  and pr.pl_seq = #{plSeq}
+		order by pr.pl_run_seq desc
+	</select>
+
+	<select id="existPlVersion" parameterType="map" resultType="PlMaster">
+		select pl.pl_seq
+			 , pl.name
+		from pl_master pl
+		where exists (
+				select 1
+				from pl_run pr
+				where pr.use_yn = 'Y'
+				  and pr.run_status = 'DONE'
+				  and pr.pl_seq = pl.pl_seq
+				  and pr.ver = #{ver}
+			)
+		  and pl.pl_seq = #{plSeq}
+	</select>
+
+	<select id="getPlRunDetail" parameterType="map" resultMap="PlRunMap">
+		select /* [Pl.xml].[getPlDetail].[01] 변경일자(20210119) */
+			   pr.pl_run_seq as plRunSeq
+			 , pr.pl_seq as plSeq
+			 , pm.name as plName
+			 , pr.run_note as runNote
+			 , pr.ver as ver
+			 , pr.run_status as runStatus
+		     , pr.callback_url as callbackUrl
+			 , pr.begin_time AS beginTime
+			 , pr.end_time AS endTime
+		     , IFNULL(TIMESTAMPDIFF(SECOND, pr.begin_time, pr.end_time), 0) AS runTimeBySec
+			 , pr.created  as created
+			 , pr.creator  as creator
+			 , pr.updated  as updated
+			 , pr.updater  as updater
+
+			 , pd.pl_run_deploy_seq  as pd_plRunDeploySeq
+			 , pd.pl_run_seq  as pd_plRunSeq
+			 , pd.pl_res_deploy_seq  as pd_plResDeploySeq
+			 , pd.res_type as pd_resType
+			 , pd.res_name as pd_resName
+			 , pd.res_cont as pd_resCont
+			 , pd.run_order as pd_runOrder
+			 , pd.run_yn   as pd_runYn
+			 , pd.run_status   as pd_runStatus
+			 , pd.run_log   as pd_runLog
+			 , pd.begin_time AS pd_beginTime
+			 , pd.end_time AS pd_endTime
+			 , pd.created  as pd_created
+			 , pd.creator  as pd_creator
+			 , pd.updated  as pd_updated
+			 , pd.updater  as pd_updater
+
+			 , prb.pl_run_build_seq  	as pd_prb_plRunBuildSeq
+			 , prb.pl_run_seq  			as pd_prb_plRunSeq
+			 , prb.pl_res_build_seq  	as pd_prb_plResBuildSeq
+			 , prb.build_seq        		as pd_prb_buildSeq
+			 , prb.build_prev_run_seq   	as pd_prb_buildPrevRunSeq
+			 , prb.build_run_seq    		as pd_prb_buildRunSeq
+		     , prb.img_url				as pd_prb_imgUrl
+			 , prb.build_tag        		as pd_prb_buildTag
+			 , prb.build_cont  			as pd_prb_buildCont
+			 , prb.run_order    	    	as pd_prb_runOrder
+			 , prb.run_yn     	    	as pd_prb_runYn
+			 , prb.run_status   			as pd_prb_runStatus
+			 , prb.run_log   			as pd_prb_runLog
+			 , prb.begin_time 			AS pd_prb_beginTime
+			 , prb.end_time 				AS pd_prb_endTime
+			 , prb.created          		as pd_prb_created
+			 , prb.creator          		as pd_prb_creator
+			 , prb.updated          		as pd_prb_updated
+			 , prb.updater          		as pd_prb_updater
+
+			 , pbdm.pl_run_build_seq 	as pd_prb_pbdm_plRunBuildSeq
+			 , pbdm.pl_run_deploy_seq 	as pd_prb_pbdm_plRunDeploySeq
+			 , pbdm.res_type 			as pd_prb_pbdm_resType
+			 , pbdm.res_name 			as pd_prb_pbdm_resName
+			 , pbdm.container_name 		as pd_prb_pbdm_containerName
+
+			 , pb.pl_run_build_seq  	as pb_plRunBuildSeq
+			 , pb.pl_run_seq  			as pb_plRunSeq
+			 , pb.pl_res_build_seq  	as pb_plResBuildSeq
+			 , pb.build_seq        		as pb_buildSeq
+			 , pb.build_prev_run_seq   	as pb_buildPrevRunSeq
+			 , pb.build_run_seq    		as pb_buildRunSeq
+			 , pb.img_url				as pb_imgUrl
+			 , pb.build_tag        		as pb_buildTag
+			 , pb.build_cont  			as pb_buildCont
+			 , pb.run_order    	    	as pb_runOrder
+			 , pb.run_yn     	    	as pb_runYn
+			 , pb.run_status   			as pb_runStatus
+			 , pb.run_log   			as pb_runLog
+			 , pb.begin_time 			AS pb_beginTime
+			 , pb.end_time 				AS pb_endTime
+			 , pb.created          		as pb_created
+			 , pb.creator          		as pb_creator
+			 , pb.updated          		as pb_updated
+			 , pb.updater          		as pb_updater
+
+			 , pbdm.pl_run_build_seq 	as pb_pbdm_plRunBuildSeq
+			 , pbdm.pl_run_deploy_seq 	as pb_pbdm_plRunDeploySeq
+			 , pbdm.res_type 			as pb_pbdm_resType
+			 , pbdm.res_name 			as pb_pbdm_resName
+			 , pbdm.container_name 		as pb_pbdm_containerName
+		from  pl_run pr
+		          inner join pl_master pm on pm.pl_seq = pr.pl_seq and pm.use_yn = 'Y'
+				  left outer join pl_run_deploy pd on pd.pl_run_seq = pr.pl_run_seq
+		  				<if test="runYn != null">
+							and pd.run_yn = #{runYn}
+						</if>
+				  left outer join pl_run_build pb on pb.pl_run_seq = pr.pl_run_seq
+						<if test="runYn != null">
+							and pb.run_yn = #{runYn}
+						</if>
+				  left outer join pl_run_build_deploy_mapping pbdm on pbdm.pl_run_build_seq = pb.pl_run_build_seq and pbdm.pl_run_deploy_seq = pd.pl_run_deploy_seq
+                  left outer join pl_run_build prb on prb.pl_run_seq = pr.pl_run_seq and prb.pl_run_build_seq = pbdm.pl_run_build_seq
+                        <if test="runYn != null">
+                            and pb.run_yn = #{runYn}
+                        </if>
+		where pr.pl_run_seq = #{plRunSeq}
+		  and pr.use_yn = 'Y'
+		order by pb.run_order, pd.run_order
+	</select>
+
+	<select id="getPlRunBuildDetail" parameterType="map" resultMap="PlRunBuildMap">
+		select /* [Pl.xml].[getPlRunBuildDetail].[01] 변경일자(20210506) */
+			  pb.pl_run_build_seq  	    as plRunBuildSeq
+			, pb.pl_run_seq  			as plRunSeq
+			, pb.pl_res_build_seq  	    as plResBuildSeq
+			, pb.build_seq        		as buildSeq
+			, pb.build_prev_run_seq   	as buildPrevRunSeq
+			, pb.build_run_seq    		as buildRunSeq
+			, pb.img_url				as imgUrl
+			, pb.build_tag        		as buildTag
+			, pb.build_cont  			as buildCont
+			, pb.run_order    	    	as runOrder
+			, pb.run_yn     	    	as runYn
+			, pb.run_status   			as runStatus
+			, pb.run_log   			    as runLog
+			, pb.begin_time 			AS beginTime
+			, pb.end_time 				AS endTime
+		    , IFNULL(TIMESTAMPDIFF(SECOND, pb.begin_time, pb.end_time), 0) AS runTimeBySec
+			, pb.created          		as created
+			, pb.creator          		as creator
+			, pb.updated          		as updated
+			, pb.updater          		as updater
+			, pbdm.pl_run_build_seq 	as pbdm_plRunBuildSeq
+			, pbdm.pl_run_deploy_seq 	as pbdm_plRunDeploySeq
+			, pbdm.res_type 			as pbdm_resType
+			, pbdm.res_name 			as pbdm_resName
+			, pbdm.container_name 		as pbdm_containerName
+		from  pl_run_build pb
+			inner join pl_run pr on pr.pl_run_seq = pb.pl_run_seq and pr.use_yn = 'Y'
+			inner join pl_master pm on pm.pl_seq = pr.pl_seq and pm.use_yn = 'Y'
+			left outer join pl_run_build_deploy_mapping pbdm on pbdm.pl_run_build_seq = pb.pl_run_build_seq
+		where pb.pl_run_build_seq = #{plRunBuildSeq}
+		<if test="plSeq != null">
+		    and pm.pl_seq = #{plSeq}
+		</if>
+		<if test="plRunSeq != null">
+			and pb.pl_run_seq = #{plRunSeq}
+		</if>
+	</select>
+
+	<select id="getPlRun" parameterType="map" resultMap="PlRunMap">
+		select /* [Pl.xml].[getPlRun].[01] 변경일자(20210506) */
+			   pr.pl_run_seq as plRunSeq
+			 , pr.pl_seq as plSeq
+			 , pm.name as plName
+			 , pr.run_note as runNote
+			 , pr.ver as ver
+			 , pr.run_status as runStatus
+		     , pr.callback_url as callbackUrl
+			 , pr.begin_time AS beginTime
+			 , pr.end_time AS endTime
+		     , IFNULL(TIMESTAMPDIFF(SECOND, pr.begin_time, pr.end_time), 0) AS runTimeBySec
+			 , pr.created  as created
+			 , pr.creator  as creator
+			 , pr.updated  as updated
+			 , pr.updater  as updater
+		from  pl_run pr
+		          inner join pl_master pm on pm.pl_seq = pr.pl_seq and pm.use_yn = 'Y'
+		where pr.pl_run_seq = #{plRunSeq}
+		  and pr.use_yn = 'Y'
+	</select>
+
+	<select id="getPlRunDeploy" parameterType="map" resultMap="PlRunDeployMap">
+		SELECT /* [Pl.xml].[getPlRunDeploy].[01] 변경일자(20210506) */
+				  pd.pl_run_deploy_seq  as plRunDeploySeq
+				, pd.pl_run_seq  		as plRunSeq
+				, pd.pl_res_deploy_seq  as plResDeploySeq
+				, pd.res_type 			as resType
+				, pd.res_name 			as resName
+				, pd.res_cont 			as resCont
+				, pd.run_order 			as runOrder
+				, pd.run_yn   			as runYn
+				, pd.run_status   		as runStatus
+				, pd.run_log   			as runLog
+				, pd.begin_time 		AS beginTime
+				, pd.end_time 			AS endTime
+				, pd.created  			as created
+				, pd.creator  			as creator
+				, pd.updated  			as updated
+				, pd.updater  			as updater
+
+				, prb.pl_run_build_seq  	as prb_plRunBuildSeq
+				, prb.pl_run_seq  			as prb_plRunSeq
+				, prb.pl_res_build_seq  	as prb_plResBuildSeq
+				, prb.build_seq        		as prb_buildSeq
+				, prb.build_prev_run_seq   	as prb_buildPrevRunSeq
+				, prb.build_run_seq    		as prb_buildRunSeq
+				, prb.img_url				as prb_imgUrl
+				, prb.build_tag        		as prb_buildTag
+				, prb.build_cont  			as prb_buildCont
+				, prb.run_order    	    	as prb_runOrder
+				, prb.run_yn     	    	as prb_runYn
+				, prb.run_status   			as prb_runStatus
+				, prb.run_log   			as prb_runLog
+				, prb.begin_time 			AS prb_beginTime
+				, prb.end_time 				AS prb_endTime
+				, prb.created          		as prb_created
+				, prb.creator          		as prb_creator
+				, prb.updated          		as prb_updated
+				, prb.updater          		as prb_updater
+
+				, pbdm.pl_run_build_seq 	as prb_pbdm_plRunBuildSeq
+				, pbdm.pl_run_deploy_seq 	as prb_pbdm_plRunDeploySeq
+				, pbdm.res_type 			as prb_pbdm_resType
+				, pbdm.res_name 			as prb_pbdm_resName
+				, pbdm.container_name 		as prb_pbdm_containerName
+		FROM pl_run pr
+				inner join pl_master pm on pm.pl_seq = pr.pl_seq and pm.use_yn = 'Y'
+				inner join pl_run_deploy pd on pd.pl_run_seq = pr.pl_run_seq AND pd.pl_run_deploy_seq = #{plRunDeploySeq}
+				left outer join pl_run_build_deploy_mapping pbdm on pbdm.pl_run_deploy_seq = pd.pl_run_deploy_seq
+				left outer join pl_run_build prb on prb.pl_run_seq = pr.pl_run_seq and prb.pl_run_build_seq = pbdm.pl_run_build_seq
+		where pr.pl_run_seq = #{plRunSeq}
+		  and pr.use_yn = 'Y'
+	</select>
+
+	<update id="updatePlRunStatus" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunStatus].[01] 변경일자(20210119) */
+			pl_run
+		SET run_status = #{runStatus}
+		<if test='runStatus.toString() eq "DONE" or runStatus.toString() eq "ERROR" or runStatus.toString() eq "CANCELED"'>
+			, end_time = UTC_TIMESTAMP()
+		</if>
+			, updated = UTC_TIMESTAMP()
+		WHERE pl_run_seq = #{plRunSeq}
+	</update>
+
+	<update id="updatePlRunBuildForBuildRunSeq" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunBuildForBuildRunSeq].[01] 변경일자(2021304) */
+			pl_run_build
+		SET build_run_seq = #{buildRunSeq}
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_run_build_seq = #{plRunBuildSeq}
+	</update>
+
+	<update id="updatePlRunBuildStatus" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunBuildStatus].[01] 변경일자(20210119) */
+			pl_run_build
+		SET run_status = #{runStatus}
+		<if test='runStatus.toString() eq "RUNNING"'>
+			, begin_time = UTC_TIMESTAMP()
+		</if>
+		<if test='runStatus.toString() eq "DONE" or runStatus.toString() eq "ERROR"'>
+			, end_time = UTC_TIMESTAMP()
+		</if>
+		, updated = UTC_TIMESTAMP()
+		WHERE pl_run_build_seq = #{plRunBuildSeq}
+	</update>
+
+	<update id="updatePlRunBuildForbuildCont" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunBuildForbuildCont].[01] 변경일자(20210318) */
+			  pl_run_build
+		  SET build_cont = #{buildCont}
+			, updated = UTC_TIMESTAMP()
+		WHERE pl_run_build_seq = #{plRunBuildSeq}
+	</update>
+
+	<update id="updatePlRunBuildForBuildTagAndImgUrl" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunBuildForBuildTagAndImgUrl].[01] 변경일자(20210518) */
+			pl_run_build
+		SET build_tag = #{buildTag}
+		  , img_url = #{imgUrl}
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_run_build_seq = #{plRunBuildSeq}
+	</update>
+
+
+	<update id="updatePlRunBuildLog" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunBuildLog].[01] 변경일자(2021308) */
+			pl_run_build
+		SET run_log = CONCAT(IFNULL(run_log,''),#{runLog})
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_run_build_seq = #{plRunBuildSeq}
+	</update>
+
+	<update id="updatePlResBuildsFromRunBuilds" parameterType="map">
+		update /* [Pl.xml].[updatePlResBuildsFromRunBuild].[01] 변경일자(20210318) */
+		    pl_res_build pb, pl_run_build prb
+		  set pb.img_url = prb.img_url
+		    , pb.build_seq = prb.build_seq
+		    , pb.build_run_seq = ifnull(prb.build_run_seq, prb.build_prev_run_seq)
+		    , pb.build_tag = prb.build_tag
+		    , pb.build_cont = prb.build_cont
+		    , pb.run_yn = prb.run_yn
+		    , pb.run_order = prb.run_order
+		    , pb.created = utc_timestamp()
+		    , pb.creator = prb.creator
+		    , pb.updated = utc_timestamp()
+		    , pb.updater = prb.updater
+		where pb.pl_seq = #{plSeq}
+		  and prb.pl_run_seq = #{plRunSeq}
+		  and pb.pl_res_build_seq = prb.pl_res_build_seq
+	</update>
+
+	<update id="updatePlRunDeployStatus" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunDeployStatus].[01] 변경일자(20210119) */
+			pl_run_deploy
+		SET run_status = #{runStatus}
+		<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(runLog)'>
+			, run_log = CONCAT(IFNULL(run_log, ''), #{runLog})
+		</if>
+		<if test='runStatus.toString() eq "RUNNING"'>
+			, begin_time = UTC_TIMESTAMP()
+		</if>
+		<if test='runStatus.toString() eq "DONE" or runStatus.toString() eq "ERROR"'>
+			, end_time = UTC_TIMESTAMP()
+		</if>
+			, updated = UTC_TIMESTAMP()
+		WHERE pl_run_deploy_seq = #{plRunDeploySeq}
+	</update>
+
+	<update id="updatePlRunDeployLog" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunDeployLog].[01] 변경일자(20210308) */
+			pl_run_deploy
+		SET run_log = CONCAT(IFNULL(run_log, ''), #{runLog})
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_run_deploy_seq = #{plRunDeploySeq}
+	</update>
+
+	<update id="updatePlRunDeployContents" parameterType="map">
+		UPDATE /* [Pl.xml].[updatePlRunDeployContents].[01] 변경일자(20210308) */
+			pl_run_deploy
+		SET res_cont = #{resCont}
+		  , updated = UTC_TIMESTAMP()
+		WHERE pl_run_deploy_seq = #{plRunDeploySeq}
+	</update>
+
+	<update id="updatePlResDeploysFromRunDeploys" parameterType="map">
+		update /* [Pl.xml].[updatePlResDeploysFromRunDeploys].[01] 변경일자(2021318) */
+		  	pl_res_deploy pd, pl_run_deploy prd
+		  set pd.res_type = prd.res_type
+		    , pd.res_name = prd.res_name
+		    , pd.res_cont = prd.res_cont
+		    , pd.run_yn = prd.run_yn
+		    , pd.run_order = prd.run_order
+		    , pd.created = utc_timestamp()
+		    , pd.creator = prd.creator
+		    , pd.updated = utc_timestamp()
+		    , pd.updater = prd.updater
+		where pd.pl_seq = #{plSeq}
+		  and prd.pl_run_seq = #{plRunSeq}
+		  and pd.pl_res_deploy_seq = prd.pl_res_deploy_seq
+	</update>
+
+</mapper>

@@ -1,0 +1,839 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.build.dao.IBuildRunMapper">
+
+	<resultMap type="PipelineBuildRun" id="PipelineBuildRunMap"  autoMapping="true">
+		<id property="buildRunSeq" column="buildRunSeq" />
+		<collection property="buildStepRuns" columnPrefix="bsr_" resultMap="PipelineBuildStepRunMap" />
+	</resultMap>
+
+	<resultMap type="PipelineBuildRunLog" id="PipelineBuildRunLogMap" autoMapping="true">
+		<id property="buildRunSeq" column="buildRunSeq" />
+		<collection property="buildRunLogs" columnPrefix="bsr_" resultMap="PipelineBuildStepRunMap" />
+	</resultMap>
+
+	<resultMap type="PipelineBuildStepRun" id="PipelineBuildStepRunMap" autoMapping="true">
+		<id property="buildStepRunSeq" column="buildStepRunSeq" />
+	</resultMap>
+
+	<insert id="addBuildRun" parameterType="PipelineBuildRun" useGeneratedKeys="true" keyProperty="buildRunSeq">
+		INSERT /* [BuildRun.xml].[addBuildRun].[01] 변경일자(20190827) */
+		INTO build_run (
+			 build_seq,
+			 build_no,
+			 run_type,
+			 run_desc,
+			 run_state,
+			 callback_url,
+			 pipeline_seq,
+			 related_pipeline,
+			 begin_time,
+			 build_server_host,
+			 build_server_tls_verify,
+			 build_server_cacrt,
+			 build_server_client_cert,
+			 build_server_client_key,
+			 autotag_use_yn,
+			 autotag_prefix,
+			 autotag_seq_type,
+			 tag_name,
+		     image_url,
+			 created,
+			 creator,
+			 updated,
+			 updater
+		) VALUES (
+			 #{buildSeq},
+			 #{buildNo},
+			 #{runType},
+			 #{runDesc},
+			 #{runState},
+			 #{callbackUrl},
+			 #{pipelineSeq},
+			 #{relatedPipeline},
+			 UTC_TIMESTAMP(),
+			 #{buildServerHost},
+			 IFNULL(#{buildServerTlsVerify}, 'N'),
+			 #{buildServerCacrt},
+			 #{buildServerClientCert},
+			 #{buildServerClientKey},
+			 IFNULL(#{autotagUseYn}, 'N'),
+			 #{autotagPrefix},
+			 #{autotagSeqType},
+			 #{tagName},
+		     #{imageUrl},
+			 UTC_TIMESTAMP(),
+			 #{creator},
+			 UTC_TIMESTAMP(),
+			 #{creator}
+		)
+	</insert>
+
+	<insert id="addBuildStepRun" parameterType="PipelineBuildStepRun" useGeneratedKeys="true" keyProperty="buildStepRunSeq">
+		INSERT /* [BuildRun.xml].[addBuildStepRun].[01] 변경일자(20190827) */
+		INTO build_step_run(
+			 build_step_seq,
+			 build_run_seq,
+			 step_type,
+			 step_config,
+			 step_state,
+			 step_order,
+			 log,
+			 created,
+			 creator,
+			 updated,
+			 updater
+		) VALUES (
+			 #{buildStepSeq},
+			 #{buildRunSeq},
+			 #{stepType},
+			 #{stepConfig},
+			 'WAIT',
+			 #{stepOrder},
+			 '',
+			 UTC_TIMESTAMP(),
+			 #{creator},
+			 UTC_TIMESTAMP(),
+			 #{creator}
+		)
+	</insert>
+
+	<insert id="addBuildStepRunsByBuildStep" parameterType="PipelineBuildRun">
+		INSERT /* [BuildRun.xml].[addBuildStepRunsByBuildStep].[01] 변경일자(20190828) */
+		INTO build_step_run (
+			build_step_seq,
+			build_run_seq,
+			step_type,
+			step_config,
+			step_state,
+			step_order,
+			log,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		SELECT build_step_seq		AS build_step_seq,
+			   #{buildRunSeq}		AS build_run_seq,
+			   step_type			AS step_type,
+			   step_config			AS step_config,
+			   'WAIT'				AS step_state,
+			   step_order			AS step_order,
+			   ''					AS log,
+			   UTC_TIMESTAMP()		AS created,
+			   #{creator}			AS creator,
+			   UTC_TIMESTAMP()		AS updated,
+			   #{creator}			AS updater
+		  FROM build_step
+		 WHERE build_seq = #{buildSeq}
+		   AND use_yn = 'Y'
+	</insert>
+
+	<insert id="addBuildStepRunsByHistory" parameterType="PipelineBuildRun">
+		INSERT /* [BuildRun.xml].[addBuildStepRunsByHistory].[01] 변경일자(20190828) */
+		INTO build_step_run (
+			build_step_seq,
+			build_run_seq,
+			step_type,
+			step_config,
+			step_state,
+			step_order,
+			log,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		SELECT
+			build_step_seq		AS build_step_seq,
+			#{buildRunSeq}		AS build_run_seq,
+			step_type			AS step_type,
+			step_config			AS step_config,
+			'WAIT'				AS step_state,
+			step_order			AS step_order,
+			''					AS log,
+			UTC_TIMESTAMP()		AS created,
+			#{creator}			AS creator,
+			UTC_TIMESTAMP()		AS updated,
+			#{creator}			AS updater
+		FROM build_step_run
+		WHERE build_run_seq = #{prevBuildRunSeq}
+		  AND use_yn = 'Y'
+	</insert>
+
+	<delete id="removeBuildRun" parameterType="PipelineBuildRun">
+		DELETE /* [BuildRun.xml].[removeBuildRun].[01] 변경일자(20190910) */
+		  FROM build_run
+		 WHERE build_run_seq = #{buildRunSeq}
+	</delete>
+
+	<delete id="removeBuildRunByBuild" parameterType="PipelineBuild">
+		DELETE /* [BuildRun.xml].[removeBuildRunByBuild].[01] 변경일자(20191014) */
+		FROM build_run
+		WHERE build_seq = #{buildSeq}
+	</delete>
+
+	<delete id="removeBuildStepRun" parameterType="PipelineBuildRun">
+		DELETE /* [BuildRun.xml].[removeBuildStepRun].[01] 변경일자(20190910) */
+		  FROM build_step_run
+		 WHERE build_run_seq = #{buildRunSeq}
+	</delete>
+
+	<delete id="removeBuildStepRunByBuild" parameterType="PipelineBuild">
+		DELETE bsr /* [BuildRun.xml].[removeBuildStepRunByBuild].[01] 변경일자(20191014) */
+		  FROM build_step_run bsr
+				INNER JOIN build_run br ON br.build_run_seq = bsr.build_run_seq
+		WHERE br.build_seq = #{buildSeq}
+	</delete>
+
+	<select id="getBuildRuns" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRuns].[01] 변경일자(20190828) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.image_name AS imageName
+			 , bd.external_registry_seq AS externalRegistrySeq
+		     , bd.account_seq AS accountSeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_server_tls_verify AS buildServerTlsVerify
+			 , br.build_server_cacrt AS buildServerCacrt
+			 , br.build_server_client_cert AS buildServerClientCert
+			 , br.build_server_client_key AS buildServerClientKey
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+		     , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+		     , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		 FROM build_run br
+		INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.build_seq = #{buildSeq}
+		  AND br.use_yn = 'Y'
+	</select>
+
+	<select id="getBuildRunsByBuildRunSeqs" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRunsByBuildRunSeqs].[01] 변경일자(20191121) */
+			bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.image_name AS imageName
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , bd.account_seq AS accountSeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_server_tls_verify AS buildServerTlsVerify
+			 , br.build_server_cacrt AS buildServerCacrt
+			 , br.build_server_client_cert AS buildServerClientCert
+			 , br.build_server_client_key AS buildServerClientKey
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+			 , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		FROM build_run br
+				 INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.build_run_seq IN (<foreach collection="buildRunSeqs" item="buildRunSeq" separator=", ">#{buildRunSeq}</foreach>)
+		  AND br.use_yn = 'Y'
+	</select>
+
+	<select id="getBuildRunsByLatest" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRunsByLatest].[01] 변경일자(20190828) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.image_name AS imageName
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , bd.account_seq AS accountSeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_server_tls_verify AS buildServerTlsVerify
+			 , br.build_server_cacrt AS buildServerCacrt
+			 , br.build_server_client_cert AS buildServerClientCert
+			 , br.build_server_client_key AS buildServerClientKey
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+			 , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		FROM (select build_seq
+		           , MAX(build_run_seq) as build_run_seq
+				from build_run
+			   where run_type = 'BUILD'
+				 and run_state = 'DONE'
+				 and image_url is not null
+				 and image_size is not null
+				 and image_size > 0
+				 and use_yn = 'Y'
+			   group by build_seq
+			 ) last_br
+		         INNER JOIN build_run br on br.build_seq = last_br.build_seq and br.build_run_seq = last_br.build_run_seq
+				 INNER JOIN build bd on bd.build_seq = br.build_seq and bd.use_yn = 'Y'
+		WHERE br.use_yn = 'Y'
+		<if test="accountSeq != null">
+		  AND bd.account_seq = #{accountSeq}
+		</if>
+		<if test="serviceSeq != null">
+		  AND ( bd.registry_project_id in (select project_id from service_registry sr where sr.service_seq = #{serviceSeq} )
+			 OR bd.external_registry_seq  in (select external_registry_seq from external_registry_service_mapping ersm where ersm.service_seq = #{serviceSeq}) )
+		</if>
+		ORDER BY br.build_run_seq DESC
+		LIMIT #{limitCount}
+	</select>
+
+	<select id="getBuildRunsByExistsImage" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRuns].[01] 변경일자(20190828) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+		     , bd.account_seq AS accountSeq
+		     , bd.registry_project_id AS registryProjectId
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+		     , br.pipeline_seq AS pipelineSeq
+		     , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		 FROM build_run br
+		INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.run_type = 'BUILD'
+		  AND br.run_state = 'DONE'
+		<if test="buildSeq != null">
+		  AND br.build_seq = #{buildSeq}
+		</if>
+		  AND br.image_url is not null
+		  AND br.image_size is not null
+		  AND br.image_size > 0
+		  AND br.use_yn = 'Y'
+	</select>
+
+	<select id="getBuildRunsBySameDigest" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRuns].[01] 변경일자(20190828) */
+			  bd.build_name AS buildName
+			, bd.build_desc AS buildDesc
+			, bd.registry_name AS registryName
+			, bd.image_name AS imageName
+			, bd.account_seq AS accountSeq
+			, bd.external_registry_seq AS externalRegistrySeq
+			, br.build_server_host AS buildServerHost
+			, br.build_run_seq AS buildRunSeq
+			, br.build_seq AS buildSeq
+			, br.build_no AS buildNo
+			, br.autotag_use_yn AS autotagUseYn
+			, br.autotag_prefix AS autotagPrefix
+			, br.autotag_seq_type AS autotagSeqType
+		    , br.tag_name AS tagName
+			, br.run_type AS runType
+			, br.run_desc AS runDesc
+			, br.run_state AS runState
+			, br.callback_url AS callbackUrl
+			, br.pipeline_seq AS pipelineSeq
+			, br.related_pipeline AS relatedPipeline
+			, br.begin_time AS beginTime
+			, br.end_time AS endTime
+			, br.image_url AS imageUrl
+			, br.image_size AS imageSize
+			, br.image_digest AS imageDigest
+			, IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		 FROM build_run br
+		INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.run_type = 'BUILD'
+		  AND br.run_state = 'DONE'
+		  AND br.build_seq = #{buildSeq}
+		  AND br.image_digest = #{imageDigest}
+		  AND br.image_digest is not null
+		  AND br.image_url is not null
+		  AND br.image_size is not null
+		  AND br.image_size > 0
+		  AND br.use_yn = 'Y'
+	</select>
+
+	<select id="getBuildRunsBySameTagName" parameterType="map" resultType="PipelineBuildRun">
+		SELECT /* [BuildRun.xml].[getBuildRunsBySameTagName].[01] 변경일자(20190828) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+			 , bd.account_seq AS accountSeq
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+			 , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		FROM build_run br
+				 INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.run_type = 'BUILD'
+		  AND br.run_state = 'DONE'
+		  AND br.build_seq = #{buildSeq}
+		  AND br.tag_name = #{tagName}
+		  AND br.use_yn = 'Y'
+	</select>
+
+	<select id="getOtherBuildRunsBySameImageUrl" parameterType="map" resultType="PipelineBuildRun">
+		SELECT /* [BuildRun.xml].[getOtherBuildRunsBySameImageUrl].[01] 변경일자(20191121) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+			 , bd.account_seq AS accountSeq
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+			 , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		FROM build_run br
+				 INNER JOIN build bd ON bd.build_seq = br.build_seq
+				 INNER JOIN build_run img_br ON img_br.image_url = br.image_url AND img_br.build_run_seq IN (<foreach collection="buildRunSeqs" item="buildRunSeq" separator=", ">#{buildRunSeq}</foreach>)
+		WHERE br.run_type = 'BUILD'
+		  AND br.run_state = 'DONE'
+		  and br.image_size > 0
+		  AND br.use_yn = 'Y'
+		  AND br.build_seq = #{buildSeq}
+		  AND br.build_run_seq NOT IN (<foreach collection="buildRunSeqs" item="buildRunSeq" separator=", ">#{buildRunSeq}</foreach>)
+	</select>
+
+	<select id="getBuildRun" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRun].[01] 변경일자(20190828) */
+			   bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+			 , bd.account_seq AS accountSeq
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_server_tls_verify AS buildServerTlsVerify
+			 , br.build_server_cacrt AS buildServerCacrt
+			 , br.build_server_client_cert AS buildServerClientCert
+			 , br.build_server_client_key AS buildServerClientKey
+			 , br.build_run_seq AS buildRunSeq
+			 , br.build_seq AS buildSeq
+			 , br.build_no AS buildNo
+			 , br.autotag_use_yn AS autotagUseYn
+			 , br.autotag_prefix AS autotagPrefix
+			 , br.autotag_seq_type AS autotagSeqType
+			 , br.tag_name AS tagName
+			 , br.run_type AS runType
+			 , br.run_desc AS runDesc
+			 , br.run_state AS runState
+			 , br.callback_url AS callbackUrl
+			 , br.pipeline_seq AS pipelineSeq
+			 , br.related_pipeline AS relatedPipeline
+			 , br.begin_time AS beginTime
+			 , br.end_time AS endTime
+			 , br.image_url AS imageUrl
+			 , br.image_size AS imageSize
+			 , br.image_digest AS imageDigest
+			 , IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+			 , br.creator AS creator
+			 , bsr.build_step_run_seq AS bsr_buildStepRunSeq
+			 , bsr.build_step_seq AS bsr_buildStepSeq
+			 , bsr.step_type AS bsr_stepType
+			 , bsr.step_config AS bsr_stepConfig
+			 , bsr.step_state AS bsr_stepState
+		     , bsr.log_id AS bsr_logId
+			 , bsr.step_order AS bsr_stepOrder
+			 , bsr.step_result AS bsr_stepResult
+			 , bsr.begin_time AS bsr_beginTime
+			 , bsr.end_time AS bsr_endTime
+			 , IFNULL(TIMESTAMPDIFF(SECOND, bsr.begin_time, bsr.end_time), 0) AS bsr_runTimeBySec
+		  FROM build_run br
+				 INNER JOIN build bd on bd.build_seq = br.build_seq
+				 INNER JOIN build_step_run bsr on br.build_run_seq = bsr.build_run_seq
+		 WHERE br.build_run_seq = #{buildRunSeq}
+		   AND br.use_yn = 'Y'
+	  ORDER BY bsr.step_order ASC
+	</select>
+
+	<select id="getBuildRunWithUseYn" parameterType="map" resultMap="PipelineBuildRunMap">
+		SELECT /* [BuildRun.xml].[getBuildRun].[01] 변경일자(20190828) */
+			  bd.build_name AS buildName
+			, bd.build_desc AS buildDesc
+			, bd.registry_name AS registryName
+			, bd.image_name AS imageName
+			, bd.account_seq AS accountSeq
+			, bd.registry_project_id AS registryProjectId
+			, bd.external_registry_seq AS externalRegistrySeq
+			, br.build_server_host AS buildServerHost
+			, br.build_server_tls_verify AS buildServerTlsVerify
+			, br.build_server_cacrt AS buildServerCacrt
+			, br.build_server_client_cert AS buildServerClientCert
+			, br.build_server_client_key AS buildServerClientKey
+			, br.build_run_seq AS buildRunSeq
+			, br.build_seq AS buildSeq
+			, br.build_no AS buildNo
+			, br.autotag_use_yn AS autotagUseYn
+			, br.autotag_prefix AS autotagPrefix
+			, br.autotag_seq_type AS autotagSeqType
+			, br.tag_name AS tagName
+			, br.run_type AS runType
+			, br.run_desc AS runDesc
+			, br.run_state AS runState
+			, br.callback_url AS callbackUrl
+			, br.pipeline_seq AS pipelineSeq
+			, br.related_pipeline AS relatedPipeline
+			, br.begin_time AS beginTime
+			, br.end_time AS endTime
+			, br.image_url AS imageUrl
+			, br.image_size AS imageSize
+			, br.image_digest AS imageDigest
+			, IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+			, br.creator AS creator
+			, bsr.build_step_run_seq AS bsr_buildStepRunSeq
+			, bsr.build_step_seq AS bsr_buildStepSeq
+			, bsr.step_type AS bsr_stepType
+			, bsr.step_config AS bsr_stepConfig
+			, bsr.step_state AS bsr_stepState
+			, bsr.log_id AS bsr_logId
+			, bsr.step_order AS bsr_stepOrder
+			, bsr.step_result AS bsr_stepResult
+			, bsr.begin_time AS bsr_beginTime
+			, bsr.end_time AS bsr_endTime
+			, IFNULL(TIMESTAMPDIFF(SECOND, bsr.begin_time, bsr.end_time), 0) AS bsr_runTimeBySec
+		FROM build_run br
+				INNER JOIN build bd on bd.build_seq = br.build_seq
+				INNER JOIN build_step_run bsr on br.build_run_seq = bsr.build_run_seq
+		WHERE br.build_run_seq = #{buildRunSeq}
+		<if test="useYn != null">
+			AND br.use_yn = #{useYn}
+		</if>
+		ORDER BY bsr.step_order ASC
+	</select>
+	<select id="getBuildRunByImageUrl" parameterType="map" resultType="PipelineBuildRun">
+		SELECT /* [BuildRun.xml].[getBuildRuns].[01] 변경일자(20190828) */
+			  bd.build_name AS buildName
+			, bd.build_desc AS buildDesc
+			, bd.registry_name AS registryName
+		    , bd.registry_project_id AS registryProjectId
+			, bd.image_name AS imageName
+			, bd.account_seq AS accountSeq
+			, bd.external_registry_seq AS externalRegistrySeq
+			, br.build_server_host AS buildServerHost
+			, br.build_server_tls_verify AS buildServerTlsVerify
+			, br.build_server_cacrt AS buildServerCacrt
+			, br.build_server_client_cert AS buildServerClientCert
+			, br.build_server_client_key AS buildServerClientKey
+			, br.build_run_seq AS buildRunSeq
+			, br.build_seq AS buildSeq
+			, br.build_no AS buildNo
+			, br.autotag_use_yn AS autotagUseYn
+			, br.autotag_prefix AS autotagPrefix
+			, br.autotag_seq_type AS autotagSeqType
+			, br.tag_name AS tagName
+			, br.run_type AS runType
+			, br.run_desc AS runDesc
+			, br.run_state AS runState
+			, br.callback_url AS callbackUrl
+			, br.pipeline_seq AS pipelineSeq
+			, br.related_pipeline AS relatedPipeline
+			, br.begin_time AS beginTime
+			, br.end_time AS endTime
+			, br.image_url AS imageUrl
+			, br.image_size AS imageSize
+			, br.image_digest AS imageDigest
+			, IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time), 0) AS runTimeBySec
+		 FROM build_run br
+		INNER JOIN build bd on bd.build_seq = br.build_seq
+		WHERE br.run_type = 'BUILD'
+		    AND br.run_state = 'DONE'
+		    AND br.image_size > 0
+		    AND br.image_digest is not null
+			AND br.image_url = #{imageUrl}
+			AND br.use_yn = 'Y'
+		<if test="serviceSeq != null">
+			AND ( bd.registry_project_id in (select project_id from service_registry sr where sr.service_seq = #{serviceSeq})
+			   OR bd.external_registry_seq  in (select external_registry_seq from external_registry_service_mapping ersm where ersm.service_seq = #{serviceSeq}) )
+        </if>
+		<if test="accountSeq != null">
+			AND bd.account_seq = #{accountSeq}
+		</if>
+		<if test="buildSeq != null">
+			AND bd.build_seq = #{buildSeq}
+		</if>
+		ORDER BY br.created DESC
+		LIMIT 1
+	</select>
+
+	<select id="getBuildStepRuns" parameterType="map" resultMap="PipelineBuildStepRunMap">
+		SELECT /* [BuildRun.xml].[getBuildStepRuns].[01] 변경일자(20190827) */
+			   build_step_run_seq AS buildStepRunSeq
+			 , build_step_seq AS buildStepSeq
+			 , build_run_seq AS buildRunSeq
+			 , step_type AS stepType
+			 , step_config AS stepConfig
+			 , step_state AS stepState
+			 , log_id AS logId
+			 , step_order AS stepOrder
+			 , step_result AS stepResult
+			 , begin_time AS beginTime
+			 , end_time AS endTime
+		     , IFNULL(TIMESTAMPDIFF(SECOND, begin_time, end_time), 0) AS runTimeBySec
+			 , created AS created
+			 , creator AS creator
+			 , updated AS updated
+			 , updater AS updater
+		  FROM build_step_run
+		 WHERE build_run_seq = #{buildRunSeq}
+		   AND use_yn = 'Y'
+	  ORDER BY step_order ASC
+	</select>
+
+	<select id="getBuildStepRun" parameterType="int" resultType="PipelineBuildStepRun">
+		SELECT /* [BuildRun.xml].[getBuildStepRun].[01] 변경일자(20190827) */
+			   build_step_run_seq AS buildStepRunSeq
+			 , build_step_seq AS buildStepSeq
+			 , build_run_seq AS buildRunSeq
+			 , step_type AS stepType
+			 , step_config AS stepConfig
+			 , step_state AS stepState
+			 , step_order AS stepOrder
+			 , step_result AS stepResult
+			 , begin_time AS beginTime
+			 , end_time AS endTime
+		     , log_id AS logId
+			 , log AS log
+			 , use_yn AS useYn
+			 , created AS created
+			 , creator AS creator
+			 , updated AS updated
+			 , updater AS updater
+		  FROM build_step_run
+		 WHERE build_step_run_seq = #{buildStepRunSeq}
+		   AND use_yn = 'Y'
+	</select>
+
+	<select id="getBuildStepRunConfig" parameterType="Integer" resultType="String">
+		SELECT /* [BuildRun.xml].[getBuildStepRunConfig].[01] 변경일자(20190828) */
+			   bsr.step_config AS bsr_stepConfig
+		  FROM build_step_run bsr
+		 WHERE bsr.build_step_run_seq = #{buildStepRunSeq}
+	</select>
+
+	<!-- 로그조회, 로그 업데이트-->
+	<select id="getBuildAllLog" parameterType="int" resultMap="PipelineBuildRunLogMap">
+		SELECT /* [BuildRun.xml].[getBuildAllLog].[01] 변경일자(20190828) */
+			   br.build_run_seq AS buildRunSeq
+			 , br.run_state as runState
+			 , bd.build_seq as buildSeq
+			 , bd.registry_project_id as registryProjectId
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , bsr.build_step_run_seq AS bsr_buildStepRunSeq
+			 , bsr.build_step_seq AS bsr_buildStepSeq
+			 , bsr.build_run_seq AS bsr_buildRunSeq
+			 , bsr.step_type AS bsr_stepType
+			 , bsr.step_state AS bsr_stepState
+			 , bsr.step_order AS bsr_stepOrder
+		     , bsr.log_id AS bsr_logId
+			 , bsr.log AS bsr_log
+		  FROM build_step_run bsr
+			INNER JOIN build_run br ON br.build_run_seq = bsr.build_run_seq
+			INNER JOIN build bd ON bd.build_seq = br.build_seq
+		 WHERE bsr.use_yn = 'Y'
+		   AND br.build_run_seq = #{build_run_seq}
+	  ORDER BY bsr.step_order
+	</select>
+
+	<select id="getBuildLog" parameterType="map" resultMap="PipelineBuildRunLogMap">
+		SELECT /* [BuildRun.xml].[getBuildAllLog].[01] 변경일자(20190828) */
+			   br.build_run_seq AS buildRunSeq
+			 , br.run_state as runState
+			 , bd.build_seq as buildSeq
+			 , bd.registry_project_id as registryProjectId
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , bsr.build_step_run_seq AS bsr_buildStepRunSeq
+			 , bsr.build_step_seq AS bsr_buildStepSeq
+			 , bsr.build_run_seq AS bsr_buildRunSeq
+			 , bsr.step_type AS bsr_stepType
+			 , bsr.step_state AS bsr_stepState
+			 , bsr.step_order AS bsr_stepOrder
+			 , bsr.log_id AS bsr_logId
+			 , bsr.log AS bsr_log
+		  FROM build_step_run bsr
+			INNER JOIN build_run br ON br.build_run_seq = bsr.build_run_seq
+			INNER JOIN build bd ON bd.build_seq = br.build_seq
+		 WHERE bsr.use_yn = 'Y'
+		   AND bsr.build_step_run_seq = #{buildStepRunSeq}
+	  ORDER BY bsr.step_order
+	</select>
+
+	<update id="updateBuildStepRunLog" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildStepRunLog].[01] 변경일자(20170801) */
+			   build_step_run bsr
+		   SET log = concat(log , #{log})
+			 , updated = UTC_TIMESTAMP()
+		 WHERE bsr.build_step_run_seq = #{buildStepRunSeq}
+	</update>
+
+	<update id="updateBuildStepRunLogId" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildStepRunLogId].[01] 변경일자(20190910) */
+			   build_step_run bsr
+		   SET log_id = #{logId}
+		     , updated = UTC_TIMESTAMP()
+		 WHERE bsr.build_step_run_seq = #{buildStepRunSeq}
+	</update>
+
+	<update id="updateBuildStepConfig" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildStepRunLogId].[01] 변경일자(20190910) */
+			build_step_run bsr
+		SET step_config = #{stepConfig}
+		  , updated = UTC_TIMESTAMP()
+		WHERE bsr.build_step_run_seq = #{buildStepRunSeq}
+	</update>
+
+	<!-- 상태 업데이트 -->
+	<update id="updateBuildRunState" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildRunState].[01] 변경일자(20190828) */
+			   build_run
+		   SET run_state = #{runState}
+		<if test='runState.toString() eq "DONE" or runState.toString() eq "ERROR"'>
+			 , end_time = UTC_TIMESTAMP()
+		</if>
+			 , updated = UTC_TIMESTAMP()
+		 WHERE build_run_seq = #{buildRunSeq}
+	</update>
+
+	<update id="updateBuildStepRunState" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildStepRunState].[01] 변경일자(20170822) */
+			   build_step_run
+		   SET step_state = #{stepState}
+		<if test='stepState.toString() eq "RUNNING"'>
+			 , begin_time = UTC_TIMESTAMP()
+		</if>
+		<if test='stepState.toString() eq "DONE" or stepState.toString() eq "ERROR"'>
+			 , end_time = UTC_TIMESTAMP()
+		</if>
+			 , updated = UTC_TIMESTAMP()
+		 WHERE build_step_run_seq = #{buildStepRunSeq}
+	</update>
+
+	<update id="updateBuildStepRunStateWhenErrorOnRunning" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateBuildStepRunStateWhenErrorOnRunning].[01] 변경일자(20200327) */
+			   build_step_run
+		   SET step_state = 'ERROR'
+			 , end_time = UTC_TIMESTAMP()
+			 , updated = UTC_TIMESTAMP()
+		 WHERE build_run_seq = #{buildRunSeq}
+		   AND step_state = 'RUNNING'
+	</update>
+
+	<!-- 이미지 빌드결과 업데이트 -->
+	<update id="updateImageBuildResult" parameterType="map">
+		UPDATE /* [BuildRun.xml].[updateImageBuildResult].[01] 변경일자(20170904) */
+			   build_run
+		   SET image_url = #{imageUrl}
+		     , image_size= #{imageSize}
+			 , image_digest = #{imageDigest}
+			 , updated = UTC_TIMESTAMP()
+		 WHERE build_run_seq = #{buildRunSeq}
+	</update>
+
+	<select id="getRunningBuildCount" parameterType="map" resultType="int">
+		SELECT /* [Build.xml].[getRunningBuildCount].[01] 변경일자(20190828) */
+			   count(1)
+		  FROM build_run br
+		       INNER JOIN build bd on bd.build_seq = br.build_seq
+		 WHERE br.run_state in ('CREATED','RUNNING')
+		   AND br.run_type in ('BUILD')
+		<if test="accountSeq != null">
+		   AND bd.account_seq = #{accountSeq}
+		</if>
+		<if test="buildSeq != null">
+		   AND bd.build_seq = #{buildSeq}
+		</if>
+		<if test="pipelineSeq != null">
+			AND br.pipeline_seq = #{pipelineSeq}
+		</if>
+		   AND bd.use_yn = 'Y'
+	</select>
+
+</mapper>

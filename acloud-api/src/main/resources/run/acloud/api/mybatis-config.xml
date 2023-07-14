@@ -1,0 +1,202 @@
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "HTTP://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="cacheEnabled" value="false" />
+		<setting name="useGeneratedKeys" value="true" />
+		<setting name="defaultExecutorType" value="REUSE" />
+		<setting name="aggressiveLazyLoading" value="false"/>
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+		<setting name="safeResultHandlerEnabled" value="false" />
+	</settings>
+	<typeAliases>
+		<!-- run.acloud.api.code.vo -->
+		<typeAlias alias="Code" type="run.acloud.api.code.vo.CodeVO" />
+		<typeAlias alias="SubCode" type="run.acloud.api.code.vo.SubCodeVO" />
+
+		<!-- run.acloud.api.audit.vo -->
+		<typeAlias alias="AuditLog" type="run.acloud.api.audit.vo.AuditLogVO" />
+		<typeAlias alias="AuditAccessLog" type="run.acloud.api.audit.vo.AuditAccessLogVO" />
+		<typeAlias alias="ListCount" type="run.acloud.commons.vo.ListCountVO" />
+
+		<!-- run.acloud.api.auth.vo -->
+		<typeAlias alias="User" type="run.acloud.api.auth.vo.UserVO"/>
+		<typeAlias alias="UserOtp" type="run.acloud.api.auth.vo.UserOtpVO"/>
+		<typeAlias alias="UserExternal" type="run.acloud.api.auth.vo.UserExternalVO"/>
+
+		<!-- run.acloud.api.configuration.vo -->
+		<typeAlias alias="Account" type="run.acloud.api.configuration.vo.AccountVO" />
+		<typeAlias alias="ProviderAccount" type="run.acloud.api.configuration.vo.ProviderAccountVO" />
+		<typeAlias alias="ClusterProvider" type="run.acloud.api.configuration.vo.ClusterProviderVO" />
+		<typeAlias alias="Cluster" type="run.acloud.api.configuration.vo.ClusterVO" />
+		<typeAlias alias="ClusterDetail" type="run.acloud.api.configuration.vo.ClusterDetailVO" />
+		<typeAlias alias="ClusterDetailCondition" type="run.acloud.api.configuration.vo.ClusterDetailConditionVO" />
+		<typeAlias alias="ClusterDetailNamespace" type="run.acloud.api.configuration.vo.ClusterDetailNamespaceVO" />
+		<typeAlias alias="ClusterAdd" type="run.acloud.api.configuration.vo.ClusterAddVO" />
+		<typeAlias alias="ClusterCondition" type="run.acloud.api.configuration.vo.ClusterConditionVO" />
+		<typeAlias alias="Service" type="run.acloud.api.configuration.vo.ServiceVO" />
+		<typeAlias alias="ServiceList" type="run.acloud.api.configuration.vo.ServiceListVO" />
+		<typeAlias alias="ServiceDetail" type="run.acloud.api.configuration.vo.ServiceDetailVO" />
+		<typeAlias alias="ServiceServicempGroupList" type="run.acloud.api.configuration.vo.ServiceServicempGroupListVO" />
+		<typeAlias alias="ServiceRegistryUser" type="run.acloud.api.configuration.vo.ServiceRegistryUserVO" />
+		<typeAlias alias="ServiceBase" type="run.acloud.api.configuration.vo.ServiceCountVO" />
+		<typeAlias alias="ServiceRegistry" type="run.acloud.api.configuration.vo.ServiceRegistryVO" />
+		<typeAlias alias="ServiceRegistryDetail" type="run.acloud.api.configuration.vo.ServiceRegistryDetailVO" />
+		<typeAlias alias="ServiceCluster" type="run.acloud.api.configuration.vo.ServiceClusterVO" />
+		<typeAlias alias="ServiceInfo" type="run.acloud.api.configuration.vo.ServiceInfoVO" />
+		<typeAlias alias="ServiceAdd" type="run.acloud.api.configuration.vo.ServiceAddVO" />
+		<typeAlias alias="ClusterVolume" type="run.acloud.api.configuration.vo.ClusterVolumeVO" />
+		<typeAlias alias="ProviderAccountCount" type="run.acloud.api.configuration.vo.ProviderAccountCountVO" />
+		<typeAlias alias="GradePlan" type="run.acloud.api.configuration.vo.GradePlanVO" />
+		<typeAlias alias="AccountGrade" type="run.acloud.api.configuration.vo.AccountGradeVO" />
+		<typeAlias alias="AccountMetering" type="run.acloud.api.configuration.vo.AccountMeteringVO" />
+		<typeAlias alias="ClusterAccessAuth" type="run.acloud.api.configuration.vo.ClusterAccessAuthVO" />
+		<typeAlias alias="AccountService" type="run.acloud.api.configuration.vo.AccountServiceVO" />
+		<typeAlias alias="UserClusterRoleIssue" type="run.acloud.api.configuration.vo.UserClusterRoleIssueVO" />
+		<typeAlias alias="UserClusterRoleIssueBinding" type="run.acloud.api.configuration.vo.UserClusterRoleIssueBindingVO" />
+		<typeAlias alias="UserClusterRoleIssueHistory" type="run.acloud.api.configuration.vo.UserClusterRoleIssueHistoryVO" />
+		<typeAlias alias="UserShellConnectHistory" type="run.acloud.api.configuration.vo.UserShellConnectHistoryVO" />
+		<typeAlias alias="UserShellConnectHistoryList" type="run.acloud.api.configuration.vo.UserShellConnectHistoryListVO" />
+		<typeAlias alias="UserConfigDownloadHistory" type="run.acloud.api.configuration.vo.UserConfigDownloadHistoryVO" />
+		<typeAlias alias="UserConfigDownloadHistoryList" type="run.acloud.api.configuration.vo.UserConfigDownloadHistoryListVO" />
+		<typeAlias alias="UserClusterRoleIssueSearch" type="run.acloud.api.configuration.vo.UserClusterRoleIssueSearchVO" />
+		<typeAlias alias="AccountService" type="run.acloud.api.configuration.vo.AccountServiceVO" />
+		<typeAlias alias="GradePlanChargeBase" type="run.acloud.api.configuration.vo.GradePlanChargeBaseVO" />
+		<typeAlias alias="ExternalRegistry" type="run.acloud.api.configuration.vo.ExternalRegistryVO" />
+		<typeAlias alias="ExternalRegistryDetail" type="run.acloud.api.configuration.vo.ExternalRegistryDetailVO" />
+		<typeAlias alias="AccountRegistry" type="run.acloud.api.configuration.vo.AccountRegistryVO" />
+		<typeAlias alias="AccountApplication" type="run.acloud.api.configuration.vo.AccountApplicationVO" />
+		<typeAlias alias="AccountApplicationSearch" type="run.acloud.api.configuration.vo.AccountApplicationSearchVO" />
+
+
+		<!-- run.acloud.api.cserver.vo -->
+		<typeAlias alias="ServiceSummary" type="run.acloud.api.cserver.vo.ServiceSummaryVO" />
+		<typeAlias alias="ServiceRelation" type="run.acloud.api.cserver.vo.ServiceRelationVO" />
+		<typeAlias alias="ServiceUser" type="run.acloud.api.cserver.vo.ServiceUserVO" />
+		<typeAlias alias="Servicemap" type="run.acloud.api.cserver.vo.ServicemapVO" />
+		<typeAlias alias="ServicemapSummary" type="run.acloud.api.cserver.vo.ServicemapSummaryVO" />
+		<typeAlias alias="ServicemapAdd" type="run.acloud.api.cserver.vo.ServicemapAddVO" />
+		<typeAlias alias="ServicemapDetail" type="run.acloud.api.cserver.vo.ServicemapDetailVO" />
+		<typeAlias alias="ServicemapDetailResource" type="run.acloud.api.cserver.vo.ServicemapDetailResourceVO" />
+		<typeAlias alias="ServicemapMapping" type="run.acloud.api.cserver.vo.ServicemapMappingVO" />
+		<typeAlias alias="ServicemapGroupMapping" type="run.acloud.api.cserver.vo.ServicemapGroupMappingVO" />
+		<typeAlias alias="WorkloadGroup" type="run.acloud.api.cserver.vo.WorkloadGroupVO" />
+		<typeAlias alias="WorkloadGroupAdd" type="run.acloud.api.cserver.vo.WorkloadGroupAddVO" />
+		<typeAlias alias="ServicemapGroup" type="run.acloud.api.cserver.vo.ServicemapGroupVO" />
+		<typeAlias alias="ServicemapGroupAdd" type="run.acloud.api.cserver.vo.ServicemapGroupAddVO" />
+
+		<!-- run.acloud.api.external.vo -->
+		<typeAlias alias="KeycloakUser" type="run.acloud.api.external.vo.KeycloakUserVO" />
+
+		<!-- run.acloud.api.resource.vo -->
+		<typeAlias alias="Provider" type="run.acloud.api.resource.vo.ProviderVO" />
+		<typeAlias alias="Region" type="run.acloud.api.resource.vo.RegionVO" />
+		<typeAlias alias="Component" type="run.acloud.api.resource.vo.ComponentVO" />
+		<typeAlias alias="ComponentDetails" type="run.acloud.api.resource.vo.ComponentDetailsVO" />
+		<typeAlias alias="ComponentFilter" type="run.acloud.api.resource.vo.ComponentFilterVO" />
+		<typeAlias alias="Server" type="run.acloud.api.resource.vo.ServerVO" />
+		<typeAlias alias="ServerDetail" type="run.acloud.api.resource.vo.ServerDetailVO" />
+		<typeAlias alias="Container" type="run.acloud.api.resource.vo.ContainerVO" />
+		<typeAlias alias="ContainerPort" type="run.acloud.api.resource.vo.ContainerPortVO" />
+		<typeAlias alias="ContainerEnvVar" type="run.acloud.api.resource.vo.ContainerEnvVarVO" />
+		<typeAlias alias="ContainerVolume" type="run.acloud.api.resource.vo.ContainerVolumeVO" />
+        <typeAlias alias="PersistentVolume" type="run.acloud.api.resource.vo.PersistentVolumeVO" />
+        <typeAlias alias="PublicCertificateAdd" type="run.acloud.api.resource.vo.PublicCertificateAddVO" />
+        <typeAlias alias="PublicCertificate" type="run.acloud.api.resource.vo.PublicCertificateVO" />
+        <typeAlias alias="PublicCertificateDetail" type="run.acloud.api.resource.vo.PublicCertificateDetailVO" />
+
+		<!-- run.acloud.api.catalog.vo -->
+		<typeAlias alias="TemplateAdd" type="run.acloud.api.catalog.vo.TemplateAddVO"/>
+		<typeAlias alias="Template" type="run.acloud.api.catalog.vo.TemplateVO"/>
+		<typeAlias alias="TemplateVersion" type="run.acloud.api.catalog.vo.TemplateVersionVO"/>
+		<typeAlias alias="TemplateDeployment" type="run.acloud.api.catalog.vo.TemplateDeploymentVO"/>
+		<typeAlias alias="TemplateList" type="run.acloud.api.catalog.vo.TemplateListVO"/>
+		<typeAlias alias="TemplateDetail" type="run.acloud.api.catalog.vo.TemplateDetailVO"/>
+		<typeAlias alias="TemplateVersionDel" type="run.acloud.api.catalog.vo.TemplateVersionDelVO"/>
+		<typeAlias alias="TemplateEdit" type="run.acloud.api.catalog.vo.TemplateEditVO"/>
+		<typeAlias alias="PackageDeployHistory" type="run.acloud.api.catalog.vo.PackageDeployHistoryVO"/>
+
+		<!-- run.acloud.api.billing.vo -->
+		<typeAlias alias="AccountBill" type="run.acloud.api.billing.vo.AccountBillVO" />
+		<typeAlias alias="AccountBillProduct" type="run.acloud.api.billing.vo.AccountBillProductVO" />
+		<typeAlias alias="AccountBillExchange" type="run.acloud.api.billing.vo.AccountBillExchangeVO" />
+		<typeAlias alias="AccountBillDailyCharge" type="run.acloud.api.billing.vo.AccountBillDailyChargeVO" />
+
+		<!-- build -->
+		<typeAlias alias="PipelineBuildAdd" type="run.acloud.api.build.vo.BuildAddVO"/>
+		<typeAlias alias="PipelineBuildStepAdd" type="run.acloud.api.build.vo.BuildStepAddVO"/>
+		<typeAlias alias="PipelineBuildStep" type="run.acloud.api.build.vo.BuildStepVO"/>
+		<typeAlias alias="PipelineBuild" type="run.acloud.api.build.vo.BuildVO"/>
+		<typeAlias alias="PipelineBuildRun" type="run.acloud.api.build.vo.BuildRunVO"/>
+		<typeAlias alias="PipelineBuildStepRun" type="run.acloud.api.build.vo.BuildStepRunVO"/>
+		<typeAlias alias="PipelineBuildRunLog" type="run.acloud.api.build.vo.BuildRunLogVO"/>
+		<typeAlias alias="SystemBuildCount" type="run.acloud.api.build.vo.SystemBuildCountVO"/>
+		<typeAlias alias="PipelineBuildImage" type="run.acloud.api.build.vo.BuildImageVO"/>
+		<typeAlias alias="PipelineBuildImageInfo" type="run.acloud.api.build.vo.BuildImageInfoVO"/>
+
+		<!-- build server -->
+		<typeAlias alias="BuildServerAdd" type="run.acloud.api.build.vo.BuildServerAddVO"/>
+		<typeAlias alias="BuildServer" type="run.acloud.api.build.vo.BuildServerVO"/>
+
+		<!-- run.acloud.api.log.vo -->
+		<typeAlias alias="LogAgent" type="run.acloud.api.log.vo.LogAgentVO" />
+		<typeAlias alias="LogAgentAccountMapping" type="run.acloud.api.log.vo.LogAgentAccountMappingVO"/>
+
+		<!-- run.acloud.api.pipelineflow.vo -->
+		<typeAlias alias="PipelineWorkload" type="run.acloud.api.pipelineflow.vo.PipelineWorkloadVO"/>
+		<typeAlias alias="PipelineContainer" type="run.acloud.api.pipelineflow.vo.PipelineContainerVO"/>
+		<typeAlias alias="PipelineRun" type="run.acloud.api.pipelineflow.vo.PipelineRunVO"/>
+		<typeAlias alias="PipelineCount" type="run.acloud.api.pipelineflow.vo.PipelineCountVO"/>
+		<typeAlias alias="PipelineRelatedInfo" type="run.acloud.api.pipelineflow.vo.PipelineRelatedInfoVO"/>
+
+		<!-- run.acloud.api.monitoring.vo -->
+		<typeAlias alias="AlertRule" type="run.acloud.api.monitoring.vo.AlertRuleVO" />
+		<typeAlias alias="AlertUser" type="run.acloud.api.monitoring.vo.AlertUserVO" />
+		<typeAlias alias="AlertUserSearch" type="run.acloud.api.monitoring.vo.AlertUserSearchVO" />
+		<typeAlias alias="AlertRuleClusterMapping" type="run.acloud.api.monitoring.vo.AlertRuleClusterMappingVO" />
+
+		<!-- run.acloud.api.pl.vo -->
+		<typeAlias alias="PlMasterList" type="run.acloud.api.pl.vo.PlMasterListVO"/>
+		<typeAlias alias="PlMaster" type="run.acloud.api.pl.vo.PlMasterVO"/>
+		<typeAlias alias="PlResDeploy" type="run.acloud.api.pl.vo.PlResDeployVO"/>
+		<typeAlias alias="PlResBuild" type="run.acloud.api.pl.vo.PlResBuildVO"/>
+		<typeAlias alias="PlResBuildDeployMapping" type="run.acloud.api.pl.vo.PlResBuildDeployMappingVO"/>
+		<typeAlias alias="PlRun" type="run.acloud.api.pl.vo.PlRunVO"/>
+		<typeAlias alias="PlRunListSearch" type="run.acloud.api.pl.vo.PlRunListSearchVO"/>
+		<typeAlias alias="PlRunBuild" type="run.acloud.api.pl.vo.PlRunBuildVO"/>
+		<typeAlias alias="PlRunDeploy" type="run.acloud.api.pl.vo.PlRunDeployVO"/>
+		<typeAlias alias="PlRunBuildDeployMapping" type="run.acloud.api.pl.vo.PlRunBuildDeployMappingVO"/>
+
+		<!-- run.acloud.api.serverless.vo -->
+		<typeAlias alias="ServerlessWorkspace" type="run.acloud.api.serverless.vo.ServerlessWorkspaceVO"/>
+		<typeAlias alias="Serverless" type="run.acloud.api.serverless.vo.ServerlessVO"/>
+		<typeAlias alias="ServerlessInfo" type="run.acloud.api.serverless.vo.ServerlessInfoVO"/>
+		<typeAlias alias="GatewayCertificate" type="run.acloud.api.serverless.vo.GatewayCertificateVO"/>
+
+		<!-- run.acloud.api.openapi.vo -->
+		<typeAlias alias="ApiGatewayGroups" type="run.acloud.api.openapi.vo.ApiGatewayGroupsVO"/>
+		<typeAlias alias="ApiGateways" type="run.acloud.api.openapi.vo.ApiGatewaysVO"/>
+		<typeAlias alias="ApiTokenIssueAdd" type="run.acloud.api.openapi.vo.ApiTokenIssueAddVO"/>
+		<typeAlias alias="ApiTokenIssueEdit" type="run.acloud.api.openapi.vo.ApiTokenIssueEditVO"/>
+		<typeAlias alias="ApiTokenIssue" type="run.acloud.api.openapi.vo.ApiTokenIssueVO"/>
+		<typeAlias alias="ApiTokenPermissionsScope" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeVO"/>
+		<typeAlias alias="ApiTokenIssueExcel" type="run.acloud.api.openapi.vo.ApiTokenIssueExcelVO"/>
+		<typeAlias alias="ApiTokenPermissionsScopeGroupExcel" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeGroupExcelVO"/>
+		<typeAlias alias="ApiTokenPermissionsScopeExcel" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeExcelVO"/>
+		<typeAlias alias="ApiTokenIssueHistory" type="run.acloud.api.openapi.vo.ApiTokenIssueHistoryVO"/>
+		<typeAlias alias="ApiTokenPermissionsScopeHistory" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeHistoryVO"/>
+		<typeAlias alias="ApiTokenIssueHistoryExcel" type="run.acloud.api.openapi.vo.ApiTokenIssueHistoryExcelVO"/>
+		<typeAlias alias="ApiTokenPermissionsScopeHistoryGroupExcel" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeHistoryGroupExcelVO"/>
+		<typeAlias alias="ApiTokenPermissionsScopeHistoryExcel" type="run.acloud.api.openapi.vo.ApiTokenPermissionsScopeHistoryExcelVO"/>
+		<typeAlias alias="ApiTokenIssueSearch" type="run.acloud.api.openapi.vo.ApiTokenIssueSearchVO"/>
+		<typeAlias alias="ApiTokenIssueList" type="run.acloud.api.openapi.vo.ApiTokenIssueListVO"/>
+		<typeAlias alias="ApiTokenIssueDetail" type="run.acloud.api.openapi.vo.ApiTokenIssueDetailVO"/>
+		<typeAlias alias="ApiTokenAuditLogAdd" type="run.acloud.api.openapi.vo.ApiTokenAuditLogAddVO"/>
+		<typeAlias alias="ApiTokenAuditLog" type="run.acloud.api.openapi.vo.ApiTokenAuditLogVO"/>
+		<typeAlias alias="ApiTokenIssueRelation" type="run.acloud.api.openapi.vo.ApiTokenIssueRelationVO"/>
+		<typeAlias alias="ApiTokenRequestCount" type="run.acloud.api.openapi.vo.ApiTokenRequestCountVO"/>
+	</typeAliases>
+	
+	<typeHandlers>
+		<typeHandler handler="run.acloud.framework.handlers.YesNoBooleanTypeHandler" javaType="boolean" jdbcType="CHAR" />
+	</typeHandlers>
+</configuration>

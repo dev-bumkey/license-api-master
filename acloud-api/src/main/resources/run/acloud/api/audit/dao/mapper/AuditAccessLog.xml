@@ -1,0 +1,324 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.audit.dao.IAuditAccessLogMapper">
+	<resultMap type="AuditAccessLog" id="AuditAccessLogMap" autoMapping="true">
+		<id property="logSeq" column="logSeq"/>
+	</resultMap>
+	<select id="getAuditAccessLogs" parameterType="map" resultMap="AuditAccessLogMap">
+		SELECT	/* [AuditAccessLog.xml].[getAuditAccessLogs].[01] 변경일자(20211101) */
+		    aal.log_seq AS logSeq,
+			aal.log_dt AS logDt,
+			aal.uri AS uri,
+			aal.http_method AS httpMethod,
+			aal.client_ip AS clientIp,
+			aal.referer AS referer,
+			aal.user_agent AS userAgent,
+			aal.log_code AS logCode,
+			aal.resource_name AS resourceName,
+			aal.controller_name AS controllerName,
+			aal.method_name AS methodName,
+			aal.account_seq AS accountSeq,
+			aal.account_name AS accountName,
+			aal.service_seq AS serviceSeq,
+			aal.service_name AS serviceName,
+			aal.appmap_group_seq AS servicemapGroupSeq,
+			aal.appmap_group_name AS servicemapGroupName,
+			aal.appmap_seq AS servicemapSeq,
+			aal.appmap_name AS servicemapName,
+			aal.cluster_seq AS clusterSeq,
+			aal.cluster_name AS clusterName,
+			aal.group_seq AS workloadGroupSeq,
+			aal.group_name AS workloadGroupName,
+			aal.user_seq AS userSeq,
+			aal.user_id AS userId,
+			aal.user_name AS userName,
+			aal.user_role as userRole,
+			aal.result_code AS resultCode,
+			aal.duration AS duration,
+			aal.request_data AS requestData,
+			aal.response_data AS responseData,
+			aal.resource_data AS resourceData
+		from audit_access_logs aal
+		where aal.log_dt BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		    and aal.log_seq <![CDATA[<=]]>  #{maxId}
+		<choose>
+			<when test="excludeAdmin != null">
+				and ( aal.user_role <![CDATA[<>]]> 'ADMIN' or aal.user_role is null )
+			</when>
+			<otherwise>
+				and aal.user_role = 'ADMIN'
+			</otherwise>
+		</choose>
+		<if test="accountSeq != null">
+			and aal.account_seq = #{accountSeq}
+		</if>
+		<if test="resourceName != null">
+			and aal.resource_name LIKE CONCAT('%', #{resourceName},'%')
+		</if>
+		<if test="userName != null">
+			and aal.user_name LIKE CONCAT('%', #{userName},'%')
+		</if>
+		<if test="userId != null">
+			and aal.user_id LIKE CONCAT('%', #{userId},'%')
+		</if>
+		order by
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "log_dt")'>
+				log_dt
+			</when>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "log_seq")'>
+				log_seq
+			</when>
+			<otherwise>
+				user_name
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "DESC")'>
+				DESC
+			</when>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "ASC")'>
+				ASC
+			</when>
+			<otherwise>
+				ASC
+			</otherwise>
+		</choose>
+		LIMIT  #{nextPage}, #{itemPerPage}
+	</select>
+
+	<select id="getAuditAccessLogCount" parameterType="map" resultType="int">
+		SELECT	/* [AuditAccessLog.xml].[getAuditAccessLogCount].[01] 변경일자(20211101) */
+				count(*)
+		FROM audit_access_logs aal
+		where aal.log_dt BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+			and aal.log_seq <![CDATA[<=]]> #{maxId}
+		<choose>
+			<when test="excludeAdmin != null">
+				and ( aal.user_role <![CDATA[<>]]> 'ADMIN' or aal.user_role is null )
+			</when>
+			<otherwise>
+				and aal.user_role = 'ADMIN'
+			</otherwise>
+		</choose>
+		<if test="accountSeq != null">
+			and aal.account_seq = #{accountSeq}
+		</if>
+		<if test="resourceName != null">
+			and aal.resource_name LIKE CONCAT('%', #{resourceName},'%')
+		</if>
+		<if test="userName != null">
+			and aal.user_name LIKE CONCAT('%', #{userName},'%')
+		</if>
+		<if test="userId != null">
+			and aal.user_id LIKE CONCAT('%', #{userId},'%')
+		</if>
+	</select>
+
+	<select id="getAuditAccessLogCountAndMaxId" parameterType="map" resultType="ListCount">
+		SELECT	/* [AuditAccessLog.xml].[getAuditAccessLogCountAndMaxId].[01] 변경일자(20211101) */
+				count(*) as cnt
+				,max(log_seq) as maxId
+		FROM audit_access_logs aal
+		where aal.log_dt BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		<choose>
+			<when test="excludeAdmin != null">
+				and ( aal.user_role <![CDATA[<>]]> 'ADMIN' or aal.user_role is null )
+			</when>
+			<otherwise>
+				and aal.user_role = 'ADMIN'
+			</otherwise>
+		</choose>
+		<if test="accountSeq != null">
+			and aal.account_seq = #{accountSeq}
+		</if>
+		<if test="resourceName != null">
+			and aal.resource_name LIKE CONCAT('%', #{resourceName},'%')
+		</if>
+		<if test="userName != null">
+			and aal.user_name LIKE CONCAT('%', #{userName},'%')
+		</if>
+		<if test="userId != null">
+			and aal.user_id LIKE CONCAT('%', #{userId},'%')
+		</if>
+	</select>
+
+	<select id="getAuditAccessLogMaxCount" parameterType="map" resultType="int">
+		SELECT /* [AuditAccessLog.xml].[getAuditAccessLogMaxCount].[01] 변경일자(20211101) */
+			MAX(log_seq)
+		FROM audit_access_logs aal
+		where aal.log_dt BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+	</select>
+
+	<insert id="addAuditAccessLog" parameterType="AuditLog" useGeneratedKeys="true" keyProperty="logSeq" keyColumn="log_seq">
+		INSERT  /* [AuditAccessLog.xml].[addAuditAccessLog].[01] 변경일자(20211101) */
+		INTO audit_access_logs (
+			log_dt,
+			uri,
+			http_method,
+			client_ip,
+			referer,
+			user_agent,
+			log_code,
+			resource_name,
+			controller_name,
+			method_name,
+			account_seq,
+			account_name,
+			service_seq,
+			service_name,
+			appmap_group_seq,
+			appmap_group_name,
+			appmap_seq,
+			appmap_name,
+			cluster_seq,
+			cluster_name,
+			group_seq,
+			group_name,
+			user_seq,
+			user_id,
+			user_name,
+			user_role,
+			result_code,
+			duration,
+			request_data,
+			response_data,
+			resource_data
+		) VALUES (
+			UTC_TIMESTAMP(),
+			#{uri},
+			#{httpMethod},
+			#{clientIp},
+			#{referer},
+			#{userAgent},
+			#{logCode},
+			#{resourceName},
+			#{controllerName},
+			#{methodName},
+			#{accountSeq},
+			#{accountName},
+			#{serviceSeq},
+			#{serviceName},
+			#{servicemapGroupSeq},
+			#{servicemapGroupName},
+			#{servicemapSeq},
+			#{servicemapName},
+			#{clusterSeq},
+			#{clusterName},
+			#{workloadGroupSeq},
+			#{workloadGroupName},
+			#{userSeq},
+			#{userId},
+			#{userName},
+			#{userRole},
+			#{resultCode},
+			#{duration},
+			#{requestData},
+			#{responseData},
+			#{resourceData}
+		)
+	</insert>
+
+	<select id="existAuditAccessLogsTable" resultType="boolean">
+		select exist_table('acloud', 'audit_access_logs')
+	</select>
+
+	<select id="getMaxSeq" resultType="Integer">
+		SELECT /* [AuditAccessLog.xml].[getMaxSeq].[01] 변경일자(20211101) */
+				ifnull(max(log_seq),0)
+		FROM   audit_access_logs
+	</select>
+
+	<insert id="migrationAuditLogsToAuditAccessLog" >
+		INSERT INTO acloud.audit_access_logs (
+			log_dt,
+			uri,
+			http_method,
+			client_ip,
+			referer,
+			user_agent,
+			log_code,
+			resource_name,
+			controller_name,
+			method_name,
+			account_seq,
+			account_name,
+			service_seq,
+			service_name,
+			appmap_group_seq,
+			appmap_group_name,
+			appmap_seq,
+			appmap_name,
+			cluster_seq,
+			cluster_name,
+			group_seq,
+			group_name,
+			user_seq,
+			user_id,
+			user_name,
+			user_role,
+			result_code,
+			duration,
+			request_data,
+			response_data,
+			resource_data
+		)
+		SELECT audit.created as log_dt,
+			   audit.uri,
+			   audit.http_method,
+			   json_value(audit.resource_data, '$.ClientIP') as client_ip,
+			   json_value(audit.resource_data, '$.Referer') as referer,
+			   '' as user_agent,
+			   audit.audit_log_code as log_code,
+			   audit.resource_name,
+			   audit.controller_name,
+			   audit.method_name,
+			   audit.account_seq,
+			   ac.account_name,
+			   audit.service_seq,
+			   svc.service_name,
+			   audit.appmap_group_seq,
+			   smg.servicemap_group_name,
+			   audit.appmap_seq,
+			   sm.servicemap_name,
+			   audit.cluster_seq,
+			   c.cluster_name,
+			   audit.group_seq,
+			   wlg.workload_group_name,
+			   audit.user_seq,
+			   u.user_id,
+			   u.user_name,
+			   ur.role_code,
+			   audit.result_code,
+			   audit.duration,
+			   audit.request_data,
+			   audit.response_data,
+			   audit.resource_data
+		FROM acloud.audit_logs audit
+				 left outer join acloud.accounts ac on ac.account_seq = audit.account_seq
+				 left outer join acloud.services svc on svc.service_seq = audit.service_seq
+				 left outer join acloud.servicemap_groups smg on smg.servicemap_group_seq = audit.appmap_group_seq
+				 left outer join acloud.servicemaps sm on sm.servicemap_seq = audit.appmap_seq
+				 left outer join acloud.workload_groups wlg on wlg.workload_group_seq = audit.group_seq
+				 left outer join acloud.clusters c on c.cluster_seq = audit.cluster_seq
+				 left outer join acloud.users u on u.user_seq = audit.user_seq
+				 left outer join acloud.user_role ur on ur.user_seq = audit.user_seq
+		ORDER by audit.audit_log_seq ASC
+	</insert>
+
+	<select id="existAuditAccessLogsPartition" parameterType="map" resultType="boolean">
+		select exist_partition('acloud', 'audit_access_logs', #{partitionName})
+	</select>
+
+	<delete id="dropPartitionAuditAccessLogForBatch" parameterType="map">
+		ALTER TABLE acloud.audit_access_logs DROP PARTITION ${dropPartitionName}
+	</delete>
+
+	<update id="addPartitionToAuditAccessLogForBatch" parameterType="map">
+		ALTER TABLE acloud.audit_access_logs REORGANIZE PARTITION p_future INTO
+		  (
+		  PARTITION ${partitionName} VALUES LESS THAN (#{partitionConditionDate}),
+		  PARTITION p_future VALUES LESS THAN MAXVALUE
+		  )
+	</update>
+
+</mapper>

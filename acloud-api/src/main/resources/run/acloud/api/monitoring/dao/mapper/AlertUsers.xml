@@ -1,0 +1,223 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.monitoring.dao.IAlertUserMapper">
+	<resultMap type="AlertUser" id="AlertUserMap" autoMapping="true">
+		<id property="alertUserSeq" column="alertUserSeq"/>
+	</resultMap>
+
+	<insert id="addAlertUser" parameterType="AlertUser" useGeneratedKeys="true" keyProperty="alertUserSeq" keyColumn="user_seq">
+		INSERT /* [AlertUsers.xml].[addAlertUser].[01] 변경일자(20200924) */
+		INTO alert_users (
+			account_seq,
+			user_id,
+			user_name,
+			user_job,
+			phone_number,
+			kakao_id,
+			email,
+			description,
+			created,
+			creator,
+			updated,
+			updater,
+			use_yn)
+		VALUES (
+		   #{accountSeq},
+		   #{userId},
+		   #{userName},
+		   #{userJob},
+		   #{phoneNumber},
+		   #{kakaoId},
+		   #{email},
+		   #{description},
+		   UTC_TIMESTAMP(),
+		   #{creator},
+		   UTC_TIMESTAMP(),
+		   #{updater},
+		   'Y')
+	</insert>
+
+	<update id="updateAlertUser" parameterType="AlertUser">
+		UPDATE /* [AlertUsers.xml].[updateAlertUser].[01] 변경일자(20200924) */
+			alert_users
+		SET
+		      user_id = #{userId}
+		    , user_name = #{userName}
+		    , user_job = #{userJob}
+		    , phone_number = #{phoneNumber}
+		    , kakao_id = #{kakaoId}
+		    , email = #{email}
+		    , description = #{description}
+		    , updated = UTC_TIMESTAMP()
+		    , updater = #{updater}
+		WHERE use_yn = 'Y'
+		AND user_seq = #{alertUserSeq}
+	</update>
+
+	<update id="removeAlertUser" parameterType="AlertUser">
+		UPDATE /* [AlertUsers.xml].[removeAlertUser].[01] 변경일자(20200924) */
+			alert_users
+		SET
+			use_yn = 'N'
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		  AND user_seq = #{alertUserSeq}
+	</update>
+
+	<sql id="alertUserListColumnSql">
+			 au.user_seq      AS alertUserSeq
+			,au.account_seq   AS accountSeq
+			,au.user_id       AS userId
+			,au.user_name     AS userName
+			,au.user_job      AS userJob
+			,au.phone_number  AS phoneNumber
+			,au.kakao_id      AS kakaoId
+			,au.email         AS email
+			,au.description   AS description
+			,au.use_yn        AS useYn
+			,au.created       AS created
+			,au.creator       AS creator
+			,au.updated       AS updated
+			,au.updater       AS updater
+	</sql>
+
+	<sql id="alertUserCondition">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_NAME")'>
+					AND au.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "PHONE_NUMBER")'>
+					AND au.phone_number LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "KAKAO_ID")'>
+					AND au.kakao_id LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "EMAIL")'>
+					AND au.email LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<select id="getAlertUsers" parameterType="AlertUserSearch" resultMap="AlertUserMap">
+		SELECT	/* [AlertUsers.xml].[getAlertUsers].[01] 변경일자(20200924) */
+			 <include refid="alertUserListColumnSql" />
+		FROM   alert_users au
+		<where>
+			AND au.use_yn = 'Y'
+			AND au.account_seq = #{accountSeq}
+			<if test="paging.maxId != null">
+				AND au.user_seq <![CDATA[<=]]>  #{paging.maxId}
+			</if>
+			<include refid="alertUserCondition" />
+		</where>
+		ORDER  BY
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "created")'>
+						created
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "updated")'>
+						updated
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "user_seq")'>
+						user_seq
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "user_name")'>
+						user_name
+					</when>
+					<otherwise>
+						user_name
+					</otherwise>
+				</choose>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+						DESC
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+						ASC
+					</when>
+					<otherwise>
+						ASC
+					</otherwise>
+				</choose>
+		LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+	</select>
+
+	<select id="getAlertUser" parameterType="map" resultMap="AlertUserMap">
+		SELECT	/* [AlertUsers.xml].[getAlertUser].[01] 변경일자(20200924) */
+			<include refid="alertUserListColumnSql" />
+		FROM   alert_users au
+		WHERE au.use_yn = 'Y'
+		  AND au.user_seq = #{alertUserSeq}
+	</select>
+
+
+	<select id="getAlertUserCount" parameterType="AlertUserSearch" resultMap="AlertUserMap">
+		SELECT	/* [AlertUsers.xml].[getAlertUserCount].[01] 변경일자(20200924) */
+			COUNT(1)
+		FROM   alert_users au
+		<where>
+			AND au.use_yn = 'Y'
+			AND au.account_seq = #{accountSeq}
+			<include refid="alertUserCondition" />
+		</where>
+	</select>
+
+	<select id="getAlertUserCountAndMaxId" parameterType="AlertUserSearch" resultType="ListCount">
+		SELECT	/* [AlertUsers.xml].[getAlertUserCountAndMaxId].[01] 변경일자(20200924) */
+			count(*) as cnt
+			,max(au.user_seq) as maxId
+		FROM   alert_users au
+		<where>
+			AND au.use_yn = 'Y'
+			AND au.account_seq = #{accountSeq}
+			<include refid="alertUserCondition" />
+		</where>
+	</select>
+
+	<select id="getAlertUserMaxId" parameterType="AlertUserSearch" resultType="int">
+		SELECT /* [AlertUsers.xml].[getAlertUserMaxId].[01] 변경일자(20200924) */
+			max(au.user_seq) as maxId
+		FROM   alert_users au
+		<where>
+			AND au.use_yn = 'Y'
+			AND au.account_seq = #{accountSeq}
+			<if test="paging.maxId != null">
+				AND au.user_seq <![CDATA[<=]]>  #{paging.maxId}
+			</if>
+			<include refid="alertUserCondition" />
+		</where>
+	</select>
+
+	<select id="getAlertUsersOfRule" parameterType="map" resultMap="AlertUserMap">
+		SELECT /* [AlertUsers.xml].[getAlertUsersOfRule].[01] 변경일자(20200924) */
+            <include refid="alertUserListColumnSql" />
+		FROM alert_rule_user_mapping arum
+				INNER JOIN alert_users au ON au.user_seq = arum.user_seq AND au.use_yn = 'Y'
+		  								<if test="accountSeq != null">
+											AND au.account_seq = #{accountSeq}
+										</if>
+				INNER JOIN alert_rules ar ON ar.alert_rule_seq = arum.alert_rule_seq AND ar.use_yn = 'Y'
+										<if test="alertRuleSeq != null">
+											AND ar.alert_rule_seq = #{alertRuleSeq}
+										</if>
+										<if test="alertRuleId != null">
+											AND ar.alert_rule_id = #{alertRuleId}
+										</if>
+			<if test="clusterId != null">
+		  		INNER JOIN clusters cl ON cl.cluster_id = #{clusterId} AND cl.use_yn = 'Y'
+				INNER JOIN alert_rule_cluster_mapping arcm ON ar.alert_rule_seq = arcm.alert_rule_seq
+														AND arcm.cluster_seq = cl.cluster_seq
+
+			</if>
+			<if test="clusterSeq != null">
+		  		INNER JOIN clusters cl ON cl.cluster_seq = #{clusterSeq} AND cl.use_yn = 'Y'
+				INNER JOIN alert_rule_cluster_mapping arcm ON ar.alert_rule_seq = arcm.alert_rule_seq
+														AND arcm.cluster_seq = cl.cluster_seq
+
+			</if>
+		ORDER BY au.user_name ASC
+	</select>
+
+</mapper>

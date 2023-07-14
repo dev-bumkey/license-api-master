@@ -1,0 +1,125 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IGradePlanMapper">
+
+	<select id="getGradePlans" parameterType="map" resultType="GradePlan">
+		SELECT /* [GradePlan.xml].[getGradePlans].[01] 변경일자(20190208) */
+			grade_seq AS gradeSeq,
+			account_type AS accountType,
+			grade_name AS gradeName,
+			grade_desc AS gradeDesc,
+			parallel_build_cnt AS parallelBuildCnt,
+			total_build_cnt AS totalBuildCnt,
+			workspace_cnt AS workspaceCnt,
+			core_cnt AS coreCnt,
+			log_enable_yn AS logEnableYn,
+			sort_order AS sortOrder,
+		    editable_yn AS editableYn,
+			use_yn AS useYn,
+			created AS created,
+			creator AS creator,
+			updated AS updated,
+			updater AS updater
+		FROM grade_plan
+		<where>
+			<if test="accountType != null">
+			AND account_type = #{accountType}
+			</if>
+			AND use_yn = 'Y'
+		</where>
+		ORDER BY account_type, grade_seq
+	</select>
+
+	<select id="getGradePlan" parameterType="int" resultType="GradePlan">
+		SELECT /* [GradePlan.xml].[getGradePlan].[01] 변경일자(20190208) */
+			grade_seq AS gradeSeq,
+			account_type AS accountType,
+			grade_name AS gradeName,
+			grade_desc AS gradeDesc,
+			parallel_build_cnt AS parallelBuildCnt,
+			total_build_cnt AS totalBuildCnt,
+			workspace_cnt AS workspaceCnt,
+			core_cnt AS coreCnt,
+			log_enable_yn AS logEnableYn,
+			sort_order AS sortOrder,
+			editable_yn AS editableYn,
+			use_yn AS useYn,
+			created AS created,
+			creator AS creator,
+			updated AS updated,
+			updater AS updater
+		FROM grade_plan
+		WHERE grade_seq = #{gradeSeq}
+	</select>
+
+	<insert id="addGradePlan" parameterType="GradePlan" useGeneratedKeys="true" keyProperty="gradeSeq" keyColumn="grade_seq">
+		INSERT INTO /* [GradePlan.xml].[addGradePlan].[01] 변경일자(20190208) */ acloud.grade_plan (
+			account_type,
+			grade_name,
+		 	grade_desc,
+		 	parallel_build_cnt,
+		 	total_build_cnt,
+		 	workspace_cnt,
+		 	core_cnt,
+		 	log_enable_yn,
+		 	sort_order,
+			editable_yn,
+		 	use_yn,
+		 	created,
+		 	creator,
+		 	updated,
+		 	updater
+		) VALUES (
+			#{accountType},
+			#{gradeName},
+			#{gradeDesc},
+			#{parallelBuildCnt},
+			#{totalBuildCnt},
+			#{workspaceCnt},
+			#{coreCnt},
+			#{logEnableYn},
+			#{sortOrder},
+			#{editableYn},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{updater}
+		)
+	</insert>
+
+	<update id="editGradePlan" parameterType="GradePlan">
+		UPDATE /* [GradePlan.xml].[editGradePlan].[01] 변경일자(20190208) */ acloud.grade_plan
+		SET account_type=#{accountType},
+			grade_name=#{gradeName},
+			grade_desc=#{gradeDesc},
+			parallel_build_cnt=#{parallelBuildCnt},
+			total_build_cnt=#{totalBuildCnt},
+			workspace_cnt=#{workspaceCnt},
+			core_cnt=#{coreCnt},
+			log_enable_yn=#{logEnableYn},
+			sort_order=#{sortOrder},
+			editable_yn=#{editableYn},
+			use_yn=#{useYn},
+			updated=UTC_TIMESTAMP(),
+			updater=#{updater}
+		WHERE grade_seq=#{gradeSeq}
+	</update>
+
+	<update id="removeGradePlan" parameterType="GradePlan">
+		UPDATE /* [GradePlan.xml].[removeGradePlan].[01] 변경일자(20190208) */
+			grade_plan
+		SET
+			use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE grade_seq = #{gradeSeq}
+	</update>
+
+	<select id="getUsedGradePlanCount" parameterType="int" resultType="integer">
+		select count(1) /* [GradePlan.xml].[getUsedGradePlanCount].[01] 변경일자(20190529) */
+		from account_grade ag
+		where ag.grade_seq = #{gradeSeq}
+		  and ag.use_yn = 'Y'
+	</select>
+
+</mapper>

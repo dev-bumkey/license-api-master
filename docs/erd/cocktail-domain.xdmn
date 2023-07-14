@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<e:DomainDefinition xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:e="http://exerd.tomato.com/model" UUID="DDefinition_ULgawKsyEeyR4_PQ6lg8Zw" productId="com.tomato.db.mysql" version="3.3.12.20210311-1507">
+  <domain UUID="Domain_ULgawasyEeyR4_PQ6lg8Zw" name="식별자:">
+    <domain UUID="Domain_ULgawqsyEeyR4_PQ6lg8Zw" name="ID" suggestedDataType="VARCHAR(50)"/>
+    <domain UUID="Domain_ULgaw6syEeyR4_PQ6lg8Zw" name="번호" suggestedDataType="INTEGER"/>
+    <domain UUID="Domain_ULgaxKsyEeyR4_PQ6lg8Zw" name="코드" suggestedDataType="VARCHAR(30)"/>
+    <domain UUID="Domain_ULgaxasyEeyR4_PQ6lg8Zw" name="종류" suggestedDataType="VARCHAR(30)"/>
+    <domain UUID="Domain_ULgaxqsyEeyR4_PQ6lg8Zw" name="긴번호" suggestedDataType="BIGINT"/>
+  </domain>
+  <domain UUID="Domain_ULgax6syEeyR4_PQ6lg8Zw" name="명:">
+    <domain UUID="Domain_ULgayKsyEeyR4_PQ6lg8Zw" name="토큰" suggestedDataType="VARCHAR(64)"/>
+    <domain UUID="Domain_ULgayasyEeyR4_PQ6lg8Zw" name="이름" suggestedDataType="VARCHAR(50)"/>
+    <domain UUID="Domain_ULgayqsyEeyR4_PQ6lg8Zw" name="긴이름" suggestedDataType="VARCHAR(256)"/>
+    <domain UUID="Domain_ULgay6syEeyR4_PQ6lg8Zw" name="입력명" suggestedDataType="VARCHAR(2000)"/>
+  </domain>
+  <domain UUID="Domain_ULgazKsyEeyR4_PQ6lg8Zw" name="내용:">
+    <domain UUID="Domain_ULgazasyEeyR4_PQ6lg8Zw" name="내용" suggestedDataType="VARCHAR(3000)"/>
+    <domain UUID="Domain_ULgazqsyEeyR4_PQ6lg8Zw" name="정보" suggestedDataType="VARCHAR(100)"/>
+    <domain UUID="Domain_ULgaz6syEeyR4_PQ6lg8Zw" name="요약" suggestedDataType="VARCHAR(300)"/>
+    <domain UUID="Domain_ULga0KsyEeyR4_PQ6lg8Zw" name="긴내용" suggestedDataType="TEXT"/>
+    <domain UUID="Domain_ULga0asyEeyR4_PQ6lg8Zw" name="상태" suggestedDataType="CHAR(1)"/>
+    <domain UUID="Domain_ULga0qsyEeyR4_PQ6lg8Zw" name="로그" suggestedDataType="MEDIUMTEXT"/>
+  </domain>
+  <domain UUID="Domain_ULga06syEeyR4_PQ6lg8Zw" name="시간:">
+    <domain UUID="Domain_ULhB0KsyEeyR4_PQ6lg8Zw" name="일시" suggestedDataType="DATETIME"/>
+    <domain UUID="Domain_ULhB0asyEeyR4_PQ6lg8Zw" name="초" suggestedDataType="INTEGER"/>
+    <domain UUID="Domain_ULhB0qsyEeyR4_PQ6lg8Zw" comment="yyyyMMdd" name="날짜" suggestedDataType="CHAR(8)"/>
+    <domain UUID="Domain_ULhB06syEeyR4_PQ6lg8Zw" comment="yyyyMM" name="년월" suggestedDataType="CHAR(6)"/>
+  </domain>
+  <domain UUID="Domain_ULhB1KsyEeyR4_PQ6lg8Zw" name="값:">
+    <domain UUID="Domain_ULhB1asyEeyR4_PQ6lg8Zw" comment="#ffffff" name="색상값" suggestedDataType="CHAR(7)"/>
+    <domain UUID="Domain_ULhB1qsyEeyR4_PQ6lg8Zw" name="IP" suggestedDataType="VARCHAR(50)"/>
+    <domain UUID="Domain_ULhB16syEeyR4_PQ6lg8Zw" name="CIDR" suggestedDataType="VARCHAR(50)"/>
+    <domain UUID="Domain_ULhB2KsyEeyR4_PQ6lg8Zw" name="DNS" suggestedDataType="VARCHAR(256)"/>
+    <domain UUID="Domain_ULhB2asyEeyR4_PQ6lg8Zw" name="포트" suggestedDataType="INTEGER"/>
+    <domain UUID="Domain_ULhB2qsyEeyR4_PQ6lg8Zw" comment="Y | N" name="여부" suggestedDataType="CHAR(1)" suggestedDefaultValue="'N'"/>
+    <domain UUID="Domain_ULhB26syEeyR4_PQ6lg8Zw" name="경로" suggestedDataType="VARCHAR(300)"/>
+    <domain UUID="Domain_ULhB3KsyEeyR4_PQ6lg8Zw" name="버전" suggestedDataType="VARCHAR(100)"/>
+    <domain UUID="Domain_ULhB3asyEeyR4_PQ6lg8Zw" name="비밀번호" suggestedDataType="VARCHAR(100)"/>
+    <domain UUID="Domain_ULhB3qsyEeyR4_PQ6lg8Zw" name="긴비밀번호" suggestedDataType="VARCHAR(500)"/>
+    <domain UUID="Domain_ULhB36syEeyR4_PQ6lg8Zw" name="플래그" suggestedDataType="BIT" suggestedDefaultValue="0"/>
+    <domain UUID="Domain_ULhB4KsyEeyR4_PQ6lg8Zw" name="URL" suggestedDataType="VARCHAR(300)"/>
+    <domain UUID="Domain_ULhB4asyEeyR4_PQ6lg8Zw" name="버전번호" suggestedDataType="VARCHAR(10)"/>
+    <domain UUID="Domain_ULhB4qsyEeyR4_PQ6lg8Zw" name="코드값" suggestedDataType="VARCHAR(30)"/>
+    <domain UUID="Domain_ULhB46syEeyR4_PQ6lg8Zw" comment="30000-32767" name="포트대역" suggestedDataType="VARCHAR(30)"/>
+    <domain UUID="Domain_ULhB5KsyEeyR4_PQ6lg8Zw" name="보안코드" suggestedDataType="VARCHAR(500)"/>
+  </domain>
+  <domain UUID="Domain_ULhB5asyEeyR4_PQ6lg8Zw" name="수:">
+    <domain UUID="Domain_ULhB5qsyEeyR4_PQ6lg8Zw" name="개수" suggestedDataType="INTEGER"/>
+    <domain UUID="Domain_ULhB56syEeyR4_PQ6lg8Zw" name="순서" suggestedDataType="INTEGER"/>
+    <domain UUID="Domain_ULhB6KsyEeyR4_PQ6lg8Zw" name="비용" suggestedDataType="DOUBLE"/>
+    <domain UUID="Domain_ULhB6asyEeyR4_PQ6lg8Zw" name="양" suggestedDataType="DOUBLE"/>
+    <domain UUID="Domain_ULhB6qsyEeyR4_PQ6lg8Zw" name="가격" suggestedDataType="FLOAT"/>
+  </domain>
+  <domain UUID="Domain_ULhB66syEeyR4_PQ6lg8Zw" name="크기:">
+    <domain UUID="Domain_ULhB7KsyEeyR4_PQ6lg8Zw" name="GByte" suggestedDataType="FLOAT"/>
+    <domain UUID="Domain_ULhB7asyEeyR4_PQ6lg8Zw" name="IOPS" suggestedDataType="INTEGER"/>
+  </domain>
+  <domain UUID="Domain_ULhB8asyEeyR4_PQ6lg8Zw" name="짧은내용" suggestedDataType="VARCHAR(10)"/>
+  <domain UUID="Domain_ULhB8qsyEeyR4_PQ6lg8Zw" name="처리시간" suggestedDataType="DECIMAL(6,3)"/>
+  <domain UUID="Domain_ULhB86syEeyR4_PQ6lg8Zw" name="JSON" suggestedDataType="json"/>
+</e:DomainDefinition>

@@ -1,0 +1,115 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.cserver.dao.IServicemapGroupMapper">
+
+	<resultMap id="ServicemapGroupMap" type="ServicemapGroup" autoMapping="true">
+		<id property="servicemapGroupSeq" column="servicemapGroupSeq" />
+	</resultMap>
+
+	<sql id="servicemapGroupColumnSql">
+			sg.servicemap_group_seq       servicemapGroupSeq
+			, sg.service_seq				serviceSeq
+			, sg.servicemap_group_name      servicemapGroupName
+			, sg.color_code					colorCode
+			, sg.sort_order       			sortOrder
+			, sg.use_yn						useYn
+	</sql>
+
+	<select id="getServicemapGroup" parameterType="map" resultMap="ServicemapGroupMap">
+		SELECT /* [ServicemapGroup.xml].[getServicemapGroup].[01] 변경일자(20220401) */
+			<include refid="servicemapGroupColumnSql" />
+		FROM servicemap_groups sg
+		WHERE sg.servicemap_group_seq = #{servicemapGroupSeq}
+		<if test="serviceSeq != null">
+			AND sg.service_seq = #{serviceSeq}
+		</if>
+	</select>
+
+	<select id="getServicemapGroupsOfService" parameterType="map" resultMap="ServicemapGroupMap">
+		SELECT /* [ServicemapGroup.xml].[getServicemapGroupsOfService].[01] 변경일자(20220401) */
+			<include refid="servicemapGroupColumnSql" />
+		FROM services s
+				LEFT OUTER JOIN servicemap_groups sg ON	sg.service_seq = s.service_seq AND sg.use_yn = 'Y'
+		WHERE s.service_seq = #{serviceSeq}
+		AND s.use_yn = 'Y'
+		ORDER BY sg.sort_order
+	</select>
+
+	<insert id="addServicemapGroup" parameterType="ServicemapGroupAdd" useGeneratedKeys="true" keyProperty="servicemapGroupSeq">
+		INSERT /* [ServicemapGroup.xml].[addServicemapGroup].[01] 변경일자(20220401) */
+		INTO servicemap_groups (
+			service_seq,
+			servicemap_group_name,
+			color_code,
+			sort_order,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		VALUES (
+			#{serviceSeq},
+			#{servicemapGroupName},
+			#{colorCode},
+			#{sortOrder},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{updater}
+		)
+	</insert>
+
+	<update id="updateServicemapGroup" parameterType="ServicemapGroup">
+		UPDATE /* [ServicemapGroup.xml].[updateServicemapGroup].[01] 변경일자(20220401) */
+			servicemap_groups
+		SET
+			<if test="servicemapGroupName != null">servicemap_group_name = #{servicemapGroupName},</if>
+			<if test="colorCode != null">color_code = #{colorCode},</if>
+			<if test="sortOrder != null">sort_order = #{sortOrder},</if>
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE servicemap_group_seq = #{servicemapGroupSeq}
+	</update>
+
+	<update id="removeServicemapGroup" parameterType="map">
+		UPDATE /* [ServicemapGroup.xml].[removeServicemapGroup].[01] 변경일자(20170202) */
+			servicemap_groups
+		SET
+			  use_yn = 'N'
+			, updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		WHERE servicemap_group_seq = #{servicemapGroupSeq}
+	</update>
+
+	<select id="hasServicemaps" resultType="int">
+		SELECT /* [ServicemapGroup.xml].[hasServicemaps].[01] 변경일자(20220401) */
+			EXISTS(
+				SELECT 1
+				FROM servicemap_groups sg
+						INNER JOIN servicemapgroup_servicemap_mapping ssm ON ssm.servicemap_group_seq = sg.servicemap_group_seq
+						INNER JOIN servicemaps sm ON sm.servicemap_seq = ssm.servicemap_seq AND sm.use_yn = 'Y'
+				WHERE sg.use_yn = 'Y'
+				AND sg.servicemap_group_seq = #{servicemapGroupSeq}
+			) AS is_exists
+	</select>
+
+	<update id="updateServicemapGroupSortOrder" parameterType="map">
+		UPDATE /* [ServicemapGroup.xml].[updateServicemapGroupSortOrder].[02] 변경일자(20220401) */
+			servicemap_groups
+		SET
+			sort_order = sort_order + #{increment}
+		<if test="updater != null">
+			, updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		</if>
+		WHERE use_yn = 'Y'
+		AND service_seq = #{serviceSeq}
+		<if test="fromOrder != null">
+			AND sort_order >= #{fromOrder}
+		</if>
+		<if test="toOrder != null">
+			AND sort_order <![CDATA[<=]]> #{toOrder}
+		</if>
+	</update>
+</mapper>

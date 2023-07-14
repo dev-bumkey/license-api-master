@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns="http://www.ehcache.org/v3"
+		xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd">
+
+<!--  <cache-template name="template">-->
+<!--    캐시가 생성되고 삭제되고 하는 이벤트를 모니터링 하고 싶으면 org.ehcache.event.CacheEventListener 를 구현하는 클래스를 만들어서 설정 (태그 순서가 중요)-->
+<!--    <listeners>-->
+<!--        <listener>-->
+<!--            <class>sample.CacheEventLogger</class>-->
+<!--            <event-firing-mode>ASYNCHRONOUS</event-firing-mode>-->
+<!--            <event-ordering-mode>UNORDERED</event-ordering-mode>-->
+<!--            <events-to-fire-on>CREATED</events-to-fire-on>-->
+<!--            <events-to-fire-on>EVICTED</events-to-fire-on>-->
+<!--            <events-to-fire-on>REMOVED</events-to-fire-on>-->
+<!--            <events-to-fire-on>UPDATED</events-to-fire-on>-->
+<!--            <events-to-fire-on>EXPIRED</events-to-fire-on>-->
+<!--        </listener>-->
+<!--    </listeners>-->
+<!--  </cache-template>-->
+
+<!--	<cache alias="KubeClient">-->
+<!--		<key-type>java.lang.Object</key-type>-->
+<!--		<value-type>java.lang.Object</value-type>-->
+<!--		<expiry>-->
+<!--			&lt;!&ndash; 캐시 만료 시간 = timeToLiveSeconds &ndash;&gt;-->
+<!--			<ttl unit="seconds">600</ttl>-->
+<!--		</expiry>-->
+<!--		<resources>-->
+<!--			&lt;!&ndash; JVM heap 메모리, LRU strategy&ndash;&gt;-->
+<!--			<heap unit="entries">20000</heap>-->
+<!--			&lt;!&ndash; JVM heap 메모리 외부의 메모리 &ndash;&gt;-->
+<!--			&lt;!&ndash;      <offheap unit="MB">10</offheap>&ndash;&gt;-->
+<!--			&lt;!&ndash; Disk 메모리, LFU strategy&ndash;&gt;-->
+<!--			&lt;!&ndash;      persistent="false" Ehcache will wipe the disk data on shutdown.&ndash;&gt;-->
+<!--			&lt;!&ndash;      persistent="true" Ehcache will preserve the disk data on shutdown and try to load it back on restart of the JVM.&ndash;&gt;-->
+<!--			<disk unit="MB" persistent="false">50</disk>-->
+<!--		</resources>-->
+<!--	</cache>-->
+
+	<cache alias="KubeClient">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">20000</heap>
+		</resources>
+	</cache>
+	<cache alias="K8sClient">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">20000</heap>
+		</resources>
+	</cache>
+	<cache alias="HarborClient">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">20000</heap>
+		</resources>
+	</cache>
+	<cache alias="HarborApiClient">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">20000</heap>
+		</resources>
+	</cache>
+	<cache alias="resourcePrefix">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">3600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">1</heap>
+		</resources>
+	</cache>
+	<cache alias="jsonWebKeySet">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">3600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">1</heap>
+		</resources>
+	</cache>
+	<cache alias="jsonWebKey">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">3600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">1</heap>
+		</resources>
+	</cache>
+	<cache alias="openapiTokenInfo">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">20000</heap>
+		</resources>
+	</cache>
+	<cache alias="isExistAuditAccessLogsTable">
+		<key-type>java.lang.Object</key-type>
+		<value-type>java.lang.Object</value-type>
+		<expiry>
+			<!-- 캐시 만료 시간 = timeToLiveSeconds -->
+			<ttl unit="seconds">3600</ttl>
+		</expiry>
+		<resources>
+			<!-- JVM heap 메모리, LRU strategy-->
+			<heap unit="entries">1</heap>
+		</resources>
+	</cache>
+</config>

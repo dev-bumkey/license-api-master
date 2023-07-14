@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Cocktail Cloud</title>
+    <style>
+        p {
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Cocktail Cloud 신청 정보</h2>
+    <table border="0" cellpadding="0" cellspacing="1" style="background-color: rgb(199, 199, 199);">
+        <tbody>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196;; color: #ffffff; text-align: left; font-weight: normal; width: 250px; height: 20px;">
+                <p>제품 구분</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; width: 650px; height: 20px;">
+                <p>#{prdType}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal; height: 20px;">
+                <p>플랫폼ID</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{accountCode}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal;  height: 20px;">
+                <p>신청자명</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{userName}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal; height: 20px;">
+                <p>신청자이메일</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{userEmail}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>회사명</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{customerName}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>회사주소</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{customerAddress}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal; height: 20px;">
+                <p>회사전화번호</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{customerPhoneNumber}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>가입경로</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{registrationPath}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>소속기관명</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{organizationName}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>개인정보 수집 및 이용 동의</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{agreePersonalInfoYn} (#{agreePersonalInfoTime})</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>마케팅 활용 동의</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{agreeMarketingYn} (#{agreeMarketingTime})</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; color: #ffffff; text-align: left; font-weight: normal; height: 20px; background-color: #354196;" class="">
+                <p>신청일시</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{created}</p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.catalog.dao.IPackageMapper">
+	<resultMap type="PackageDeployHistory" id="PackageDeployHistoryMap" autoMapping="true">
+		<id property="packageDeployHistorySeq" column="packageDeployHistorySeq"/>
+	</resultMap>
+	<select id="getPackageDeployHistories" parameterType="map" resultMap="PackageDeployHistoryMap">
+		SELECT	/* [PackageDeployHistory.xml].[getPackageDeployHistories].[01] 변경일자(20191216) */
+				pdh.package_deploy_history_seq   AS packageDeployHistorySeq,
+				pdh.cluster_seq                	 AS clusterSeq,
+				pdh.namespace_name               AS namespaceName,
+				pdh.release_name                 AS releaseName,
+				pdh.chart_name                   AS chartName,
+				pdh.chart_version                AS chartVersion,
+				pdh.revision		             AS revision,
+				pdh.repository		             AS repository,
+				pdh.chart_values                 AS chartValues,
+				pdh.package_manifest             AS packageManifest,
+				pdh.command                      AS command,
+				pdh.execution_result             AS executionResult,
+				pdh.created                      AS created,
+				pdh.creator                      AS creator
+		FROM	package_deploy_history pdh
+				LEFT OUTER JOIN users us
+							ON us.user_seq = pdh.creator
+		<where>
+			<if test="packageDeployHistorySeq != null">
+				AND pdh.package_deploy_history_seq = #{packageDeployHistorySeq}
+			</if>
+			<if test="clusterSeq != null">
+				AND pdh.cluster_seq = #{clusterSeq}
+			</if>
+			<if test="namespaceName != null">
+				AND pdh.namespace_name = #{namespaceName}
+			</if>
+			<if test="releaseName != null">
+				AND pdh.release_name = #{releaseName}
+			</if>
+			<if test="chartName != null">
+				AND pdh.chart_name = #{chartName}
+			</if>
+			<if test="chartVersion != null">
+				AND pdh.chart_version = #{chartVersion}
+			</if>
+			<if test="revision != null">
+				AND pdh.revision = #{revision}
+			</if>
+			<if test="command != null">
+				AND pdh.command = #{command}
+			</if>
+		</where>
+		ORDER  BY pdh.package_deploy_history_seq desc
+	</select>
+
+	<select id="getPackageDeployHistory" parameterType="map" resultMap="PackageDeployHistoryMap">
+		SELECT	/* [PackageDeployHistory.xml].[getPackageDeployHistory].[01] 변경일자(20191216) */
+				pdh.package_deploy_history_seq   AS packageDeployHistorySeq,
+				pdh.cluster_seq                	 AS clusterSeq,
+				pdh.namespace_name               AS namespaceName,
+				pdh.release_name                 AS releaseName,
+				pdh.chart_name                   AS chartName,
+				pdh.chart_version                AS chartVersion,
+				pdh.revision		             AS revision,
+				pdh.repository		             AS repository,
+				pdh.chart_values                 AS chartValues,
+				pdh.package_manifest             AS packageManifest,
+				pdh.command                      AS command,
+				pdh.execution_result             AS executionResult,
+				pdh.created                      AS created,
+				pdh.creator                      AS creator
+		FROM 	package_deploy_history pdh
+				LEFT OUTER JOIN users us
+							ON us.user_seq = pdh.creator
+		<where>
+			<if test="packageDeployHistorySeq != null">
+				AND pdh.package_deploy_history_seq = #{packageDeployHistorySeq}
+			</if>
+			<if test="clusterSeq != null">
+				AND pdh.cluster_seq = #{clusterSeq}
+			</if>
+			<if test="namespaceName != null">
+				AND pdh.namespace_name = #{namespaceName}
+			</if>
+			<if test="releaseName != null">
+				AND pdh.release_name = #{releaseName}
+			</if>
+			<if test="chartName != null">
+				AND pdh.chart_name = #{chartName}
+			</if>
+			<if test="chartVersion != null">
+				AND pdh.chart_version = #{chartVersion}
+			</if>
+			<if test="revision != null">
+				AND pdh.revision = #{revision}
+			</if>
+			<if test="command != null">
+				AND pdh.command = #{command}
+			</if>
+		</where>
+		ORDER  BY pdh.package_deploy_history_seq desc
+		<if test="unUseLimit == null">
+			LIMIT 1
+		</if>
+	</select>
+
+	<insert id="addPackageDeployHistory" parameterType="PackageDeployHistory" useGeneratedKeys="true" keyProperty="packageDeployHistorySeq" keyColumn="package_deploy_history_seq">
+		INSERT  /* [PackageDeployHistory.xml].[addPackageDeployHistory].[01] 변경일자(20191216) */
+		INTO package_deploy_history (
+			cluster_seq
+			,namespace_name
+			,release_name
+			,chart_name
+			,chart_version
+			,revision
+			,repository
+			,chart_values
+			,package_manifest
+			,command
+			,execution_result
+			,created
+			,creator
+		)
+		VALUES (
+			#{clusterSeq}
+			,#{namespaceName}
+			,#{releaseName}
+			,#{chartName}
+			,#{chartVersion}
+			,#{revision}
+			,#{repository}
+			,#{chartValues}
+			,#{packageManifest}
+			,#{command}
+			,#{executionResult}
+			,UTC_TIMESTAMP()
+			,#{creator}
+		)
+	</insert>
+</mapper>

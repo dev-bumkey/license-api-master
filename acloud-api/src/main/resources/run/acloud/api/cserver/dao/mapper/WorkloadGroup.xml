@@ -1,0 +1,113 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.cserver.dao.IWorkloadGroupMapper">
+	<resultMap type="WorkloadGroup" id="WorkloadGroupMap" autoMapping="true">
+    	<id property="workloadGroupSeq" column="workloadGroupSeq" />
+    </resultMap>
+
+	<sql id="workloadGroupColumnSql">
+			  wg.workload_group_seq       	workloadGroupSeq
+		    , wg.servicemap_seq				servicemapSeq
+		    , wg.workload_group_name		workloadGroupName
+		    , wg.column_count				columnCount
+		    , wg.sort_order       			sortOrder
+		    , wg.use_yn						useYn
+	</sql>
+    
+    <select id="getWorkloadGroup" parameterType="map" resultMap="WorkloadGroupMap">
+		SELECT /* [WorkloadGroup.xml].[getWorkloadGroup].[03] 변경일자(20220329) */
+		    <include refid="workloadGroupColumnSql" />
+		FROM workload_groups wg
+		WHERE wg.workload_group_seq = #{workloadGroupSeq}
+	</select>
+
+	<select id="getWorkloadGroupsOfServicemap" parameterType="map" resultMap="WorkloadGroupMap">
+		SELECT /* [WorkloadGroup.xml].[getWorkloadGroupsOfServicemap].[03] 변경일자(20220329) */
+			<include refid="workloadGroupColumnSql" />
+		FROM servicemaps sm
+				INNER JOIN workload_groups wg	ON	wg.servicemap_seq = sm.servicemap_seq AND wg.use_yn = 'Y'
+		WHERE sm.servicemap_seq = #{servicemapSeq}
+		AND sm.use_yn = 'Y'
+		ORDER BY wg.sort_order
+	</select>
+
+	<select id="getWorkloadGroupsOfNamespace" parameterType="map" resultType="WorkloadGroup">
+		SELECT /* [WorkloadGroup.xml].[getWorkloadGroupsOfNamespace].[01] 변경일자(20220329) */
+			<include refid="workloadGroupColumnSql" />
+		FROM workload_groups wg
+				INNER JOIN servicemaps sm ON sm.servicemap_seq = wg.servicemap_seq AND sm.cluster_seq = #{clusterSeq} AND sm.namespace_name = #{namespaceName} AND sm.use_yn = 'Y'
+				INNER JOIN clusters c ON c.cluster_seq = sm.cluster_seq AND c.use_yn = 'Y'
+		WHERE wg.use_yn = 'Y'
+		ORDER BY wg.sort_order
+	</select>
+
+	<insert id="addWorkloadGroup" parameterType="WorkloadGroupAdd" useGeneratedKeys="true" keyProperty="workloadGroupSeq">
+    <![CDATA[
+		INSERT /* [WorkloadGroup.xml].[addWorkloadGroup].[03] 변경일자(20220329) */
+		INTO workload_groups (
+			servicemap_seq,
+			workload_group_name,
+			column_count,
+			sort_order,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) VALUES (
+			#{servicemapSeq},
+			#{workloadGroupName},
+			IFNULL(#{columnCount}, 1),
+			#{sortOrder},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+    ]]>
+    </insert>
+    
+    <update id="updateWorkloadGroup" parameterType="WorkloadGroup">
+    	UPDATE /* [WorkloadGroup.xml].[updateWorkloadGroup].[01] 변경일자(20220329) */
+			workload_groups
+    	SET
+    		<if test="workloadGroupName != null">workload_group_name = #{workloadGroupName},</if>
+    		<if test="columnCount != null">column_count = #{columnCount},</if>
+    		<if test="sortOrder != null">sort_order = #{sortOrder},</if>
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE workload_group_seq = #{workloadGroupSeq}
+    </update>
+
+	<update id="removeWorkloadGroup" parameterType="map">
+		UPDATE /* [WorkloadGroup.xml].[removeWorkloadGroup].[01] 변경일자(20220329) */
+			workload_groups
+		SET use_yn = 'N'
+		WHERE workload_group_seq = #{workloadGroupSeq}
+	</update>
+
+    <update id="updateWorkloadGroupSortOrder" parameterType="map">
+    	UPDATE /* [WorkloadGroup.xml].[updateWorkloadGroupSortOrder].[02] 변경일자(20220329) */
+			workload_groups
+    	SET
+    		sort_order = sort_order + #{increment}
+    	WHERE
+    		use_yn = 'Y'
+    		AND servicemap_seq = #{servicemapSeq}
+    	<if test="fromOrder != null">
+    		AND sort_order >= #{fromOrder}
+    	</if>
+    	<if test="toOrder != null">
+    		AND sort_order <![CDATA[<=]]> #{toOrder}
+    	</if>
+    </update>
+
+    <select id="getNamespaceOfWorkloadGroup" parameterType="map" resultType="string">
+        SELECT sm.namespace_name
+        FROM servicemaps sm
+            	INNER JOIN clusters c on sm.cluster_seq = c.cluster_seq AND c.use_yn = 'Y'
+        		INNER JOIN workload_groups wg ON wg.servicemap_seq = sm.servicemap_seq AND wg.workload_group_seq = #{workloadGroupSeq} AND wg.use_yn = 'Y'
+        WHERE sm.use_yn = 'Y'
+    </select>
+
+</mapper>

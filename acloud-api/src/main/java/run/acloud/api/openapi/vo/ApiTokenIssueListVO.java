@@ -1,0 +1,28 @@
+package run.acloud.api.openapi.vo;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serializable;
+import java.util.List;
+
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = false)
+@Schema(description = "API 토큰 발급 목록 모델")
+public class ApiTokenIssueListVO implements Serializable {
+
+	private static final long serialVersionUID = 5609574611936737141L;
+
+	@Schema(title = "API 토큰 발급 목록")
+	private List<ApiTokenIssueVO> items;
+
+	@Schema(title = "전체 데이터 갯수")
+	private Integer totalCount;
+
+	@Schema(title = "현재 페이지")
+	private Integer currentPage;
+
+}

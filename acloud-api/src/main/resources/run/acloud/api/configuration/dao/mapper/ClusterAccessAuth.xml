@@ -1,0 +1,132 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IClusterAccessAuthMapper">
+	<resultMap type="ClusterAccessAuth" id="ClusterAccessAuthMap" autoMapping="true">
+		<id property="clusterAuthSeq" column="clusterAuthSeq"/>
+	</resultMap>
+
+	<select id="getClusterAccessAuthList" parameterType="map" resultMap="ClusterAccessAuthMap">
+		SELECT /* [NOT_SQL_LOG] [ClusterAccessAuth.xml].[getClusterAccessAuthList].[01] 변경일자(20190311) */
+			caa.cluster_auth_seq AS clusterAuthSeq,
+			caa.cluster_seq AS clusterSeq,
+			caa.auth_type AS authType,
+			caa.owner_type AS ownerType,
+			caa.auth_key AS authKey,
+			caa.use_yn AS useYn,
+			caa.expired AS expired,
+			caa.created AS created,
+			caa.creator AS creator,
+			caa.updated AS updated,
+			caa.updater AS updater
+		FROM
+			cluster_access_auth AS caa
+		INNER JOIN
+			clusters AS cl ON cl.cluster_seq=caa.cluster_seq
+		<where>
+			<if test="clusterAuthSeq != null">
+				AND caa.cluster_auth_seq = #{clusterAuthSeq}
+			</if>
+			<if test="clusterSeq != null">
+				AND caa.cluster_seq = #{clusterSeq}
+			</if>
+			<if test="clusterId != null">
+				AND cl.cluster_id = #{clusterId}
+			</if>
+			<if test="useYn != null">
+				AND caa.use_yn = #{useYn}
+			</if>
+			<if test="authType != null">
+				AND caa.auth_type = #{authType}
+			</if>
+			<if test="ownerType != null">
+				AND caa.owner_type = #{ownerType}
+			</if>
+		</where>
+
+	</select>
+
+	<select id="getClusterAccessAuth" parameterType="map" resultMap="ClusterAccessAuthMap">
+		SELECT /* [NOT_SQL_LOG][ClusterAccessAuth.xml].[getClusterAccessAuth].[01] 변경일자(20190311) */
+			caa.cluster_auth_seq AS clusterAuthSeq,
+			caa.cluster_seq AS clusterSeq,
+			caa.auth_type AS authType,
+			caa.owner_type AS ownerType,
+			caa.auth_key AS authKey,
+			caa.use_yn AS useYn,
+			caa.expired AS expired,
+			caa.created AS created,
+			caa.creator AS creator,
+			caa.updated AS updated,
+			caa.updater AS updater
+		FROM
+		cluster_access_auth AS caa
+		WHERE
+			caa.cluster_auth_seq = #{clusterAuthSeq}
+	</select>
+
+	<insert id="addClusterAccessAuth" parameterType="ClusterAccessAuth" useGeneratedKeys="true" keyProperty="clusterAuthSeq" keyColumn="cluster_auth_seq">
+		INSERT /* [ClusterAccessAuth.xml].[addClusterAccessAuth].[01] 변경일자(20190311) */
+		INTO cluster_access_auth
+		(
+			cluster_seq,
+			auth_type,
+			owner_type,
+			auth_key,
+			use_yn,
+			expired,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		VALUES
+		(
+			#{clusterSeq},
+			#{authType},
+			#{ownerType},
+			#{authKey},
+			#{useYn},
+			#{expired},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{updater}
+		  )
+	</insert>
+
+
+	<update id="editClusterAccessAuth" parameterType="ClusterAccessAuth">
+		UPDATE /* [ClusterAccessAuth.xml].[editClusterAccessAuth].[01] 변경일자(20190311) */
+			cluster_access_auth
+		SET
+			<if test="clusterSeq != null">
+				cluster_seq = #{clusterSeq},
+			</if>
+			<if test="authType != null">
+				auth_type = #{authType},
+			</if>
+			<if test="ownerType != null">
+				owner_type = #{ownerType},
+			</if>
+			<if test="authKey != null">
+				auth_key = #{authKey},
+			</if>
+			<if test="useYn != null">
+				use_yn = #{useYn},
+			</if>
+			<if test="expired != null">
+				expired = #{expired},
+			</if>
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE cluster_auth_seq = #{clusterAuthSeq}
+	</update>
+
+	<delete id="removeClusterAccessAuth" parameterType="int">
+		DELETE /* [ClusterAccessAuth.xml].[removeClusterAccessAuth].[01] 변경일자(20190311) */
+		FROM
+			cluster_access_auth
+		WHERE
+			cluster_auth_seq = #{clusterAuthSeq}
+	</delete>
+
+</mapper>

@@ -1,0 +1,379 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.monitoring.dao.IAlertRuleMapper">
+
+	<resultMap type="AlertRule" id="AlertRuleMap" autoMapping="true">
+		<id property="alertRuleSeq" column="alertRuleSeq"/>
+		<collection property="alertClusters" column="alertRuleSeq" select="getClustersByAlertRule" ofType="AlertRuleClusterMapping" />
+		<collection property="alertReceivers" column="{accountSeq=accountSeq,clusterSeq=clusterSeq,clusterId=clusterId,alertRuleSeq=alertRuleSeq,alertRuleId=alertRuleId}" select="run.acloud.api.monitoring.dao.IAlertUserMapper.getAlertUsersOfRule" ofType="AlertUser" />
+	</resultMap>
+
+
+	<sql id="alertRuleCondition">
+		<if test="alertState != null">
+			AND ar.alert_state = #{alertState}
+		</if>
+		<if test="alertRuleId != null">
+			AND ar.alert_rule_id = #{alertRuleId}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "NAME_OR_DESC")'>
+					AND (ar.alert_name LIKE CONCAT('%', #{searchKeyword}, '%') OR ar.description LIKE CONCAT('%', #{searchKeyword}, '%'))
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ALERT_NAME")'>
+					AND ar.alert_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "DESCRIPTION")'>
+					AND ar.description LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ALERT_MESSAGE")'>
+					AND ar.alert_message LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<sql id="alertRuleColumnList">
+			ar.alert_rule_seq       AS  alertRuleSeq
+			,ar.alert_rule_id       AS  alertRuleId
+			,ar.alert_group         AS  alertGroup
+			,ar.alert_name          AS  alertName
+			,ar.alert_state         AS  alertState
+			,ar.alert_message       AS  alertMessage
+			,ar.duration            AS  duration
+			,ar.description         AS  description
+			,ar.expression          AS  expression
+			,ar.created             AS  created
+			,ar.creator             AS  creator
+			,ar.updated             AS  updated
+			,ar.updater             AS  updater
+			,NULL             		AS  accountSeq
+			,NULL             		AS  clusterSeq
+			,NULL             		AS  clusterId
+	</sql>
+
+	<insert id="addAlertRule" parameterType="AlertRule" useGeneratedKeys="true" keyProperty="alertRuleSeq">
+		INSERT /* [AlertRules.xml].[addAlertRule].[01] 변경일자(20201014) */
+		INTO alert_rules (
+		<if test="alertRuleId != null">
+			alert_rule_id,
+		</if>
+		<if test="alertGroup != null">
+			alert_group,
+		</if>
+		<if test="alertName != null">
+			alert_name,
+		</if>
+		<if test="alertState != null">
+			alert_state,
+		</if>
+		<if test="alertMessage != null">
+			alert_message,
+		</if>
+		<if test="duration != null">
+			duration,
+		</if>
+		<if test="description != null">
+			description,
+		</if>
+		<if test="expression != null">
+			expression,
+		</if>
+		<if test="useYn != null">
+			use_yn,
+		</if>
+			created,
+			creator,
+			updated,
+			updater
+		)
+		VALUES (
+		<if test="alertRuleId != null">
+		   #{alertRuleId},
+		</if>
+		<if test="alertGroup != null">
+		   #{alertGroup},
+		</if>
+		<if test="alertName != null">
+		   #{alertName},
+		</if>
+		<if test="alertState != null">
+		   #{alertState},
+		</if>
+		<if test="alertMessage != null">
+		   #{alertMessage},
+		</if>
+		<if test="duration != null">
+		   #{duration},
+		</if>
+		<if test="description != null">
+		   #{description},
+		</if>
+		<if test="expression != null">
+		   #{expression},
+		</if>
+		<if test="useYn != null">
+		   #{useYn},
+		</if>
+		   UTC_TIMESTAMP(),
+		   #{creator},
+		   UTC_TIMESTAMP(),
+		   #{updater}
+		)
+	</insert>
+
+	<update id="updateAlertRule" parameterType="AlertRule">
+		UPDATE /* [AlertRules.xml].[updateAlertRule].[01] 변경일자(20201014) */
+			alert_rules
+		SET
+		<if test="alertRuleId != null">
+			alert_rule_id = #{alertRuleId},
+		</if>
+		<if test="alertGroup != null">
+			alert_group = #{alertGroup},
+		</if>
+		<if test="alertName != null">
+			alert_name = #{alertName},
+		</if>
+		<if test="alertState != null">
+			alert_state = #{alertState},
+		</if>
+		<if test="alertMessage != null">
+			alert_message = #{alertMessage},
+		</if>
+		<if test="duration != null">
+			duration = #{duration},
+		</if>
+		<if test="description != null">
+			description = #{description},
+		</if>
+		<if test="expression != null">
+			expression = #{expression},
+		</if>
+		    updated = UTC_TIMESTAMP(),
+		    updater = #{updater}
+		WHERE use_yn = 'Y'
+		  AND alert_rule_seq = #{alertRuleSeq}
+	</update>
+
+	<update id="removeAlertRule" parameterType="AlertRule">
+		UPDATE /* [AlertRules.xml].[removeAlertRule].[01] 변경일자(20201014) */
+			alert_rules
+		SET
+			use_yn = 'N'
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		  AND alert_rule_seq = #{alertRuleSeq}
+	</update>
+
+	<select id="getAlertRules" parameterType="map" resultMap="AlertRuleMap">
+		SELECT	/* [AlertRules.xml].[getAlertRules].[01] 변경일자(20200804) */
+			<include refid="alertRuleColumnList" />
+		FROM   alert_rules ar
+		WHERE ar.use_yn = 'Y'
+			<if test="maxId != null">
+				AND ar.alert_rule_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+			<include refid="alertRuleCondition" />
+		<if test="orderColumn != null and order != null">
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "created")'>
+					created
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "audit_log_seq")'>
+					audit_log_seq
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "alert_name")'>
+					alert_name
+				</when>
+				<otherwise>
+					created
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					ASC
+				</otherwise>
+			</choose>
+		</if>
+		<if test="nextPage != null and itemPerPage != null">
+		LIMIT  #{nextPage}, #{itemPerPage}
+		</if>
+	</select>
+
+	<select id="getAlertRulesForExcel" parameterType="map" resultMap="AlertRuleMap">
+		SELECT	/* [AlertRules.xml].[getAlertRulesForExcel].[01] 변경일자(20200804) */
+			<include refid="alertRuleColumnList" />
+		FROM   alert_rules ar
+		WHERE ar.use_yn = 'Y'
+			<include refid="alertRuleCondition" />
+	</select>
+
+	<select id="getAlertRule" parameterType="map" resultMap="AlertRuleMap">
+		SELECT	/* [AlertRules.xml].[getAlertRule].[01] 변경일자(20200804) */
+			<include refid="alertRuleColumnList" />
+		FROM  alert_rules ar
+		WHERE ar.alert_rule_seq = #{alertRuleSeq}
+		  AND ar.use_yn = 'Y'
+	</select>
+
+	<select id="getAlertRuleCount" parameterType="map" resultType="int">
+		SELECT	/* [AlertRules.xml].[getAlertRuleCount].[01] 변경일자(20200804) */
+				count(*)
+		FROM  alert_rules ar
+		WHERE ar.use_yn = 'Y'
+			<if test="maxId != null">
+				AND ar.alert_rule_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+			<include refid="alertRuleCondition" />
+
+	</select>
+
+	<select id="getAlertRuleCountAndMaxId" parameterType="map" resultType="ListCount">
+		SELECT	/* [AlertRules.xml].[getAlertRuleCountAndMaxId].[01] 변경일자(20200804) */
+				count(*) as cnt
+				,max(alert_rule_seq) as maxId
+		FROM  alert_rules ar
+		WHERE ar.use_yn = 'Y'
+			<if test="maxId != null">
+				AND ar.alert_rule_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+			<include refid="alertRuleCondition" />
+	</select>
+
+	<select id="getAlertRuleMaxId" parameterType="map" resultType="int">
+		SELECT /* [AlertRules.xml].[getAlertRuleMaxId].[01] 변경일자(20200804) */
+			MAX(alert_rule_seq)
+		FROM  alert_rules ar
+		WHERE ar.use_yn = 'Y'
+			<if test="maxId != null">
+				AND ar.alert_rule_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+			<include refid="alertRuleCondition" />
+	</select>
+
+	<select id="getUserSeqsOfAlertRule" parameterType="int" resultType="int">
+		SELECT /* [AlertRules.xml].[getUserSeqsOfAlertRule].[01] 변경일자(20200804) */
+			arum.user_seq
+		FROM alert_rule_user_mapping arum
+		WHERE arum.alert_rule_seq = #{alertRuleSeq}
+	</select>
+
+	<insert id="addAlertRuleUserMappingByUser" parameterType="map">
+		INSERT /* [AlertRules.xml].[addAlertRuleUserMappingByUser].[01] 변경일자(20200804) */
+		INTO alert_rule_user_mapping (
+			user_seq,
+			alert_rule_seq,
+			created,
+			creator
+		)
+		VALUES
+		<foreach collection="alertRuleSeqs" item="alertRuleSeq" open="(" separator="), (" close=")">
+			#{userSeq},
+			#{alertRuleSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<insert id="addAlertRuleUserMappingByAlertRule" parameterType="map">
+		INSERT /* [AlertRules.xml].[addAlertRuleUserMappingByAlertRule].[01] 변경일자(20200804) */
+		INTO alert_rule_user_mapping (
+			user_seq,
+			alert_rule_seq,
+			created,
+			creator
+		)
+		VALUES
+		<foreach collection="userSeqs" item="userSeq" open="(" separator="), (" close=")">
+			#{userSeq},
+			#{alertRuleSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<delete id="deleteAlertRuleUserMappingByUser" parameterType="map">
+		DELETE /* [AlertRules.xml].[deleteAlertRuleUserMappingByUser].[01] 변경일자(20200804) */
+		FROM
+			alert_rule_user_mapping
+		WHERE
+			user_seq = #{userSeq}
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(alertRuleSeqs)">
+			AND alert_rule_seq IN (<foreach collection="alertRuleSeqs" item="alertRuleSeq" separator=", ">#{userSeq}</foreach>)
+		</if>
+	</delete>
+
+	<delete id="deleteAlertRuleUserMappingByAlertRule" parameterType="map">
+		DELETE /* [AlertRules.xml].[deleteAlertRuleUserMappingByAlertRule].[01] 변경일자(20200804) */
+		FROM
+			alert_rule_user_mapping
+		WHERE
+			alert_rule_seq = #{alertRuleSeq}
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(userSeqs)">
+			AND user_seq IN (<foreach collection="userSeqs" item="userSeq" separator=", ">#{userSeq}</foreach>)
+		</if>
+	</delete>
+
+
+	<select id="getClusterSeqsOfAlertRule" parameterType="int" resultType="int">
+		SELECT /* [AlertRules.xml].[getClusterSeqsOfAlertRule].[01] 변경일자(20201007) */
+			arcm.cluster_seq
+		FROM alert_rule_cluster_mapping arcm
+		WHERE arcm.alert_rule_seq = #{alertRuleSeq}
+	</select>
+
+	<insert id="addAlertRuleClusterMappingByAlertRule" parameterType="map">
+		INSERT /* [AlertRules.xml].[addAlertRuleClusterMappingByAlertRule].[01] 변경일자(20201007) */
+		INTO alert_rule_cluster_mapping (
+			cluster_seq,
+			alert_rule_seq,
+			created,
+			creator
+		)
+		VALUES
+		<foreach collection="clusterSeqs" item="clusterSeq" open="(" separator="), (" close=")">
+			#{clusterSeq},
+			#{alertRuleSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<delete id="deleteAlertRuleClusterMappingByAlertRule" parameterType="map">
+		DELETE /* [AlertRules.xml].[deleteAlertRuleClusterMappingByAlertRule].[01] 변경일자(20201007) */
+		FROM
+			alert_rule_cluster_mapping
+		WHERE
+			alert_rule_seq = #{alertRuleSeq}
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(clusterSeqs)">
+			AND cluster_seq IN (<foreach collection="clusterSeqs" item="clusterSeq" separator=", ">#{clusterSeq}</foreach>)
+		</if>
+	</delete>
+
+	<select id="getClustersByAlertRule" parameterType="map" resultType="AlertRuleClusterMapping">
+		SELECT /* [AlertRules.xml].[getClustersByAlertRule].[01] 변경일자(20201007) */
+			  arcm.alert_rule_seq			AS alertRuleSeq
+			, cl.cluster_seq				AS clusterSeq
+			, cl.cluster_id					AS clusterId
+			, cl.cluster_name				AS clusterName
+			, cl.cluster_state				AS clusterState
+			, cl.region_code				AS regionCode
+			, IFNULL((SELECT x.value FROM codes x WHERE x.code_group_id IN (SELECT xg.value FROM codes xg WHERE xg.code_group_id = 'REGION_GROUP' AND xg.code = pa.provider_code AND xg.use_yn = 'Y') AND x.code = cl.region_code AND x.use_yn = 'Y'), cl.region_code) AS regionName
+			, pa.provider_code				AS providerCode
+# 			, (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = pa.provider_code AND x.use_yn = 'Y') AS providerCodeName
+		FROM
+			clusters cl
+				INNER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN alert_rule_cluster_mapping arcm ON arcm.cluster_seq = cl.cluster_seq AND arcm.alert_rule_seq = #{alertRuleSeq}
+		WHERE cl.use_yn = 'Y'
+	</select>
+</mapper>

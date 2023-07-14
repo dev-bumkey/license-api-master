@@ -1,0 +1,1657 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.cserver.dao.IServiceMapper">
+
+	<resultMap type="ServiceSummary" id="ServiceSummaryMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+    	<collection property="clusters" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IClusterMapper.getClustersWithoutAuth" javaType="list" ofType="Cluster" />
+    </resultMap>
+
+	<resultMap type="ServiceList" id="ServiceListMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+		<association property="account" column="accountSeq" select="run.acloud.api.configuration.dao.IAccountMapper.getAccountInfoForRef" />
+		<collection property="userSeqs" column="serviceSeq" select="run.acloud.api.cserver.dao.IServiceMapper.getServiceUserSeqsForRef" javaType="list" ofType="java.lang.Integer" />
+		<collection property="serviceUsers" column="serviceSeq" select="run.acloud.api.cserver.dao.IServiceMapper.getServiceUsers" javaType="list" ofType="ServiceUser" />
+        <collection property="clusters" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IClusterMapper.getClustersWithoutAuth" javaType="list" ofType="Cluster" />
+        <collection property="servicemaps" column="{serviceSeq=serviceSeq}" select="run.acloud.api.cserver.dao.IServicemapMapper.getServicemapsByServiceClusters" javaType="list" ofType="Servicemap" />
+        <collection property="servicemapGroups" column="serviceSeq" select="run.acloud.api.cserver.dao.IServicemapGroupMapper.getServicemapGroupsOfService" javaType="list" ofType="ServicemapGroup" />
+		<collection property="projects" ofType="run.acloud.api.configuration.vo.ServiceRegistryVO" columnPrefix="sr_" resultMap="ServiceRegistryMap"/>
+		<collection property="externalRegistries" column="{accountSeq=accountSeq,serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IExternalRegistryMapper.getExternalRegistries" javaType="list" ofType="ExternalRegistry" />
+	</resultMap>
+
+	<resultMap type="ServiceServicempGroupList" id="ServiceServicemapGroupListMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+		<collection property="servicemapGroups" ofType="ServicemapGroup" columnPrefix="sg_" resultMap="run.acloud.api.cserver.dao.IServicemapGroupMapper.ServicemapGroupMap" />
+    </resultMap>
+
+    <resultMap type="ServiceRegistry" id="ServiceRegistryMap" autoMapping="true">
+        <id property="serviceSeq" column="serviceSeq" />
+        <id property="projectId" column="projectId" />
+    </resultMap>
+
+	<resultMap type="ServiceDetail" id="ServiceMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+		<association property="account" columnPrefix="a_" resultMap="run.acloud.api.configuration.dao.IAccountMapper.AccountMap" />
+		<collection property="users" columnPrefix="us_" resultMap="run.acloud.api.auth.dao.IUserMapper.UserHaveRolesMap" />
+    	<collection property="clusters" ofType="Cluster" columnPrefix="cl_" resultMap="run.acloud.api.configuration.dao.IClusterMapper.ClusterMap" />
+		<collection property="servicemaps" columnPrefix="am_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapDetailResourceMap" />
+		<collection property="servicemapGroups" column="serviceSeq" select="run.acloud.api.cserver.dao.IServicemapGroupMapper.getServicemapGroupsOfService" javaType="list" ofType="ServicemapGroup" />
+		<collection property="projects" ofType="run.acloud.api.configuration.vo.ServiceRegistryVO" columnPrefix="sr_" resultMap="ServiceRegistryMap"/>
+		<collection property="externalRegistries" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IExternalRegistryMapper.getExternalRegistries" javaType="list" ofType="ExternalRegistry" />
+    </resultMap>
+
+	<resultMap type="ServiceRegistryUser" id="ServiceRegistryUserMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+        <collection property="projects" ofType="run.acloud.api.configuration.vo.ServiceRegistryVO" columnPrefix="sr_" resultMap="ServiceRegistryMap"/>
+		<collection property="externalRegistries" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IExternalRegistryMapper.getExternalRegistries" javaType="list" ofType="ExternalRegistry" />
+    </resultMap>
+
+	<resultMap type="ServiceDetail" id="ServiceDetailMap" autoMapping="true">
+    	<id property="serviceSeq" column="serviceSeq" />
+		<association property="account" column="accountSeq" select="run.acloud.api.configuration.dao.IAccountMapper.getAccountInfoForRef" />
+		<collection property="users" column="serviceSeq" select="getServiceUsersForRef" javaType="list" ofType="User" />
+    	<collection property="clusters" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IClusterMapper.getClustersWithoutAuth" javaType="list" ofType="Cluster" />
+		<collection property="servicemaps" column="{serviceSeq=serviceSeq}" select="run.acloud.api.cserver.dao.IServicemapMapper.getServicemapsByServiceClustersForResource" javaType="list" ofType="ServicemapDetailResource" />
+		<collection property="servicemapGroups" column="serviceSeq" select="run.acloud.api.cserver.dao.IServicemapGroupMapper.getServicemapGroupsOfService" javaType="list" ofType="ServicemapGroup" />
+		<collection property="projects" ofType="run.acloud.api.configuration.vo.ServiceRegistryVO" columnPrefix="sr_" resultMap="ServiceRegistryMap"/>
+		<collection property="externalRegistries" column="{accountSeq=accountSeq,serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IExternalRegistryMapper.getExternalRegistries" javaType="list" ofType="ExternalRegistry" />
+		<collection property="buildServers" column="{serviceSeq=serviceSeq}" select="run.acloud.api.build.dao.IBuildServerMapper.getBuildServerListForRef" javaType="list" ofType="BuildServer" />
+	</resultMap>
+
+	<select id="getServiceSummaries" parameterType="map" resultMap="ServiceSummaryMap">
+		SELECT DISTINCT	/* [Service.xml].[getServiceSummaries].[03] 변경일자(20170519) */
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.sort_order				sortOrder,
+            sv.registry_user_id         registryUserId,
+            sv.registry_user_password   registryUserPassword,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn,
+			IFNULL(ss.servicemapCount, 0)	servicemapCount
+		FROM services sv
+				INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+				LEFT OUTER JOIN (
+					SELECT ssm.service_seq,
+							COUNT(DISTINCT ssm.servicemap_seq)	servicemapCount
+					FROM servicemaps sm
+							INNER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+										<if test="clusterState != null">
+											AND cl.cluster_state = #{clusterState}
+										</if>
+							INNER JOIN service_cluster sc ON sc.cluster_seq = cl.cluster_seq
+							INNER JOIN service_servicemap_mapping ssm ON ssm.servicemap_seq = sm.servicemap_seq AND ssm.service_seq = sc.service_seq
+							INNER JOIN services sv ON sv.service_seq = ssm.service_seq AND sv.use_yn ='Y'
+					GROUP BY ssm.service_seq
+				) ss ON ss.service_seq = sv.service_seq
+				LEFT OUTER JOIN service_cluster sc	ON	sc.service_seq = sv.service_seq
+				LEFT OUTER JOIN clusters cl			ON	cl.cluster_seq = sc.cluster_seq
+				LEFT OUTER JOIN provider_account pa	ON	pa.provider_account_seq = cl.provider_account_seq
+				LEFT OUTER JOIN service_user su ON su.service_seq = sv.service_seq
+		<where>
+			<choose>
+				<when test="useYn != null or serviceSeq != null or (user_seq != null and user_role != null) or clusterState != null">
+					<if test="useYn != null">sv.use_yn = #{useYn} </if>
+					<if test="serviceSeq != null"> AND sv.service_seq = #{serviceSeq}</if>
+					<if test="user_seq != null and user_role != null"> AND ('DEVOPS' != #{user_role} OR su.user_seq = #{user_seq})</if>
+					<if test="clusterState != null"> AND cl.cluster_state = #{clusterState}</if>
+				</when>
+				<otherwise>
+					1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		ORDER BY sv.sort_order
+	</select>
+
+	<insert id="addService" parameterType="ServiceAdd" useGeneratedKeys="true" keyProperty="serviceSeq">
+    <![CDATA[
+		INSERT /* [Service.xml].[addService].[01] 변경일자(20170602) */
+		INTO services (
+			service_name,
+			description,
+			color_code,
+			sort_order,
+			registry_user_id,
+			registry_user_password,
+			cluster_tenancy,
+			service_type,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) SELECT
+			#{serviceName},
+			#{description},
+			#{colorCode},
+			IFNULL((SELECT COUNT(sort_order) + 1 FROM services), 1),
+			#{registryUserId},
+			#{registryUserPassword},
+			#{clusterTenancy},
+			#{serviceType},
+			#{useYn},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+    ]]>
+    </insert>
+
+    <update id="updateService" parameterType="ServiceAdd">
+    	UPDATE /* [Service.xml].[updateService].[01] 변경일자(20170602) */
+    		services
+    	SET
+    		<if test="serviceName != null">
+    			service_name = #{serviceName},
+    		</if>
+			<if test="description != null">
+				description = #{description},
+			</if>
+			<if test="colorCode != null">
+				color_code = #{colorCode},
+			</if>
+			<if test='useYn == "Y"'>
+				use_yn = #{useYn},
+			</if>
+			<if test="clusterTenancy != null">
+				cluster_tenancy = #{clusterTenancy},
+			</if>
+			<if test="serviceType != null">
+				service_type = #{serviceType},
+			</if>
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		service_seq = #{serviceSeq}
+    </update>
+
+    <update id="removeService" parameterType="map">
+    	UPDATE /* [Service.xml].[removeService].[01] 변경일자(20170602) */
+    		services
+    	SET
+    		use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		service_seq = #{serviceSeq}
+    		AND use_yn = 'Y'
+    </update>
+
+    <delete id="deleteService" parameterType="map">
+
+		/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+		UPDATE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+			services
+		SET
+			  service_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE service_seq = #{serviceSeq};
+
+		UPDATE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+			services
+		SET
+			  service_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE service_seq = #{serviceSeq};
+
+		UPDATE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+			services
+		SET
+			  service_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE service_seq = #{serviceSeq};
+
+		UPDATE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+			services
+		SET
+			  service_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE service_seq = #{serviceSeq};
+
+		UPDATE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+			services
+		SET
+			  service_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, registry_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE service_seq = #{serviceSeq};
+
+    	DELETE /* [Service.xml].[deleteService].[01] 변경일자(20210707) */
+    	FROM services
+    	WHERE service_seq = #{serviceSeq};
+
+		/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+    </delete>
+
+	<select id="getServices" parameterType="map" resultMap="ServiceListMap">
+		SELECT /* [Service.xml].[getServices].[01] 변경일자(20170601) */
+		       DISTINCT
+				sv.service_seq		      	serviceSeq,
+				sv.service_name		      	serviceName,
+				sv.description			  	description,
+				sv.color_code		      	colorCode,
+				sv.registry_user_id       	registryUserId,
+				sv.registry_user_password 	registryUserPassword,
+				sv.cluster_tenancy			clusterTenancy,
+				sv.service_type				serviceType,
+				sv.use_yn			      	useYn,
+				asm.account_seq             accountSeq,
+				IFNULL(ss.clusterCount, 0)	clusterCount,
+				IFNULL(ss.servicemapCount, 0)	servicemapCount,
+		        sr.service_seq				sr_serviceSeq,
+				sr.project_id             	sr_projectId,
+				sr.project_type             sr_projectType,
+				sr.project_name             sr_projectName,
+				sr.description 				sr_description,
+				DATE_FORMAT(sr.created, '%Y-%m-%d') sr_created
+		FROM services sv
+                INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+                LEFT OUTER JOIN service_registry sr ON  sr.service_seq = sv.service_seq
+				<if test="projectId != null">
+					AND sr.project_id = #{projectId}
+					AND sr.project_type = 'SHARE'
+				</if>
+				LEFT OUTER JOIN (
+                                SELECT
+                                    x_s.service_seq,
+                                    COUNT(DISTINCT x_cl.cluster_seq)	clusterCount,
+                                    COUNT(DISTINCT x_ssm.servicemap_seq)	servicemapCount
+                                FROM services x_s
+                                        INNER JOIN account_service_mapping x_asm ON  x_asm.service_seq = x_s.service_seq
+                                                        <if test="accountSeq != null">AND x_asm.account_seq = #{accountSeq} </if>
+                                        LEFT OUTER JOIN service_cluster x_sc ON  x_sc.service_seq = x_s.service_seq
+                                        LEFT OUTER JOIN service_servicemap_mapping x_ssm	ON x_ssm.service_seq = x_sc.service_seq
+                                        LEFT OUTER JOIN clusters x_cl ON	x_cl.cluster_seq = x_sc.cluster_seq AND x_cl.use_yn = 'Y'
+                                        LEFT OUTER JOIN servicemaps x_sm ON	x_sm.cluster_seq = x_cl.cluster_seq AND x_sm.servicemap_seq = x_ssm.servicemap_seq AND x_sm.use_yn = 'Y'
+                                GROUP BY x_s.service_seq
+				) ss ON ss.service_seq = sv.service_seq
+        <!--where>
+            <if test="userRole != 'ADMIN'">us.user_seq = #{
+            }</if>
+        </where-->
+        <!--WHERE
+            sv.use_yn = 'Y'-->
+		<where>
+			<if test="accountSeq != null">AND asm.account_seq = #{accountSeq} </if>
+			<if test="useYn != null">AND sv.use_yn = #{useYn} </if>
+		</where>
+	</select>
+
+    <select id="getServiceUserSeqsForRef" parameterType="map" resultType="integer">
+        SELECT /* [Service.xml].[getServiceUserSeqsForRef].[01] 변경일자(20191220) */
+               DISTINCT
+            us.user_seq userSeq
+        FROM   service_user su
+                INNER JOIN users us ON  us.user_seq = su.user_seq AND us.use_yn = 'Y'
+        WHERE su.service_seq = #{serviceSeq}
+    </select>
+
+    <select id="getServiceUsers" parameterType="map" resultType="ServiceUser">
+        SELECT /* [Service.xml].[getServiceUsers].[01] 변경일자(20191220) */
+               DISTINCT
+              su.service_seq serviceSeq
+            , us.user_seq userSeq
+            , us.user_id userId
+            , us.user_name userName
+            , su.user_grant userGrant
+        FROM   service_user su
+                INNER JOIN users us ON  us.user_seq = su.user_seq AND us.use_yn = 'Y'
+        WHERE su.service_seq = #{serviceSeq}
+    </select>
+
+	<select id="getService" parameterType="map" resultMap="ServiceDetailMap">
+		SELECT /* [Service.xml].[getService].[01] 변경일자(20170602) */
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn,
+		    asm.account_seq				accountSeq,
+			IFNULL(ss.clusterCount, 0)		clusterCount,
+			IFNULL(ss.servicemapCount, 0)	servicemapCount,
+			sr.service_seq				sr_serviceSeq,
+			sr.project_id             	sr_projectId,
+			sr.project_type             sr_projectType,
+			sr.project_name             sr_projectName,
+			sr.description 				sr_description,
+			DATE_FORMAT(sr.created, '%Y-%m-%d') sr_created
+		FROM services sv
+                INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+                LEFT OUTER JOIN service_registry sr     ON  sr.service_seq = sv.service_seq
+				LEFT OUTER JOIN (
+					SELECT
+						x_s.service_seq,
+						COUNT(DISTINCT x_cl.cluster_seq)	clusterCount,
+						COUNT(DISTINCT x_ssm.servicemap_seq)	servicemapCount
+					FROM services x_s
+							LEFT OUTER JOIN service_cluster x_sc ON  x_sc.service_seq = x_s.service_seq
+							LEFT OUTER JOIN service_servicemap_mapping x_ssm	ON x_ssm.service_seq = x_sc.service_seq
+							LEFT OUTER JOIN clusters x_cl ON	x_cl.cluster_seq = x_sc.cluster_seq AND x_cl.use_yn = 'Y'
+							LEFT OUTER JOIN servicemaps x_sm ON	x_sm.cluster_seq = x_cl.cluster_seq AND x_sm.servicemap_seq = x_ssm.servicemap_seq AND x_sm.use_yn = 'Y'
+					WHERE x_s.service_seq = #{serviceSeq}
+					GROUP BY x_s.service_seq
+				) ss ON ss.service_seq = sv.service_seq
+		WHERE sv.service_seq = #{serviceSeq}
+	</select>
+
+	<select id="getServiceUsersForRef" parameterType="map" resultMap="run.acloud.api.auth.dao.IUserMapper.UserHaveRolesMap">
+		SELECT /* [Service.xml].[getServiceUsersForRef].[01] 변경일자(20191220) */
+			  us.user_seq				userSeq
+			, us.user_id				userId
+			, us.user_name				userName
+			, su.user_grant				userGrant
+			, DATE_FORMAT(us.last_login, '%Y-%m-%d %H:%i:%s') AS lastLogin
+			, ur.role_code 				r_role
+			, us.description			description
+		FROM   service_user su
+				   INNER JOIN users us ON  us.user_seq = su.user_seq AND us.use_yn = 'Y'
+				   INNER JOIN user_role ur	ON 	ur.user_seq = us.user_seq
+		WHERE su.service_seq = #{serviceSeq}
+	</select>
+
+	<select id="getServiceByType" parameterType="map" resultMap="ServiceMap">
+		SELECT /* [Service.xml].[getServiceByType].[01] 변경일자(20200616, 20210128) */
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn
+		FROM services sv
+		INNER JOIN account_service_mapping asm
+				ON asm.service_seq = sv.service_seq
+		INNER JOIN accounts acc
+				ON acc.account_seq = asm.account_seq
+	<where>
+		<if test="useYn != null">
+			AND sv.use_yn = #{useYn}
+		</if>
+		<if test="serviceType != null">
+			AND sv.service_type = #{serviceType}
+		</if>
+		<if test="accountSeq != null">
+			AND acc.account_seq = #{accountSeq}
+		</if>
+		<if test="serviceSeq != null">
+			AND acc.account_seq = (SELECT account_seq FROM account_service_mapping WHERE service_seq = #{serviceSeq} LIMIT 1)
+		</if>
+	</where>
+		LIMIT 1
+	</select>
+
+	<select id="getServicesByType" parameterType="map" resultMap="ServiceMap">
+		SELECT /* [Service.xml].[getServicesByType].[01] 변경일자(20210707) */
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn
+		FROM services sv
+				INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+				INNER JOIN accounts acc ON acc.account_seq = asm.account_seq
+		<where>
+			<if test="useYn != null">
+				AND sv.use_yn = #{useYn}
+			</if>
+			<if test="serviceType != null">
+				AND sv.service_type = #{serviceType}
+			</if>
+			<if test="accountSeq != null">
+				AND acc.account_seq = #{accountSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND acc.account_seq = (SELECT account_seq FROM account_service_mapping WHERE service_seq = #{serviceSeq} LIMIT 1)
+			</if>
+		</where>
+	</select>
+
+	<select id="getServicesCountByType" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getServicesCountByType].[01] 변경일자(20210128) */
+				COUNT(*)
+		FROM services sv
+		INNER JOIN account_service_mapping asm
+				ON asm.service_seq = sv.service_seq
+		INNER JOIN accounts acc
+				ON acc.account_seq = asm.account_seq
+		WHERE sv.use_yn = 'Y'
+		<if test="serviceType != null">
+			AND sv.service_type = #{serviceType}
+		</if>
+		<if test="accountSeq != null">
+			AND acc.account_seq = #{accountSeq}
+		</if>
+		<if test="serviceSeq != null">
+			AND acc.account_seq = (SELECT account_seq FROM account_service_mapping WHERE service_seq = #{serviceSeq} LIMIT 1)
+		</if>
+	</select>
+	<select id="getUserSeqsOfService" parameterType="int" resultType="int">
+		SELECT /* [Service.xml].[getUserSeqsOfService].[01] 변경일자(20170601) */
+			su.user_seq
+		FROM service_user su
+		WHERE su.service_seq = #{serviceSeq}
+	</select>
+
+    <delete id="deleteUsersOfService" parameterType="map">
+        DELETE /* [Service.xml].[deleteUsersOfService].[01] 변경일자(20170601) */
+        FROM
+        	service_user
+        WHERE
+            service_seq = #{serviceSeq}
+          <if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(userSeqs)">
+			  AND user_seq IN (<foreach collection="userSeqs" item="userSeq" separator=", ">#{userSeq}</foreach>)
+		  </if>
+    </delete>
+
+	<delete id="deleteUserOfService" parameterType="map">
+		DELETE /* [Service.xml].[deleteUsersOfService].[01] 변경일자(20170601) */
+		FROM
+			service_user
+		WHERE
+			user_seq = #{userSeq}
+	</delete>
+
+	<insert id="addUsersOfService" parameterType="map">
+        INSERT /* [Service.xml].[addUsersOfService].[01] 변경일자(20170601) */
+        INTO service_user (
+	        service_seq,
+	        user_seq,
+            user_grant,
+	        created,
+	        creator,
+			updated,
+			updater
+        ) VALUES
+        <foreach collection="serviceUsers" item="item" open="(" separator="), (" close=")">
+            #{serviceSeq},
+            #{item.userSeq},
+            #{item.userGrant},
+            UTC_TIMESTAMP(),
+            #{creator},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+    <update id="updateUsersOfService" parameterType="map">
+        UPDATE /* [Service.xml].[updateUsersOfService].[01] 변경일자(20170601) */
+        	service_user
+	    SET user_grant = #{userGrant},
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+        WHERE service_seq = #{serviceSeq}
+		AND user_seq = #{userSeq}
+    </update>
+
+	<select id="getClusterSeqsOfService" parameterType="int" resultType="int">
+		SELECT /* [Service.xml].[getClusterSeqsOfService].[01] 변경일자(20170601) */
+			c.cluster_seq
+		FROM services s
+				INNER JOIN service_cluster sc ON sc.service_seq = s.service_seq
+				INNER JOIN clusters c ON c.cluster_seq = sc.cluster_seq
+		WHERE s.service_seq = #{serviceSeq}
+		AND s.use_yn = 'Y'
+		AND c.use_yn = 'Y'
+	</select>
+
+	<select id="getClusterOfService" parameterType="map" resultType="ServiceCluster">
+		SELECT /* [Service.xml].[getClusterOfService].[01] 변경일자(20170601) */
+		    sc.service_seq
+			, sc.cluster_seq
+		FROM services s
+				INNER JOIN service_cluster sc ON sc.service_seq = s.service_seq
+				INNER JOIN clusters c ON c.cluster_seq = sc.cluster_seq
+		WHERE s.service_seq = #{serviceSeq}
+		AND s.use_yn = 'Y'
+		AND c.use_yn = 'Y'
+	</select>
+
+	<select id="getServiceCluster" parameterType="map" resultType="ServiceCluster">
+		SELECT /* [Service.xml].[getServiceCluster].[01] 변경일자(20200616) */
+		    sc.service_seq
+			, sc.cluster_seq
+		FROM service_cluster sc
+		<where>
+			<if test="serviceSeq != null">
+				sc.service_seq = #{serviceSeq}
+			</if>
+			<if test="clusterSeq != null">
+				AND sc.cluster_seq = #{clusterSeq}
+			</if>
+		</where>
+	</select>
+
+	<select id="getServiceSeqByCluster" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getServiceSeqByCluster].[01] 변경일자(20200624) */
+		    sc.service_seq
+		FROM service_cluster sc
+		INNER JOIN services svc
+				ON svc.service_seq = sc.service_seq
+		<if test="clusterSeq != null">
+				AND sc.cluster_seq = #{clusterSeq}
+		</if>
+				AND svc.cluster_tenancy = 'HARD'
+				AND svc.use_yn = 'Y'
+		UNION ALL
+		SELECT
+		    sc.service_seq
+		FROM service_cluster sc
+		INNER JOIN services svc
+				ON svc.service_seq = sc.service_seq
+		<if test="clusterSeq != null">
+				AND sc.cluster_seq = #{clusterSeq}
+		</if>
+				AND svc.cluster_tenancy = 'SOFT'
+				AND svc.service_type = 'PLATFORM'
+				AND svc.use_yn = 'Y'
+
+	</select>
+
+
+	<delete id="deleteServiceCluster" parameterType="map">
+        DELETE /* [Service.xml].[deleteServiceCluster].[01] 변경일자(20170607) */
+        FROM
+        	service_cluster
+		<where>
+			<if test="clusterSeq != null">
+				cluster_seq = #{clusterSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND service_seq = #{serviceSeq}
+			</if>
+		</where>
+    </delete>
+
+	 <delete id="deleteClustersOfService" parameterType="map">
+        DELETE /* [Service.xml].[deleteClustersOfService].[01] 변경일자(20170601) */
+        FROM
+        	service_cluster
+        WHERE
+            service_seq = #{serviceSeq}
+            AND cluster_seq IN (<foreach collection="clusterSeqs" item="clusterSeq" separator=", ">#{clusterSeq}</foreach>)
+    </delete>
+
+	 <delete id="deleteBuildserversOfService" parameterType="map">
+        DELETE /* [Service.xml].[deleteBuildserversOfService].[01] 변경일자(20230620) */
+        FROM
+		 	build_server_service_mapping
+        WHERE
+            service_seq = #{serviceSeq}
+            AND build_server_seq IN (<foreach collection="buildserverSeqs" item="buildServerSeq" separator=", ">#{buildServerSeq}</foreach>)
+    </delete>
+
+    <insert id="addClustersOfService" parameterType="map">
+        INSERT /* [Service.xml].[addClustersOfService].[01] 변경일자(20170601) */
+        INTO service_cluster (
+	        service_seq,
+	        cluster_seq,
+	        created,
+	        creator
+        ) VALUES
+        <foreach collection="serviceClusters" item="serviceCluster" open="(" separator="), (" close=")">
+            #{serviceSeq},
+            #{serviceCluster.clusterSeq},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+    <insert id="addClustersOfServiceV2" parameterType="map">
+        INSERT /* [Service.xml].[addClustersOfServiceV2].[01] 변경일자(20170601) */
+        INTO service_cluster (
+	        service_seq,
+	        cluster_seq,
+	        created,
+	        creator
+        ) VALUES
+        <foreach collection="serviceClusters" item="serviceCluster" open="(" separator="), (" close=")">
+            #{serviceCluster.serviceSeq},
+            #{serviceCluster.clusterSeq},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+    <insert id="addClustersOfServiceV3" parameterType="map">
+        INSERT /* [Service.xml].[addClustersOfServiceV3].[01] 변경일자(20220525) */
+        INTO service_cluster (
+	        service_seq,
+	        cluster_seq,
+	        created,
+	        creator
+        ) VALUES
+        <foreach collection="clusterSeqs" item="clusterSeq" open="(" separator="), (" close=")">
+            #{serviceSeq},
+            #{clusterSeq},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+    <insert id="addBuildserversOfService" parameterType="map">
+        INSERT /* [Service.xml].[addBuildserversOfService].[01] 변경일자(20230620) */
+        INTO build_server_service_mapping (
+	        service_seq,
+			build_server_seq,
+	        created,
+	        creator
+        ) VALUES
+        <foreach collection="buildserverSeqs" item="buildServerSeq" open="(" separator="), (" close=")">
+            #{serviceSeq},
+            #{buildServerSeq},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+    <select id="getProjectIdsOfService" parameterType="map" resultType="int">
+        SELECT /* [Service.xml].[getProjectsOfService].[01] 변경일자(201700707) */
+          sr.project_id
+        FROM service_registry sr
+        WHERE sr.service_seq = #{serviceSeq}
+    </select>
+
+    <select id="getProjectIdsOfAccount" parameterType="map" resultType="int">
+        SELECT /* [Service.xml].[getProjectIdsOfAccount].[01] 변경일자(201700707) */
+          sr.project_id
+		FROM
+			service_registry sr
+				INNER JOIN account_service_mapping asm ON asm.service_seq = sr.service_seq
+				INNER JOIN accounts a ON a.account_seq = asm.account_seq AND a.use_yn = 'Y'
+				INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_type = 'PLATFORM' AND sv.use_yn = 'Y'
+		WHERE a.account_seq = #{accountSeq}
+    </select>
+
+	<select id="getServiceSeqsOfProject" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getServiceSeqsOfProject].[01] 변경일자(201700707) */
+		       sr.service_seq
+		  FROM service_registry sr
+			   	INNER JOIN account_service_mapping asm ON asm.service_seq = sr.service_seq
+				INNER JOIN accounts a ON a.account_seq = asm.account_seq AND a.use_yn = 'Y'
+				INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_type <![CDATA[<>]]> 'PLATFORM' AND sv.use_yn = 'Y'
+		 WHERE sr.project_id = #{projectId}
+		   AND a.account_seq = #{accountSeq}
+	</select>
+
+    <delete id="deleteProjectsOfService" parameterType="map">
+        DELETE /* [Service.xml].[deleteProjectsOfService].[01] 변경일자(201700707) */
+        FROM
+            service_registry
+        WHERE
+            service_seq = #{serviceSeq}
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(projectIds)">
+			AND project_id IN (<foreach collection="projectIds" item="projectId" separator=", ">#{projectId}</foreach>)
+		</if>
+    </delete>
+
+    <insert id="addProjectsOfService" parameterType="map">
+        INSERT /* [Service.xml].[addProjectsOfService].[01] 변경일자(201700707) */
+        INTO service_registry (
+            service_seq,
+            project_id,
+            project_type,
+            project_name,
+            description,
+            created,
+            creator
+        ) VALUES
+        <foreach collection="projects" item="project" open="(" separator="), (" close=")">
+            #{serviceSeq},
+            #{project.projectId},
+            #{project.projectType},
+            #{project.projectName},
+			#{project.description},
+            UTC_TIMESTAMP(),
+            #{creator}
+        </foreach>
+    </insert>
+
+	<update id="updateServiceRegistryName" parameterType="ServiceRegistry">
+		UPDATE /* [Service.xml].[updateServiceRegistryName].[01] 변경일자(201700707) */
+			service_registry
+		SET project_name = #{projectName}
+		WHERE service_seq = #{serviceSeq}
+		  AND project_id = #{projectId}
+	</update>
+
+	<update id="updateServiceRegistryType" parameterType="ServiceRegistry">
+		UPDATE /* [Service.xml].[updateServiceRegistryType].[01] 변경일자(20200615) */
+			service_registry
+		SET project_type = #{projectType}
+		WHERE service_seq = #{serviceSeq}
+		  AND project_id = #{projectId}
+	</update>
+
+	<update id="updateServiceRegistryDescription" parameterType="ServiceRegistry">
+		UPDATE /* [Service.xml].[updateServiceRegistryDescription].[01] 변경일자(20200617) */
+			service_registry
+		SET description = #{description}
+		WHERE service_seq = #{serviceSeq}
+		  AND project_id = #{projectId}
+	</update>
+
+	<delete id="deleteUnusedServiceRegistry">
+		DELETE /* [Service.xml].[deleteUnusedServiceRegistry].[01] 변경일자(201700707) */
+		FROM service_registry
+		WHERE service_seq IN (SELECT service_seq FROM services WHERE use_yn = 'N')
+	</delete>
+
+    <select id="getProjectsOfUser" parameterType="int" resultType="int">
+        SELECT
+            sr.project_id
+        FROM service_registry sr
+        WHERE
+            sr.service_seq IN (
+                SELECT
+                    su.service_seq
+                FROM service_user su
+                WHERE
+                    su.user_seq = #{userSeq})
+    </select>
+
+    <update id="changeRegistryUserPassword" parameterType="ServiceAdd">
+    	UPDATE /* [Service.xml].[updateService].[01] 변경일자(20170602) */
+    		services
+    	SET
+    	    registry_user_password = #{registryUserPassword}
+    	WHERE
+    		service_seq = #{serviceSeq}
+    </update>
+
+    <update id="updateRegistryUser" parameterType="ServiceAdd">
+    	UPDATE /* [Service.xml].[updateRegistryUser].[01] 변경일자(20180625) */
+    		services
+    	SET
+    	    registry_user_id = #{registryUserId},
+    	    registry_user_password = #{registryUserPassword}
+    	WHERE
+    		service_seq = #{serviceSeq}
+    </update>
+
+    <select id="getRegistryUserByNamespace" parameterType="map" resultMap="ServiceRegistryUserMap">
+		SELECT /* [Service.xml].[getRegistryUserByNamespace].[01] 변경일자(20191204) */
+			sv.service_seq as serviceSeq
+			 , sv.service_name as serviceName
+			 , sv.registry_user_id as registryUserId
+			 , sv.registry_user_password as registryUserPassword
+			 , sv.cluster_tenancy as clusterTenancy
+			 , sv.service_type as serviceType
+			 , sr.service_seq as sr_serviceSeq
+			 , sr.project_id as sr_projectId
+			 , sr.project_type as sr_projectType
+			 , sr.project_name as sr_projectName
+			 , sr.description as sr_description
+			 , DATE_FORMAT(sr.created, '%Y-%m-%d') as sr_created
+		FROM servicemaps sm
+				 INNER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+				 INNER JOIN service_cluster sc ON sc.cluster_seq = cl.cluster_seq
+				 INNER JOIN service_servicemap_mapping ssm ON ssm.servicemap_seq = sm.servicemap_seq AND ssm.service_seq = sc.service_seq
+				 INNER JOIN services sv ON sv.service_seq = ssm.service_seq AND sv.use_yn ='Y'
+				 LEFT OUTER JOIN service_registry sr ON  sr.service_seq = sv.service_seq
+		WHERE sm.cluster_seq = #{clusterSeq}
+		  AND sm.namespace_name = #{namespaceName}
+    </select>
+
+	<select id="getProjectOfServiceCount" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getProjectOfServiceCount].[01] 변경일자(20170724) */
+				COUNT(1)
+		FROM services s
+				INNER JOIN service_registry sr
+					ON sr.service_seq = s.service_seq
+					AND sr.project_id = #{projectId}
+		WHERE s.service_seq = #{serviceSeq}
+		AND s.use_yn = 'Y'
+	</select>
+
+	<insert id="addAccountServiceMapping" parameterType="map">
+		INSERT /* [Service.xml].[addAccountServiceMapping].[01] 변경일자(20181101) */
+		INTO account_service_mapping (
+			account_seq,
+			service_seq,
+			created,
+			creator
+		) VALUES (
+			#{accountSeq},
+			#{serviceSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<delete id="deleteAccountServiceMapping" parameterType="map">
+		DELETE /* [Service.xml].[deleteAccountServiceMapping].[01] 변경일자(20181101) */
+		FROM
+			account_service_mapping
+		WHERE account_seq = #{accountSeq}
+		AND service_seq = #{serviceSeq}
+	</delete>
+
+	<select id="getServiceSeqsOfUser" parameterType="int" resultType="int">
+		SELECT /* [Service.xml].[getServiceSeqsOfUser].[01] 변경일자(20190108) */
+			   service_seq
+		from   service_user
+		where  user_seq = #{userSeq}
+	</select>
+
+	<select id="getServiceSeqsOfSystem" parameterType="int" resultType="int">
+		SELECT svc.service_seq service_seq
+		FROM account_service_mapping asm
+			INNER JOIN account_system_user_mapping asum ON asum.account_seq = asm.account_seq
+			INNER JOIN services svc ON svc.service_seq = asm.service_seq
+			INNER JOIN users us ON us.user_seq = asum.user_seq
+		WHERE us.user_seq = #{userSeq}
+			  AND us.use_yn='Y'
+			  AND svc.use_yn='Y'
+	</select>
+
+	<select id="getRegistryUserIds" resultType="string">
+		SELECT /* [Service.xml].[getRegistryUserIds].[01] 생성일자(20220419) */
+			sv.registry_user_id
+		FROM services sv
+		WHERE sv.registry_user_id IS NOT NULL
+	</select>
+
+	<select id="getServiceOfAccount" parameterType="map" resultMap="ServiceMap">
+		SELECT /* [Service.xml].[getServiceOfAccount].[01] 생성일자(20190211), 수정일자(20190521,hjchoi) */
+			   sv.service_seq as serviceSeq
+			 , sv.service_name as service_name
+			 , sv.registry_user_id as registry_user_id
+			 , sv.registry_user_password as registry_user_password
+ 			 , sv.cluster_tenancy as clusterTenancy
+			 , sv.service_type as serviceType
+			 , sr.service_seq	   as sr_serviceSeq
+			 , sr.project_id       as sr_projectId
+			 , sr.project_type     as sr_projectType
+			 , sr.project_name     as sr_projectName
+			 , sr.description as sr_description
+			 , DATE_FORMAT(sr.created, '%Y-%m-%d') as sr_created
+		FROM services sv
+			JOIN account_service_mapping asm on sv.service_seq = asm.service_seq
+			JOIN accounts acc ON acc.account_seq = asm.account_seq AND acc.use_yn = 'Y'
+			LEFT OUTER JOIN service_registry sr ON  sr.service_seq = sv.service_seq
+								<if test="projectType != null">
+									AND  sr.project_type = #{projectType}
+								</if>
+		WHERE sv.use_yn = 'Y'
+		  AND acc.account_seq = #{accountSeq}
+        <if test="projectType != null and !projectType.equals('SERVICE')">
+            AND sv.service_type <![CDATA[<>]]> 'PLATFORM'
+        </if>
+		ORDER BY sv.sort_order
+	</select>
+
+	<select id="getAccessibleResourcesCount" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getAccessibleResourcesCount].[01]변경일자(20190725) */
+				Count(svc.service_seq)
+		<if test='loginUserRole != "DEVOPS"'>
+		FROM   services svc
+		</if>
+		<if test='loginUserRole == "DEVOPS"'>
+		FROM (
+				SELECT innerquery.service_seq from	(
+					SELECT svc.service_seq
+					FROM   services as_svc
+						   INNER JOIN service_cluster as_sc
+								   ON as_sc.service_seq=as_svc.service_seq
+								  /** 2020.06.09 : 할당 유형은 없어졌지만 모두 CLUSTER 할당유형으로 취급하여야 하므로.. 워크스페이스에 연결된 클러스터내의 모든 서비스에 접근은 계속 가능하여야 함... **/
+ 								  /** AND as_sc.assignment_type = 'CLUSTER' **/
+						   INNER JOIN service_user su
+								   ON su.service_seq = as_svc.service_seq
+									  AND su.user_seq = #{loginUserSeq}
+						   INNER JOIN account_user_mapping acc
+								   ON acc.user_seq = su.user_seq
+							<if test="accountSeq != null">
+								AND acc.account_seq = #{accountSeq}
+							</if>
+						   INNER JOIN service_cluster as2_sc
+								   ON as2_sc.cluster_seq=as_sc.cluster_seq
+						   INNER JOIN services svc
+								   ON svc.service_seq=as2_sc.service_seq
+					UNION ALL
+					SELECT svc.service_seq
+					FROM   services svc
+						   INNER JOIN service_user su
+								   ON su.service_seq = svc.service_seq
+									  AND su.user_seq = #{loginUserSeq}
+						   INNER JOIN account_user_mapping acc
+								   ON acc.user_seq = su.user_seq
+							<if test="accountSeq != null">
+								AND acc.account_seq = #{accountSeq}
+							</if>
+				) innerquery
+		) svc
+			   INNER JOIN account_service_mapping acc
+					   ON acc.service_seq = svc.service_seq
+		</if>
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			   INNER JOIN account_service_mapping asm
+					   ON asm.service_seq = svc.service_seq
+			   INNER JOIN accounts acc
+					   ON acc.account_seq = asm.account_seq
+			   INNER JOIN account_system_user_mapping asum
+					   ON asum.account_seq = acc.account_seq
+						  AND asum.user_seq = #{loginUserSeq}
+		</if>
+		<if test="servicemapSeq != null">
+			   INNER JOIN service_servicemap_mapping ssmm ON ssmm.service_seq = svc.service_seq
+			   INNER JOIN servicemaps sm ON sm.servicemap_seq = ssmm.servicemap_seq
+						  AND sm.servicemap_seq = #{servicemapSeq}
+		</if>
+		<choose>
+			<when test="namespaceName != null">
+					INNER JOIN service_servicemap_mapping ssmm ON ssmm.service_seq = svc.service_seq
+					INNER JOIN servicemaps sm ON sm.servicemap_seq = ssmm.servicemap_seq
+							  AND sm.namespace_name = #{namespaceName}
+				<if test="clusterSeq != null or clusterId != null">
+					INNER JOIN clusters n_cl ON n_cl.cluster_seq = sm.cluster_seq
+					<if test="clusterSeq != null">
+						AND n_cl.cluster_seq = #{clusterSeq}
+					</if>
+					<if test="clusterId != null">
+						AND n_cl.cluster_id = #{clusterId}
+					</if>
+				</if>
+			</when>
+			<otherwise>
+				<if test="clusterSeq != null">
+					INNER JOIN service_cluster sc ON sc.service_seq = svc.service_seq
+								AND sc.cluster_seq = #{clusterSeq}
+				</if>
+				<if test="clusterId != null">
+					INNER JOIN service_cluster id_sc ON id_sc.service_seq = svc.service_seq
+					INNER JOIN clusters id_cl ON id_cl.cluster_seq = id_sc.cluster_seq
+								AND id_cl.cluster_id = #{clusterId}
+				</if>
+			</otherwise>
+		</choose>
+		<if test='pipelineWorkloadSeq != null'>
+			   INNER JOIN service_cluster pw_sc
+					   ON pw_sc.service_seq = svc.service_seq
+			   INNER JOIN pipeline_workload pw_pw
+					   ON pw_pw.cluster_seq=pw_sc.cluster_seq
+					  AND pw_pw.pipeline_workload_seq = #{pipelineWorkloadSeq}
+		</if>
+		<if test="buildSeq != null">
+			   INNER JOIN build bu_bu
+					   ON bu_bu.account_seq = acc.account_seq
+					  AND bu_bu.build_seq = #{buildSeq}
+		</if>
+		<if test="buildRunSeq != null">
+			   INNER JOIN build br_bu
+					   ON br_bu.account_seq = acc.account_seq
+			   INNER JOIN build_run br_br
+					   ON br_br.build_seq = br_bu.build_seq
+					  AND br_br.build_run_seq = #{buildRunSeq}
+		</if>
+		<if test="buildStepRunSeq != null">
+			   INNER JOIN build bsr_bu
+					   ON bsr_bu.account_seq = acc.account_seq
+			   INNER JOIN build_run bsr_br
+					   ON bsr_br.build_seq = bsr_bu.build_seq
+			   INNER JOIN build_step_run bsr_bsr
+					   ON bsr_bsr.build_run_seq = bsr_br.build_run_seq
+					  AND bsr_bsr.build_step_run_seq = #{buildStepRunSeq}
+		</if>
+		<if test='pipelineContainerSeq != null'>
+			   INNER JOIN service_cluster pc_sc
+					   ON pc_sc.service_seq = svc.service_seq
+			   INNER JOIN pipeline_workload pc_pw
+					   ON pc_pw.cluster_seq=pc_sc.cluster_seq
+			   INNER JOIN pipeline_container pc_pc
+					   ON pc_pc.pipeline_workload_seq = pc_pw.pipeline_workload_seq
+                      AND pc_pc.pipeline_container_seq = #{pipelineContainerSeq}
+		</if>
+		<if test="templateSeq != null">
+			   INNER JOIN templates tpl
+					   ON tpl.service_seq = svc.service_seq
+						  AND tpl.template_seq = #{templateSeq}
+		</if>
+		<where>
+			<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+				<if test="accountSeq != null">
+			    AND acc.account_seq = #{accountSeq}
+				</if>
+			</if>
+			<if test="serviceSeq != null">
+				AND svc.service_seq = #{serviceSeq}
+			</if>
+			<if test="serviceSeqs != null">
+				AND svc.service_seq IN
+				<foreach collection="serviceSeqs" item="item" open="(" separator="," close=")">
+					#{item.value}
+				</foreach>
+			</if>
+		</where>
+	</select>
+
+	<select id="getAccessibleServicesCount" parameterType="map" resultType="int">
+		SELECT /* [Service.xml].[getAccessibleServiceCount].[01]변경일자(20191203) */
+				Count(svc.service_seq)
+		FROM   services svc
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			   INNER JOIN account_service_mapping asm
+					   ON asm.service_seq = svc.service_seq
+			   INNER JOIN accounts acc
+					   ON acc.account_seq = asm.account_seq
+			   INNER JOIN account_system_user_mapping asum
+					   ON asum.account_seq = acc.account_seq
+						  AND asum.user_seq = #{loginUserSeq}
+		</if>
+		<if test='loginUserRole == "DEVOPS"'>
+			   INNER JOIN service_user su
+					   ON su.service_seq = svc.service_seq
+						  AND su.user_seq = #{loginUserSeq}
+			   INNER JOIN account_user_mapping acc
+					   ON acc.user_seq = su.user_seq
+			<if test="accountSeq != null">
+			  			  AND acc.account_seq = #{accountSeq}
+			</if>
+		</if>
+		<where>
+			<if test="accountSeq != null">
+				AND acc.account_seq = #{accountSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND svc.service_seq = #{serviceSeq}
+			</if>
+		</where>
+	</select>
+
+	<select id="getServiceRelation" parameterType="map" resultType="ServiceRelation">
+		SELECT /* [Service.xml].[getServiceRelation].[01]변경일자(20190902) */
+			 acc.account_seq
+			,acc.account_name
+		<if test="plSeq != null">
+			,cl.cluster_seq
+			,cl.cluster_name
+		</if>
+		<if test="clusterSeq == null and serviceSeq != null">
+			,svc.service_seq
+			,svc.service_name
+		</if>
+		<if test="clusterSeq != null">
+			,cl.cluster_seq
+			,cl.cluster_name
+		</if>
+		<if test="servicemapGroupSeq != null">
+			,smg.servicemap_group_seq
+			,smg.servicemap_group_name
+		</if>
+		<if test="servicemapSeq != null">
+			,sm.servicemap_seq
+			,sm.servicemap_name
+			,cl.cluster_seq
+			,cl.cluster_name
+		</if>
+		<if test="workloadGroupSeq != null">
+			,sm.servicemap_seq
+			,sm.servicemap_name
+			,cl.cluster_seq
+			,cl.cluster_name
+			,wlg.workload_group_seq
+			,wlg.workload_group_name
+		</if>
+		<choose>
+			<when test="plSeq != null">
+			FROM pl_master pm
+				INNER JOIN clusters cl ON cl.cluster_seq = pm.cluster_seq
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = cl.provider_account_seq
+				INNER JOIN accounts acc ON acc.account_seq = apam.account_seq
+			</when>
+			<when test="clusterSeq != null">
+			FROM	clusters cl
+				INNER JOIN provider_account pa ON pa.provider_account_seq=cl.provider_account_seq AND cl.cluster_seq = #{clusterSeq}
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq=pa.provider_account_seq
+				INNER JOIN accounts acc ON acc.account_seq = apam.account_seq
+			</when>
+			<when test="clusterSeq == null and serviceSeq != null">
+			FROM   services svc
+				INNER JOIN account_service_mapping asm ON asm.service_seq = svc.service_seq
+				INNER JOIN accounts acc ON acc.account_seq = asm.account_seq
+			</when>
+			<when test="servicemapGroupSeq != null">
+			FROM   services svc
+				INNER JOIN account_service_mapping asm ON asm.service_seq = svc.service_seq
+				INNER JOIN accounts acc ON acc.account_seq = asm.account_seq
+			</when>
+			<otherwise>
+			FROM   servicemaps sm
+				LEFT OUTER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq
+				LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq=cl.provider_account_seq
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq=pa.provider_account_seq
+				LEFT OUTER JOIN accounts acc ON acc.account_seq = apam.account_seq
+			</otherwise>
+		</choose>
+		<if test="servicemapGroupSeq != null">
+				INNER JOIN servicemap_groups smg ON smg.service_seq = svc.service_seq AND smg.servicemap_group_seq = #{servicemapGroupSeq}
+		</if>
+		<if test="workloadGroupSeq != null">
+				INNER JOIN workload_groups wlg ON wlg.servicemap_seq = sm.servicemap_seq AND wlg.workload_group_seq = #{workloadGroupSeq}
+		</if>
+		<where>
+			<if test="plSeq != null">
+				AND pm.pl_seq = #{plSeq}
+			</if>
+			<if test="servicemapSeq != null">
+				AND sm.servicemap_seq = #{servicemapSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND svc.service_seq = #{serviceSeq}
+			</if>
+			<if test="accountSeq != null">
+				AND acc.account_seq = #{accountSeq}
+			</if>
+		</where>
+		LIMIT 1
+	</select>
+
+	<select id="getServiceSeqByProjectId" parameterType="map" resultType="integer">
+		SELECT  /* [Service.xml].[getServiceSeqByProjectId].[01]변경일자(20230426) */
+			sr.service_seq
+		FROM service_registry sr
+				 inner join services svc on svc.service_seq = sr.service_seq
+				 inner join account_service_mapping asm on asm.service_seq = sr.service_seq
+		WHERE sr.project_type = 'SERVICE'
+		  AND sr.project_id = #{projectId}
+		  and asm.account_seq = #{accountSeq}
+		  and svc.use_yn = 'Y'
+		ORDER BY sr.created ASC
+		LIMIT 1
+	</select>
+
+	<select id="getServiceRegistry" parameterType="map" resultType="ServiceRegistry">
+		SELECT /* [Service.xml].[getServiceSeqByProjectId].[01]변경일자(20190902) */
+				service_seq as serviceSeq
+				,project_id  as projectId
+				,project_type as projectType
+				,project_name as projectName
+				,description as description
+				,DATE_FORMAT(created, '%Y-%m-%d') as created
+		FROM service_registry
+		<where>
+			AND service_seq = #{serviceSeq}
+			AND project_id = #{projectId}
+			AND project_type = #{projectType}
+			<if test="projectName != null">AND project_name = #{projectName}</if>
+		</where>
+		LIMIT 1
+	</select>
+
+	<select id="getServiceRegistries" parameterType="map" resultType="ServiceRegistry">
+		SELECT /* [Service.xml].[getServiceSeqByProjectId].[01]변경일자(20190902) */
+		       service_seq as serviceSeq
+		      ,project_id  as projectId
+		      ,project_type as projectType
+		      ,project_name as projectName
+			  ,description as description
+			  ,DATE_FORMAT(created, '%Y-%m-%d') as created
+		  FROM service_registry
+		<where>
+			<if test="serviceSeq != null">AND service_seq = #{serviceSeq}</if>
+			<if test="projectId != null">AND project_id = #{projectId}</if>
+			<if test="projectType != null">AND project_type = #{projectType}</if>
+			<if test="projectName != null">AND project_name = #{projectName}</if>
+		</where>
+	</select>
+
+    <select id="getServiceRegistriesWithPipelineFlow" parameterType="map" resultType="ServiceRegistryDetail">
+		SELECT /* [Service.xml].[getServiceRegistriesWithPipelineFlow].[01] 변경일자(20200619) */
+			sr.service_seq				AS	serviceSeq
+			,sr.project_id				AS	projectId
+			,sr.project_type			AS	projectType
+			,sr.project_name			AS	projectName
+			,sr.description				AS	description
+			,svc.registry_user_id		AS	registryUserId
+			,svc.registry_user_password	AS	registryUserPassword
+			,DATE_FORMAT(sr.created, '%Y-%m-%d')	AS	created
+			,(
+				SELECT	COUNT(*)
+				FROM	build
+				WHERE	use_yn='Y'
+				AND		registry_project_id = sr.project_id
+			) AS buildCount
+		FROM service_registry sr
+			INNER JOIN	services svc
+					ON 	svc.service_seq = sr.service_seq
+			INNER JOIN	(SELECT DISTINCT build_registry_seq FROM pipeline_container pc) pc
+					ON	pc.build_registry_seq = sr.project_id
+		<if test="serviceSeq != null">
+					AND	sr.service_seq = #{serviceSeq}
+		</if>
+    </select>
+
+	<select id="getServiceRegistryOfAccount" parameterType="map" resultType="ServiceRegistry">
+		SELECT /* [Service.xml].[getServiceRegistryOfAccount].[01]변경일자(20190902) */
+				sr.service_seq as serviceSeq
+				,sr.project_id  as projectId
+				,sr.project_type as projectType
+				,sr.project_name as projectName
+				,sr.description as description
+				,DATE_FORMAT(sr.created, '%Y-%m-%d') as created
+				,(
+					SELECT	COUNT(*)
+					FROM	build
+					WHERE	use_yn='Y'
+					AND		registry_project_id = sr.project_id
+				) AS buildCount
+		FROM services sv
+				JOIN account_service_mapping asm on sv.service_seq = asm.service_seq
+				JOIN accounts acc ON acc.account_seq = asm.account_seq AND acc.use_yn = 'Y'
+				JOIN service_registry sr ON  sr.service_seq = sv.service_seq
+				<if test="serviceSeq != null">
+					AND sv.service_seq = #{serviceSeq}
+				</if>
+				<if test="serviceType != null">
+					AND sv.service_type = #{serviceType}
+				</if>
+				<if test="projectType != null">
+					AND  sr.project_type = #{projectType}
+				</if>
+				<if test="projectId != null">
+					AND  sr.project_id = #{projectId}
+				</if>
+		WHERE sv.use_yn = 'Y'
+		AND acc.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getServicesWithServicemapGroupByCluster" parameterType="map" resultMap="ServiceServicemapGroupListMap">
+		SELECT /* [Service.xml].[getServicesWithServicemapGroupByCluster].[01]변경일자(20220419) */
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.sort_order				sortOrder,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.use_yn					useYn,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sg.servicemap_group_seq     sg_servicemapGroupSeq,
+			sg.service_seq			  	sg_serviceSeq,
+			sg.servicemap_group_name    sg_servicemapGroupName,
+			sg.color_code			  	sg_colorCode,
+			sg.sort_order       	  	sg_sortOrder,
+			sg.use_yn				  	sg_useYn
+		FROM
+		    clusters cl
+				INNER JOIN service_cluster sc ON sc.cluster_seq = cl.cluster_seq
+				INNER JOIN services sv ON sc.service_seq = sv.service_seq AND sv.use_yn = 'Y'
+				INNER JOIN servicemap_groups sg ON sg.service_seq = sc.service_seq AND sg.use_yn = 'Y'
+		WHERE cl.cluster_seq = #{clusterSeq}
+		AND cl.use_yn = 'Y'
+	</select>
+
+	<select id="getServicesInRegistry" parameterType="map" resultType="ServiceBase">
+		SELECT /* [Service.xml].[getServicesInRegistry].[01] 변경일자(20200618) */
+		       DISTINCT
+				sv.service_seq		      	serviceSeq,
+				sv.service_name		      	serviceName,
+				sv.description			  	description,
+				sv.color_code		      	colorCode,
+				sv.registry_user_id       	registryUserId,
+				sv.registry_user_password 	registryUserPassword,
+				sv.cluster_tenancy			clusterTenancy,
+				sv.service_type				serviceType,
+				sv.use_yn			      	useYn,
+				asm.account_seq             accountSeq,
+				IFNULL(ss.clusterCount, 0)	clusterCount,
+				IFNULL(ss.servicemapCount, 0)	servicemapCount
+		FROM 	service_registry sr
+				LEFT OUTER JOIN services sv ON  sr.service_seq = sv.service_seq
+				<if test="useYn != null">
+					AND sv.use_yn = #{useYn}
+				</if>
+				LEFT OUTER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+				LEFT OUTER JOIN (
+							SELECT
+								x_s.service_seq,
+								COUNT(DISTINCT x_cl.cluster_seq)	clusterCount,
+								COUNT(DISTINCT x_ssm.servicemap_seq)	servicemapCount
+							FROM services x_s
+									INNER JOIN account_service_mapping x_asm ON  x_asm.service_seq = x_s.service_seq
+												<if test="accountSeq != null">AND x_asm.account_seq = #{accountSeq} </if>
+									LEFT OUTER JOIN service_cluster x_sc ON  x_sc.service_seq = x_s.service_seq
+									LEFT OUTER JOIN service_servicemap_mapping x_ssm	ON x_ssm.service_seq = x_sc.service_seq
+									LEFT OUTER JOIN clusters x_cl ON	x_cl.cluster_seq = x_sc.cluster_seq AND x_cl.use_yn = 'Y'
+									LEFT OUTER JOIN servicemaps x_sm ON	x_sm.cluster_seq = x_cl.cluster_seq AND x_sm.servicemap_seq = x_ssm.servicemap_seq AND x_sm.use_yn = 'Y'
+							GROUP BY x_s.service_seq
+				) ss ON ss.service_seq = sv.service_seq
+		<where>
+			<if test="projectId != null">
+				AND sr.project_id = #{projectId}
+				AND sr.project_type = 'SHARE'
+			</if>
+			<if test="accountSeq != null">AND asm.account_seq = #{accountSeq} </if>
+		</where>
+	</select>
+
+	<update id="removeComponentsByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removeComponentsByAccount].[01] 변경일자(20220421) */
+			components cp
+		SET
+			cp.use_yn                = 'N',
+			cp.updated               = UTC_TIMESTAMP(),
+			cp.updater               = #{updater}
+		WHERE cp.use_yn = 'Y'
+		  AND (cp.cluster_seq, cp.namespace_name) IN (
+			SELECT
+				sm.cluster_seq, sm.namespace_name
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+					INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+					<if test="serviceType != null">
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+					</if>
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</update>
+
+	<update id="removeWorkloadGroupsByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removeWorkloadGroupsByAccount].[01] 변경일자(20220421) */
+			workload_groups wp
+		SET
+			wp.use_yn                = 'N',
+			wp.updated               = UTC_TIMESTAMP(),
+			wp.updater               = #{updater}
+		WHERE wp.use_yn = 'Y'
+		  AND wp.servicemap_seq IN (
+			SELECT
+				sm.servicemap_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+					INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+					<if test="serviceType != null">
+						INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+					</if>
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</update>
+
+	<delete id="deleteServicemapGroupsMappingByAccount" parameterType="map">
+		DELETE /* [Service.xml].[deleteServicemapGroupsMappingByAccount].[01] 변경일자(20220421) */
+		FROM servicemapgroup_servicemap_mapping
+		WHERE servicemap_seq IN (
+			SELECT
+				sm.servicemap_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+					INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+					<if test="serviceType != null">
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+					</if>
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</delete>
+
+	<update id="removeServicemapGroupsByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removeServicemapGroupsByAccount].[01] 변경일자(20220421) */
+			servicemap_groups sg
+		SET
+			sg.use_yn                = 'N',
+			sg.updated               = UTC_TIMESTAMP(),
+			sg.updater               = #{updater}
+		WHERE sg.use_yn = 'Y'
+		  AND sg.service_seq IN (
+			SELECT
+				asm.service_seq
+			FROM
+				account_service_mapping asm
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y'
+												<if test="serviceType != null">
+													AND sv.service_type =  #{serviceType}
+												</if>
+			WHERE asm.account_seq = #{accountSeq}
+		)
+	</update>
+
+	<delete id="deleteServicemapGroupsByAccount" parameterType="map">
+
+		SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
+		DELETE /* [Service.xml].[deleteServicemapGroupsByAccount].[01] 변경일자(20220421) */
+		FROM servicemap_groups
+		WHERE service_seq IN (
+			SELECT
+				asm.service_seq
+			FROM
+				account_service_mapping asm
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq
+												<if test="serviceType != null">
+													AND sv.service_type =  #{serviceType}
+												</if>
+			WHERE asm.account_seq = #{accountSeq}
+		);
+
+		SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS);
+
+	</delete>
+
+	<update id="removeServicemapsByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removeServicemapsByAccount].[01] 변경일자(20220421) */
+			servicemaps sm
+		SET
+			sm.use_yn                = 'N',
+			sm.updated               = UTC_TIMESTAMP(),
+			sm.updater               = #{updater}
+		WHERE sm.use_yn = 'Y'
+		  AND sm.cluster_seq IN (
+			SELECT
+				cl.cluster_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+					<if test="serviceType != null">
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+					</if>
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</update>
+
+	<update id="removePipelineRunByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removePipelineRunByAccount].[01] 변경일자(20200617) */
+			pipeline_run pr
+		SET
+			pr.use_yn                = 'N',
+			pr.updated               = UTC_TIMESTAMP(),
+			pr.updater               = #{updater}
+		WHERE pr.use_yn = 'Y'
+		  AND pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq AND pc.use_yn = 'Y'
+			WHERE (pw.cluster_seq, pw.namespace_name) IN (
+				SELECT
+					sm.cluster_seq, sm.namespace_name
+				FROM
+					accounts a
+						INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+						INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+						INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+						INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+						INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+						<if test="serviceType != null">
+						INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+						</if>
+				WHERE a.account_seq = #{accountSeq}
+			)
+		)
+	</update>
+
+	<update id="removePipelineContainerByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removePipelineContainerByAccount].[01] 변경일자(20200617) */
+			pipeline_container pc
+		SET
+			pc.use_yn                = 'N',
+			pc.updated               = UTC_TIMESTAMP(),
+			pc.updater               = #{updater}
+		WHERE pc.use_yn = 'Y'
+		  AND pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM
+				pipeline_workload pw
+			WHERE (pw.cluster_seq, pw.namespace_name) IN (
+				SELECT
+					sm.cluster_seq, sm.namespace_name
+				FROM
+					accounts a
+						INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+						INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+						INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+						INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+						INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+						<if test="serviceType != null">
+						INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+						</if>
+				WHERE a.account_seq = #{accountSeq}
+			)
+		)
+	</update>
+
+	<update id="removePipelineWorkloadByAccount" parameterType="map">
+		UPDATE /* [Service.xml].[removePipelineWorkloadByAccount].[01] 변경일자(20200617) */
+			pipeline_workload pw
+		SET
+			pw.use_yn                = 'N',
+			pw.updated               = UTC_TIMESTAMP(),
+			pw.updater               = #{updater}
+		WHERE pw.use_yn = 'Y'
+		  AND (pw.cluster_seq, pw.namespace_name) IN (
+			SELECT
+				sm.cluster_seq, sm.namespace_name
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+					INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+					<if test="serviceType != null">
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+					</if>
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</update>
+
+	<delete id="deleteServiceServicemapMappingByAccount" parameterType="map">
+		DELETE ssmm /* [Service.xml].[deleteServiceServicemapMappingByAccount].[01] 변경일자(20220421) */
+		FROM accounts a
+			INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+			INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+			INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+			INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq AND cl.use_yn = 'Y'
+			INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq AND sm.use_yn = 'Y'
+			INNER JOIN service_servicemap_mapping ssmm ON sm.servicemap_seq = ssmm.servicemap_seq
+			<if test="serviceType != null">
+			INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y' AND sv.service_type =  #{serviceType}
+			</if>
+		WHERE a.account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteServiceProjectsByAccount" parameterType="map">
+		DELETE /* [Service.xml].[deleteServiceProjectsByAccount].[01] 변경일자(20210706) */
+		FROM service_registry
+		WHERE service_seq IN (
+			SELECT
+				asm.service_seq
+			FROM account_service_mapping asm
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq
+										<if test="serviceType != null">
+											AND sv.service_type =  #{serviceType}
+										</if>
+			WHERE asm.account_seq = #{accountSeq}
+		)
+	</delete>
+
+
+	<delete id="deleteServicemapGroupsMappingByService" parameterType="map">
+		DELETE /* [Service.xml].[deleteServicemapGroupsMappingByService].[01] 변경일자(20220531) */
+		FROM servicemapgroup_servicemap_mapping
+		WHERE servicemap_seq IN (
+			SELECT
+				sm.servicemap_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asm.account_seq
+					INNER JOIN provider_account pa ON	pa.provider_account_seq = apam.provider_account_seq
+					INNER JOIN clusters cl ON cl.provider_account_seq = pa.provider_account_seq
+					INNER JOIN servicemaps sm ON sm.cluster_seq = cl.cluster_seq
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_seq =  #{serviceSeq}
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</delete>
+
+
+	<delete id="deleteServicemapGroupsByService" parameterType="map">
+
+		SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
+		DELETE /* [Service.xml].[deleteServicemapGroupsByService].[01] 변경일자(20220531) */
+		FROM servicemap_groups
+		WHERE service_seq IN (
+			SELECT
+				sv.service_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_seq =  #{serviceSeq}
+			WHERE a.account_seq = #{accountSeq}
+		);
+
+		SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS);
+
+	</delete>
+
+
+	<delete id="deleteServiceServicemapMappingByService" parameterType="map">
+		DELETE /* [Servicemap.xml].[deleteServiceServicemapMappingByService].[01] 변경일자(20220531) */
+		FROM
+			service_servicemap_mapping
+		WHERE service_seq IN (
+			SELECT
+				sv.service_seq
+			FROM
+				accounts a
+					INNER JOIN account_service_mapping asm ON asm.account_seq = a.account_seq
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_seq =  #{serviceSeq}
+			WHERE a.account_seq = #{accountSeq}
+		)
+	</delete>
+</mapper>

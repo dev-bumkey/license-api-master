@@ -1,0 +1,748 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.pipelineflow.dao.IPipelineFlowMapper">
+
+    <resultMap id="PipelineWorkloadMap" type="PipelineWorkload" autoMapping="true">
+        <id property="pipelineWorkloadSeq" column="pipelineWorkloadSeq" />
+        <collection property="pipelineContainers" columnPrefix="pc_" resultMap="PipelineContainerMap" />
+    </resultMap>
+
+    <resultMap id="PipelineContainerMap" type="PipelineContainer" autoMapping="true">
+        <id property="pipelineContainerSeq" column="pipelineContainerSeq" />
+    </resultMap>
+
+    <resultMap id="PipelineRunMap" type="PipelineRun" autoMapping="true">
+        <id property="pipelineRunSeq" column="pipelineRunSeq" />
+    </resultMap>
+
+    <insert id="addPipelineWorkload" parameterType="PipelineWorkload" useGeneratedKeys="true" keyProperty="pipelineWorkloadSeq">
+        insert /* [Pipelineflow.xml].[addPipelineWorkload].[01] 변경일자(20191002) */
+        into pipeline_workload (
+             cluster_seq
+           , namespace_name
+           , workload_name
+           , use_yn
+           , created
+           , creator
+           , updated
+           , updater
+        ) values (
+             #{clusterSeq}
+           , #{namespaceName}
+           , #{workloadName}
+           , 'Y'
+           , UTC_TIMESTAMP()
+           , #{creator}
+           , UTC_TIMESTAMP()
+           , #{creator}
+        )
+    </insert>
+
+    <insert id="addPipelineContainer" parameterType="PipelineContainer" useGeneratedKeys="true" keyProperty="pipelineContainerSeq">
+        insert /* [Pipelineflow.xml].[addPipelineContainer].[01] 변경일자(20191002) */
+        into pipeline_container (
+              pipeline_workload_seq
+            , pipeline_type
+            , container_name
+            , build_seq
+            , build_run_seq
+            , build_state
+            , build_registry_seq
+            , build_registry_name
+            , build_image_name
+            , build_image_tag
+            , build_image_url
+            , deploy_build_run_seq
+            , deploy_state
+            , deploy_registry_seq
+            , deploy_registry_name
+            , deploy_image_name
+            , deploy_image_tag
+            , deploy_image_url
+            , use_yn
+            , created
+            , creator
+            , updated
+            , updater
+        ) values (
+              #{pipelineWorkloadSeq}
+            , #{pipelineType}
+            , #{containerName}
+            , #{buildSeq}
+            , #{buildRunSeq}
+            , #{buildState}
+            , #{buildRegistrySeq}
+            , #{buildRegistryName}
+            , #{buildImageName}
+            , #{buildImageTag}
+            , #{buildImageUrl}
+            , #{deployBuildRunSeq}
+            , #{deployState}
+            , #{deployRegistrySeq}
+            , #{deployRegistryName}
+            , #{deployImageName}
+            , #{deployImageTag}
+            , #{deployImageUrl}
+            , 'Y'
+            , UTC_TIMESTAMP()
+            , #{creator}
+            , UTC_TIMESTAMP()
+            , #{creator}
+        )
+    </insert>
+
+    <insert id="addPipelineRun" parameterType="PipelineRun" useGeneratedKeys="true" keyProperty="pipelineRunSeq">
+        insert /* [Pipelineflow.xml].[addPipelineRun].[01] 변경일자(20190926) */
+        into pipeline_run (
+              pipeline_container_seq
+            , run_type
+            , run_state
+            , build_seq
+            , build_run_seq
+            , build_registry_seq
+            , build_registry_name
+            , build_image_name
+            , build_image_tag
+            , build_image_url
+            , deploy_content
+            , use_yn
+            , created
+            , creator
+            , updated
+            , updater
+        ) values (
+              #{pipelineContainerSeq}
+            , #{runType}
+            , #{runState}
+            , #{buildSeq}
+            , #{buildRunSeq}
+            , #{buildRegistrySeq}
+            , #{buildRegistryName}
+            , #{buildImageName}
+            , #{buildImageTag}
+            , #{buildImageUrl}
+            , #{deployContent}
+            , 'Y'
+            , UTC_TIMESTAMP()
+            , #{creator}
+            , UTC_TIMESTAMP()
+            , #{creator}
+        )
+    </insert>
+
+    <update id="updatePipelineContainer" parameterType="PipelineContainer">
+        update /* [Pipelineflow.xml].[updatePipelineContainer].[01] 변경일자(20190926) */
+            pipeline_container
+        set
+            pipeline_type = #{pipelineType},
+            container_name = #{containerName},
+            build_seq = #{buildSeq},
+            build_run_seq = #{buildRunSeq},
+            build_state = #{buildState},
+            build_registry_seq = #{buildRegistrySeq},
+            build_registry_name = #{buildRegistryName},
+            build_image_name = #{buildImageName},
+            build_image_tag = #{buildImageTag},
+            build_image_url = #{buildImageUrl},
+            deploy_build_run_seq = #{deployBuildRunSeq},
+            deploy_state = #{deployState},
+            deploy_registry_seq = #{deployRegistrySeq},
+            deploy_registry_name = #{deployRegistryName},
+            deploy_image_name = #{deployImageName},
+            deploy_image_tag = #{deployImageTag},
+            deploy_image_url = #{deployImageUrl},
+            use_yn = #{useYn},
+            updated = UTC_TIMESTAMP(),
+            updater = #{updater}
+        where pipeline_container_seq = #{pipelineContainerSeq}
+    </update>
+
+    <update id="deletePipelineRunByWorkload" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineRunByComponent].[01] 변경일자(20190926) */
+            pipeline_run pr
+            inner join pipeline_container pc on pc.pipeline_container_seq = pr.pipeline_container_seq and pc.use_yn = 'Y'
+            inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+        SET
+            pr.use_yn                = 'N',
+            pr.updated               = UTC_TIMESTAMP(),
+            pr.updater               = #{updater}
+        WHERE pw.cluster_seq = #{clusterSeq}
+          AND pw.namespace_name = #{namespaceName}
+          AND pw.workload_name = #{workloadName}
+          AND pr.use_yn = 'Y'
+    </update>
+
+    <update id="deletePipelineContainerByWorkload" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineContainerByComponent].[01] 변경일자(20190926) */
+            pipeline_container pc
+            inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+        SET
+            pc.use_yn                = 'N',
+            pc.updated               = UTC_TIMESTAMP(),
+            pc.updater               = #{updater}
+        WHERE pc.use_yn = 'Y'
+          AND pw.cluster_seq = #{clusterSeq}
+          AND pw.namespace_name = #{namespaceName}
+          AND pw.workload_name = #{workloadName}
+    </update>
+
+    <update id="deletePipelineWorkloadByWorkload" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineWorkloadByComponent].[01] 변경일자(20190926) */
+            pipeline_workload pw
+        SET
+            pw.use_yn                = 'N',
+            pw.updated               = UTC_TIMESTAMP(),
+            pw.updater               = #{updater}
+        WHERE pw.cluster_seq = #{clusterSeq}
+          AND pw.namespace_name = #{namespaceName}
+          AND pw.workload_name = #{workloadName}
+          AND pw.use_yn = 'Y'
+    </update>
+
+    <update id="deletePipelineRun" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineRun].[01] 변경일자(20190926) */
+            pipeline_run
+        SET
+            use_yn                = 'N',
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_run_seq = #{pipelineRunSeq}
+          AND use_yn = 'Y'
+    </update>
+
+    <update id="deletePipelineContainer" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineContainer].[01] 변경일자(20190926) */
+            pipeline_container
+        SET
+            use_yn                = 'N',
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_container_seq = #{pipelineContainerSeq}
+          AND use_yn = 'Y'
+    </update>
+
+    <update id="deletePipelineWorkload" parameterType="map">
+        UPDATE /* [Pipelineflow.xml].[deletePipelineWorkload].[01] 변경일자(20190926) */
+            pipeline_container
+        SET
+            use_yn                = 'N',
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_workload_seq = #{pipelineWorkloadSeq}
+          AND use_yn = 'Y'
+    </update>
+
+    <select id="getPipelineContainer" parameterType="map" resultMap="PipelineContainerMap">
+        select /* [Pipelineflow.xml].[getPipelineContainer].[01] 변경일자(20190926) */
+            pipeline_container_seq AS pipelineContainerSeq,
+            pipeline_workload_seq AS pipelineWorkloadSeq,
+            pipeline_type AS pipelineType,
+            container_name AS containerName,
+            build_seq AS buildSeq,
+            build_run_seq AS buildRunSeq,
+            build_state AS buildState,
+            build_registry_seq AS buildRegistrySeq,
+            build_registry_name AS buildRegistryName,
+            build_image_name AS buildImageName,
+            build_image_tag AS buildImageTag,
+            build_image_url AS buildImageUrl,
+            deploy_build_run_seq AS deployBuildRunSeq,
+            deploy_state AS deployState,
+            deploy_registry_seq AS deployRegistrySeq,
+            deploy_registry_name AS deployRegistryName,
+            deploy_image_name AS deployImageName,
+            deploy_image_tag AS deployImageTag,
+            deploy_image_url AS deployImageUrl,
+            use_yn AS useYn,
+            created AS created,
+            creator AS creator,
+            updated AS updated,
+            updater AS updater
+         from pipeline_container
+        where pipeline_container_seq = #{pipelineContainerSeq}
+          and use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineRun" parameterType="map" resultMap="PipelineRunMap">
+        select /* [Pipelineflow.xml].[getPipelineRun].[01] 변경일자(20190926) */
+            pipeline_run_seq AS pipelineRunSeq,
+            pipeline_container_seq AS pipelineContainerSeq,
+            run_type AS runType,
+            run_state AS runState,
+            build_seq AS buildSeq,
+            build_run_seq AS buildRunSeq,
+            build_registry_seq AS buildRegistrySeq,
+            build_registry_name AS buildRegistryName,
+            build_image_name AS buildImageName,
+            build_image_tag AS buildImageTag,
+            build_image_url AS buildImageUrl,
+            deploy_content AS deployContent,
+            use_yn AS useYn,
+            created AS created,
+            creator AS creator,
+            updated AS updated,
+            updater AS updater
+        from pipeline_run
+        where pipeline_run_seq = #{pipelineRunSeq}
+          and use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineOnRunningByWorkload" parameterType="map" resultMap="PipelineRunMap">
+        select /* [Pipelineflow.xml].[getPipelineOnRunningByWorkload].[01] 변경일자(20190926) */
+                  pr.pipeline_run_seq
+                , pr.pipeline_container_seq
+                , pr.run_type
+                , pr.run_state
+                , pr.build_seq
+                , pr.build_run_seq
+                , pr.deploy_content
+                , pc.pipeline_type
+                , pc.build_state
+        from pipeline_run pr
+                 inner join pipeline_container pc on pc.pipeline_container_seq = pr.pipeline_container_seq and pc.use_yn = 'Y'
+                 inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+        where pw.cluster_seq = #{clusterSeq}
+          AND pw.namespace_name = #{namespaceName}
+          AND pw.workload_name = #{workloadName}
+          <choose>
+              <when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(runStates)">
+                  and pr.run_state in
+                  <foreach collection="runStates" item="runState" open="(" separator=", " close=")">
+                    #{runState}
+                  </foreach>
+              </when>
+              <otherwise>
+                  and pr.run_state in ('WAIT', 'RUNNING')
+              </otherwise>
+          </choose>
+          and pr.use_yn = 'Y'
+        order by pr.pipeline_run_seq desc
+        limit 1
+    </select>
+
+    <select id="getPipelineOnRunningByBuildRunSeq" parameterType="map" resultMap="PipelineRunMap">
+        select /* [Pipelineflow.xml].[getPipelineOnRunningByBuildRunSeq].[01] 변경일자(20200305) */
+                  pr.pipeline_run_seq
+                , pr.pipeline_container_seq
+                , pr.run_type
+                , pr.run_state
+                , pr.build_seq
+                , pr.build_run_seq
+                , pr.deploy_content
+                , pc.pipeline_type
+                , pc.build_state
+        from pipeline_run pr
+                 inner join pipeline_container pc on pc.pipeline_container_seq = pr.pipeline_container_seq and pc.use_yn = 'Y'
+                 inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+        where pr.pipeline_container_seq = #{pipelineContainerSeq}
+          and pr.build_seq = #{buildSeq}
+          AND pr.build_run_seq = #{buildRunSeq}
+        <if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(runStates)">
+            and pr.run_state in
+            <foreach collection="runStates" item="runState" open="(" separator=", " close=")">
+                #{runState}
+            </foreach>
+        </if>
+          and pr.use_yn = 'Y'
+        order by pr.pipeline_run_seq desc
+        limit 1
+    </select>
+
+    <select id="getPipelineWorkloads" parameterType="map" resultMap="PipelineWorkloadMap">
+        select /* [Pipelineflow.xml].[getPipelineWorkloads].[01] 변경일자(20190926) */
+            pw.pipeline_workload_seq as pipelineWorkloadSeq,
+            pw.cluster_seq AS clusterSeq,
+            pw.namespace_name AS namespaceName,
+            pw.workload_name AS workloadName,
+            pc.pipeline_container_seq AS pc_pipelineContainerSeq,
+            pc.pipeline_type AS pc_pipelineType,
+            pc.container_name AS pc_containerName,
+            pc.build_seq AS pc_buildSeq,
+            pc.build_run_seq AS pc_buildRunSeq,
+            pc.build_state AS pc_buildState,
+            pc.build_registry_seq AS pc_buildRegistrySeq,
+            pc.build_registry_name AS pc_buildRegistryName,
+            pc.build_image_name AS pc_buildImageName,
+            pc.build_image_tag AS pc_buildImageTag,
+            pc.build_image_url AS pc_buildImageUrl,
+            pc.deploy_build_run_seq AS pc_deployBuildRunSeq,
+            pc.deploy_state AS pc_deployState,
+            pc.deploy_registry_seq AS pc_deployRegistrySeq,
+            pc.deploy_registry_name AS pc_deployRegistryName,
+            pc.deploy_image_name AS pc_deployImageName,
+            pc.deploy_image_tag AS pc_deployImageTag,
+            pc.deploy_image_url AS pc_deployImageUrl,
+            pc.use_yn AS pc_useYn,
+            pc.created AS pc_created,
+            pc.creator AS pc_creator,
+            pc.updated AS pc_updated,
+            pc.updater AS pc_updater
+        from pipeline_workload pw
+                 inner join pipeline_container pc on pc.pipeline_workload_seq = pw.pipeline_workload_seq and pc.use_yn = 'Y'
+        where pw.namespace_name = #{namespaceName}
+          and pw.cluster_seq = #{clusterSeq}
+          and pw.use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineRelatedInfoUsingBuild" parameterType="map" resultType="PipelineRelatedInfo">
+        select distinct /* [Pipelineflow.xml].[getPipelineRelatedInfoUsingBuild].[01] 변경일자(20191024) */
+            pc.pipeline_container_seq as pipelineContainerSeq,
+            pc.pipeline_workload_seq as pipelineWorkloadSeq,
+            pw.namespace_name as namespaceName,
+            pw.workload_name as workloadName,
+            pc.container_name as containerName,
+            pc.use_yn as useYn,
+            asm.account_seq as accountSeq,
+            asm.service_seq as serviceSeq,
+            sm.servicemap_seq as servicemapSeq,
+            cl.cluster_id as clusterId
+        from pipeline_container pc
+                 inner join pipeline_run pr on pr.pipeline_container_seq = pc.pipeline_container_seq and pr.run_type = 'BUILD'
+                 inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq
+                 left outer join servicemaps sm on sm.cluster_seq = pw.cluster_seq and sm.namespace_name = pw.namespace_name
+                 left outer join service_servicemap_mapping ssm on ssm.servicemap_seq = sm.servicemap_seq
+                 left outer join account_service_mapping asm on asm.service_seq = ssm.service_seq
+                 left outer join clusters cl on cl.cluster_seq = sm.cluster_seq and cl.use_yn = 'Y'
+        where pc.use_yn = 'Y'
+          and pr.build_seq = #{buildSeq}
+    </select>
+
+    <select id="getPipelineRelatedInfoByContainer" parameterType="map" resultType="PipelineRelatedInfo">
+        select /* [Pipelineflow.xml].[getPipelineRelatedInfoByContainer].[01] 변경일자(20191119) */
+            pc.pipeline_container_seq as pipelineContainerSeq,
+            pc.pipeline_workload_seq as pipelineWorkloadSeq,
+            pw.namespace_name as namespaceName,
+            pw.workload_name as workloadName,
+            pc.container_name as containerName,
+            pc.use_yn as useYn,
+            asm.account_seq as accountSeq,
+            ssm.service_seq as serviceSeq,
+            sm.servicemap_seq as servicemapSeq,
+            cl.cluster_id as clusterId
+        from pipeline_container pc
+                 inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq
+                 left outer join servicemaps sm on sm.cluster_seq = pw.cluster_seq and sm.namespace_name = pw.namespace_name
+                 left outer join service_servicemap_mapping ssm on ssm.servicemap_seq = sm.servicemap_seq
+                 left outer join account_service_mapping asm on asm.service_seq = ssm.service_seq
+                 left outer join clusters cl on cl.cluster_seq = sm.cluster_seq and cl.use_yn = 'Y'
+        where pc.pipeline_container_seq = #{pipelineContainerSeq}
+          and pc.use_yn = 'Y'
+        limit 1
+    </select>
+
+    <select id="getPipelineWorkload" parameterType="map" resultMap="PipelineWorkloadMap">
+        select /* [Pipelineflow.xml].[getPipelineWorkload].[01] 변경일자(20190926) */
+            pw.pipeline_workload_seq as pipelineWorkloadSeq,
+            pw.cluster_seq AS clusterSeq,
+            pw.namespace_name AS namespaceName,
+            pw.workload_name AS workloadName,
+            pc.pipeline_container_seq AS pc_pipelineContainerSeq,
+            pc.pipeline_type AS pc_pipelineType,
+            pc.container_name AS pc_containerName,
+            pc.build_seq AS pc_buildSeq,
+            pc.build_run_seq AS pc_buildRunSeq,
+            pc.build_state AS pc_buildState,
+            pc.build_registry_seq AS pc_buildRegistrySeq,
+            pc.build_registry_name AS pc_buildRegistryName,
+            pc.build_image_name AS pc_buildImageName,
+            pc.build_image_tag AS pc_buildImageTag,
+            pc.build_image_url AS pc_buildImageUrl,
+            pc.deploy_build_run_seq AS pc_deployBuildRunSeq,
+            pc.deploy_state AS pc_deployState,
+            pc.deploy_registry_seq AS pc_deployRegistrySeq,
+            pc.deploy_registry_name AS pc_deployRegistryName,
+            pc.deploy_image_name AS pc_deployImageName,
+            pc.deploy_image_tag AS pc_deployImageTag,
+            pc.deploy_image_url AS pc_deployImageUrl,
+            pc.use_yn AS pc_useYn,
+            pc.created AS pc_created,
+            pc.creator AS pc_creator,
+            pc.updated AS pc_updated,
+            pc.updater AS pc_updater
+        from pipeline_workload pw
+                 inner join pipeline_container pc on pc.pipeline_workload_seq = pw.pipeline_workload_seq and pc.use_yn = 'Y'
+        where pw.pipeline_workload_seq = #{pipelineWorkloadSeq}
+          and pw.use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineWorkloadByWorkload" parameterType="map" resultMap="PipelineWorkloadMap">
+        select /* [Pipelineflow.xml].[getPipelineWorkloadByComponent].[01] 변경일자(20190926) */
+            pw.pipeline_workload_seq  as pipelineWorkloadSeq,
+            pw.cluster_seq            AS clusterSeq,
+            pw.namespace_name         AS namespaceName,
+            pw.workload_name          AS workloadName,
+            pc.pipeline_container_seq AS pc_pipelineContainerSeq,
+            pc.pipeline_type          AS pc_pipelineType,
+            pc.container_name         AS pc_containerName,
+            pc.build_seq              AS pc_buildSeq,
+            pc.build_run_seq          AS pc_buildRunSeq,
+            pc.build_state            AS pc_buildState,
+            pc.build_registry_seq     AS pc_buildRegistrySeq,
+            pc.build_registry_name    AS pc_buildRegistryName,
+            pc.build_image_name       AS pc_buildImageName,
+            pc.build_image_tag        AS pc_buildImageTag,
+            pc.build_image_url        AS pc_buildImageUrl,
+            pc.deploy_build_run_seq   AS pc_deployBuildRunSeq,
+            pc.deploy_state           AS pc_deployState,
+            pc.deploy_registry_seq    AS pc_deployRegistrySeq,
+            pc.deploy_registry_name   AS pc_deployRegistryName,
+            pc.deploy_image_name      AS pc_deployImageName,
+            pc.deploy_image_tag       AS pc_deployImageTag,
+            pc.deploy_image_url       AS pc_deployImageUrl,
+            pc.use_yn                 AS pc_useYn,
+            pc.created                AS pc_created,
+            pc.creator                AS pc_creator,
+            pc.updated                AS pc_updated,
+            pc.updater                AS pc_updater
+        from (
+                 select
+                       pipeline_workload_seq
+                      ,cluster_seq
+                      ,namespace_name
+                      ,workload_name
+                 from pipeline_workload pw
+                where cluster_seq = #{clusterSeq}
+                  AND namespace_name = #{namespaceName}
+                  AND workload_name = #{workloadName}
+                  and use_yn = 'Y'
+             order by pipeline_workload_seq desc
+                limit 1
+              ) pw
+                 inner join pipeline_container pc on pc.pipeline_workload_seq = pw.pipeline_workload_seq and pc.use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineContainers" parameterType="map" resultMap="PipelineContainerMap">
+        select /* [Pipelineflow.xml].[getPipelineContainers].[01] 변경일자(20191002) */
+            pc.pipeline_container_seq AS pipelineContainerSeq,
+            pc.pipeline_workload_seq AS pipelineWorkloadSeq,
+            pc.pipeline_type AS pipelineType,
+            pc.container_name AS containerName,
+            pc.build_seq AS buildSeq,
+            pc.build_run_seq AS buildRunSeq,
+            pc.build_state AS buildState,
+            pc.build_registry_seq AS buildRegistrySeq,
+            pc.build_registry_name AS buildRegistryName,
+            pc.build_image_name AS buildImageName,
+            pc.build_image_tag AS buildImageTag,
+            pc.build_image_url AS buildImageUrl,
+            pc.deploy_build_run_seq AS deployBuildRunSeq,
+            pc.deploy_state AS deployState,
+            pc.deploy_registry_seq AS deployRegistrySeq,
+            pc.deploy_registry_name AS deployRegistryName,
+            pc.deploy_image_name AS deployImageName,
+            pc.deploy_image_tag AS deployImageTag,
+            pc.deploy_image_url AS deployImageUrl,
+            pc.use_yn AS useYn,
+            pc.created AS created,
+            pc.creator AS creator,
+            pc.updated AS updated,
+            pc.updater AS updater
+        from pipeline_container pc
+            inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+        where pw.cluster_seq = #{clusterSeq}
+          AND pw.namespace_name = #{namespaceName}
+          AND pw.workload_name = #{workloadName}
+          AND pc.use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineContainerCountByBuild" parameterType="map" resultType="PipelineCount">
+        select /* [Pipelineflow.xml].[getPipelineContainerCountByBuild].[01] 변경일자(20191002) */
+            pc.build_seq AS buildSeq,
+            count(1) AS cnt
+        from pipeline_container pc
+            inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+            inner join servicemaps sm on sm.cluster_seq = pw.cluster_seq and sm.namespace_name = pw.namespace_name
+            inner join service_servicemap_mapping ssm on ssm.servicemap_seq = sm.servicemap_seq
+            inner join account_service_mapping asm on asm.service_seq = ssm.service_seq
+        where pc.use_yn = 'Y'
+          and pc.build_seq is not null
+          and pc.pipeline_type = 'BUILD_DEPLOY'
+        <if test="namespaceName != null">
+          and pw.namespace_name = #{namespaceName}
+        </if>
+        <if test="accountSeq != null">
+          and asm.account_seq = #{accountSeq}
+        </if>
+        GROUP by pc.build_seq
+    </select>
+
+    <select id="getPipelineCountByServiceSeqAndRegistryIds" parameterType="map" resultType="integer">
+        select /* [Pipelineflow.xml].[getPipelineCountByServiceSeqAndRegistryId].[01] 변경일자(20191025) */
+            count(*)
+        from pipeline_container pc
+            inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq
+            inner join servicemaps sm on sm.cluster_seq = pw.cluster_seq and sm.namespace_name = pw.namespace_name
+            inner join service_servicemap_mapping ssm on ssm.servicemap_seq = sm.servicemap_seq
+            inner join build_run br on pc.deploy_build_run_seq = br.build_run_seq
+            inner join build bd on br.build_seq = bd.build_seq
+        where pc.use_yn = 'Y'
+        <if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(registrySeqs)">
+          and bd.registry_project_id in (<foreach collection="registrySeqs" item="registrySeq" separator=", "> #{registrySeq}</foreach>)
+        </if>
+        <if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(externalRegistrySeqs)">
+          and bd.external_registry_seq in (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", "> #{externalRegistrySeq}</foreach>)
+        </if>
+          and ssm.service_seq = #{serviceSeq}
+    </select>
+
+    <select id="getPipelineContainersUsingBuild" parameterType="map" resultType="int">
+        select /* [Pipelineflow.xml].[getPipelineContainersUsingBuild].[01] 변경일자(20191002) */
+            count(*) AS useCount
+        from pipeline_container pc
+        where pc.use_yn = 'Y'
+        <if test="buildSeq != null">
+            and pc.build_seq = #{buildSeq}
+        </if>
+        <if test="buildRunSeq != null">
+            and (pc.build_run_seq = #{buildRunSeq} or pc.deploy_build_run_seq = #{buildRunSeq})
+        </if>
+        <if test="imageUrl != null">
+            and (pc.build_image_url = #{imageUrl} or pc.deploy_image_url = #{imageUrl})
+        </if>
+    </select>
+
+    <select id="getUsedRegistryInfoByClusterAndNamespace" parameterType="map" resultType="PipelineContainer">
+        select /* [Pipelineflow.xml].[getUsedRegistryInfo].[01] 변경일자(20191216) */
+              distinct
+              pc.deploy_registry_seq as deployRegistrySeq
+            , pc.deploy_registry_name as deployRegistryName
+         from pipeline_workload pw
+                 inner join pipeline_container pc on pc.pipeline_workload_seq = pw.pipeline_workload_seq and pc.use_yn = 'Y'
+        where pw.use_yn = 'Y'
+          and pw.cluster_seq = #{clusterSeq}
+          and pw.namespace_name = #{namespaceName}
+          and pc.deploy_registry_seq is not null
+    </select>
+
+
+    <select id="getPipelineRuns" parameterType="map" resultMap="PipelineRunMap">
+        select /* [Pipelineflow.xml].[getPipelineRuns].[01] 변경일자(20191002) */
+            pipeline_run_seq AS pipelineRunSeq,
+            pipeline_container_seq AS pipelineContainerSeq,
+            run_type AS runType,
+            run_state AS runState,
+            build_seq AS buildSeq,
+            build_run_seq AS buildRunSeq,
+            build_registry_seq AS buildRegistrySeq,
+            build_registry_name AS buildRegistryName,
+            build_image_name AS buildImageName,
+            build_image_tag AS buildImageTag,
+            build_image_url AS buildImageUrl,
+            deploy_content AS deployContent,
+            use_yn AS useYn,
+            created AS created,
+            creator AS creator,
+            updated AS updated,
+            updater AS updater
+        from pipeline_run
+        where pipeline_container_seq = #{pipelineContainerSeq}
+          and use_yn = 'Y'
+    </select>
+
+    <select id="getPipelineRunOnRunning" parameterType="map" resultMap="PipelineRunMap">
+        select /* [Pipelineflow.xml].[getPipelineRunOnRunning].[01] 변경일자(20191002) */
+            pipeline_run_seq AS pipelineRunSeq,
+            pipeline_container_seq AS pipelineContainerSeq,
+            run_type AS runType,
+            run_state AS runState,
+            build_seq AS buildSeq,
+            build_run_seq AS buildRunSeq,
+            build_registry_seq AS buildRegistrySeq,
+            build_registry_name AS buildRegistryName,
+            build_image_name AS buildImageName,
+            build_image_tag AS buildImageTag,
+            build_image_url AS buildImageUrl,
+            deploy_content AS deployContent,
+            use_yn AS useYn,
+            created AS created,
+            creator AS creator,
+            updated AS updated,
+            updater AS updater
+        from pipeline_run
+        where pipeline_container_seq = #{pipelineContainerSeq}
+          and run_state in ('WAIT', 'RUNNING')
+          and use_yn = 'Y'
+        order by pipeline_run_seq desc
+        limit 2
+    </select>
+
+    <update id="updatePipelineContainerBuildState" parameterType="PipelineRun">
+        UPDATE /* [Pipelineflow.xml].[updatePipelineContainerBuildState].[01] 변경일자(20191002) */
+            pipeline_container
+        SET
+            build_state           = #{runState},
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_container_seq = #{pipelineContainerSeq}
+    </update>
+
+    <update id="updatePipelineContainerDeployState" parameterType="PipelineRun">
+        UPDATE /* [Pipelineflow.xml].[updatePipelineContainerDeployState].[01] 변경일자(20191002) */
+            pipeline_container
+        SET
+            deploy_state           = #{runState},
+            updated                = UTC_TIMESTAMP(),
+            updater                = #{updater}
+        WHERE pipeline_container_seq = #{pipelineContainerSeq}
+    </update>
+
+    <update id="updatePipelineContainerDeploy" parameterType="PipelineContainer">
+        UPDATE /* [Pipelineflow.xml].[updatePipelineContainerDeploy].[01] 변경일자(20191002) */
+            pipeline_container
+        SET
+            deploy_state           = #{deployState},
+            deploy_registry_seq    = #{deployRegistrySeq},
+            deploy_registry_name   = #{deployRegistryName},
+            deploy_image_name      = #{deployImageName},
+            deploy_image_tag       = #{deployImageTag},
+            deploy_image_url       = #{deployImageUrl},
+            deploy_build_run_seq   = #{deployBuildRunSeq},
+            updated                = UTC_TIMESTAMP(),
+            updater                = #{updater}
+        WHERE pipeline_container_seq = #{pipelineContainerSeq}
+    </update>
+
+    <update id="updatePipelineRunState" parameterType="PipelineRun">
+        UPDATE /* [Pipelineflow.xml].[updatePipelineRunState].[01] 변경일자(20191002) */
+            pipeline_run
+        SET
+            run_state             = #{runState},
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_run_seq = #{pipelineRunSeq}
+    </update>
+
+    <update id="updatePipelineRunDeployContent" parameterType="PipelineRun">
+        UPDATE /* [Pipelineflow.xml].[updatePipelineRunDeployContent].[01] 변경일자(20171128) */
+            pipeline_run
+        SET
+            deploy_content        = #{deployContent},
+            updated               = UTC_TIMESTAMP(),
+            updater               = #{updater}
+        WHERE pipeline_container_seq = #{pipelineContainerSeq}
+        AND run_type = 'DEPLOY'
+        AND use_yn = 'Y'
+    </update>
+
+    <select id="getAccountSeqByPipelineContainerSeq" parameterType="map" resultType="integer">
+        select asm.account_seq as accountSeq
+          from pipeline_container pc
+                 inner join pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq and pw.use_yn = 'Y'
+                 inner join servicemaps sm on sm.cluster_seq = pw.cluster_seq and sm.namespace_name = pw.namespace_name
+                 inner join service_servicemap_mapping ssm on ssm.servicemap_seq = sm.servicemap_seq
+                 inner join account_service_mapping asm on asm.service_seq = ssm.service_seq
+        where pc.use_yn = 'Y'
+          and pc.pipeline_container_seq = #{pipelineContainerSeq}
+        limit 1
+    </select>
+
+    <select id="getPreviousPipelineContainerSeqByImageUrlAndNames" parameterType="map" resultType="integer">
+        select IFNULL( max(pc.pipeline_container_seq), 0) as pipelineContainerSeq
+        from acloud.pipeline_container pc
+                 inner join acloud.pipeline_workload pw on pw.pipeline_workload_seq = pc.pipeline_workload_seq
+        where pc.use_yn = 'N'
+          and pw.workload_name = #{workloadName}
+          and pc.container_name = #{containerName}
+          and pc.deploy_image_url = #{deployImageUrl}
+    </select>
+
+</mapper>

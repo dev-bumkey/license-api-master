@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!-- <include resource="org/springframework/boot/logging/logback/base.xml"/> -->
+	<!--<springProperty name="LOG_PATH" source="cocktail.service.log-base-path" defaultValue="/var/log/acloud" />-->
+	<springProperty name="TERMINAL_LOG_LEVEL" source="logging.level.terminal.logger" defaultValue="ERROR" />
+	<springProperty name="LOG_MAX_HISTORY" source="cocktail.service.log-max-history" defaultValue="30" />
+	<springProperty name="LOG_PRUDENT_ENABLED" source="cocktail.service.log-prudent-enabled" defaultValue="false" />
+	<springProperty name="LOG_CLEAN_HISTORY_ON_START_ENABLED" source="cocktail.service.log-clean-history-on-start-enabled" defaultValue="true" />
+	<springProperty name="INQUIRE_AUDIT_LOG_MAX_HISTORY" source="cocktail.service.inquire-audit-log-max-history" defaultValue="30" />
+	<!-- 콘솔 로그 출력 -->
+	<appender name="TEXT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<charset>UTF-8</charset>
+			<Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-7relative %highlight(%-5level) [%thread][%X{TXID}] %cyan(%logger{35}) : %msg %n
+			</Pattern>
+		</encoder>
+		<withJansi>false</withJansi>
+	</appender>
+	<appender name="dailyRollingFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<!-- myBatis 에서 주석에 'NOT_SQL_LOG'를 넣고 로그에서는 제외한다. -->
+		<filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+			<evaluator class="ch.qos.logback.classic.boolex.JaninoEventEvaluator">
+				<expression>
+					return message.contains("NOT_SQL_LOG");
+				</expression>
+			</evaluator>
+			<OnMatch>DENY</OnMatch>
+			<OnMismatch>NEUTRAL</OnMismatch>
+		</filter>
+		<prudent>${LOG_PRUDENT_ENABLED}</prudent>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/api-server-%d{yyyy-MM-dd}-${HOSTNAME}.%i.log</fileNamePattern>
+			<maxFileSize>50MB</maxFileSize>
+			<maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+			<cleanHistoryOnStart>${LOG_CLEAN_HISTORY_ON_START_ENABLED}</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level [%thread][%X{TXID}] %logger{35} : %msg %n</pattern>
+		</encoder>
+	</appender>
+	<appender name="dailyRollingFileAppenderError" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<prudent>${LOG_PRUDENT_ENABLED}</prudent>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/api-server-%d{yyyy-MM-dd}-error-${HOSTNAME}.%i.log</fileNamePattern>
+			<maxFileSize>50MB</maxFileSize>
+			<maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+			<cleanHistoryOnStart>${LOG_CLEAN_HISTORY_ON_START_ENABLED}</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level [%thread][%X{TXID}] %logger{35} : %msg %n</pattern>
+		</encoder>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+	</appender>
+	<appender name="dailyRollingFileAppenderChecker" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<prudent>${LOG_PRUDENT_ENABLED}</prudent>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/api-server-%d{yyyy-MM-dd}-checker-${HOSTNAME}.%i.log</fileNamePattern>
+			<maxFileSize>50MB</maxFileSize>
+			<maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+			<cleanHistoryOnStart>${LOG_CLEAN_HISTORY_ON_START_ENABLED}</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level [%thread][%X{TXID}] %logger{35} : %msg %n</pattern>
+		</encoder>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>INFO</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+	</appender>
+	<appender name="dailyRollingFileAppenderTerminal" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<prudent>${LOG_PRUDENT_ENABLED}</prudent>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/api-server-%d{yyyy-MM-dd}-terminal-${HOSTNAME}.%i.log</fileNamePattern>
+			<maxFileSize>50MB</maxFileSize>
+			<maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+			<cleanHistoryOnStart>${LOG_CLEAN_HISTORY_ON_START_ENABLED}</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level [%thread][%X{TXID}] %logger{35} : %msg %n</pattern>
+		</encoder>
+	</appender>
+	<appender name="dailyRollingFileAppenderInquireAudit" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<prudent>${LOG_PRUDENT_ENABLED}</prudent>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_PATH}/api-server-%d{yyyy-MM-dd}-inquire-${HOSTNAME}.%i.log</fileNamePattern>
+			<maxFileSize>50MB</maxFileSize>
+			<maxHistory>${INQUIRE_AUDIT_LOG_MAX_HISTORY}</maxHistory>
+			<cleanHistoryOnStart>${LOG_CLEAN_HISTORY_ON_START_ENABLED}</cleanHistoryOnStart>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level [%thread][%X{TXID}] %logger{35} : %msg %n</pattern>
+		</encoder>
+	</appender>
+	<logger name="org.springframework" level="INFO" />
+	<logger name="org.springframework.jndi.JndiTemplate" level="INFO" />
+	<logger name="org.springframework.jndi.JndiPropertySource" level="INFO" />
+	<logger name="org.springframework.jndi.JndiLocatorDelegate" level="INFO" />
+	<logger name="org.apache.http.wire" level="INFO" />
+	<logger name="com.amazonaws" level="INFO" />
+	<logger name="serviceCheck.logger" level="ERROR">
+		<appender-ref ref="dailyRollingFileAppenderChecker"/>
+	</logger>
+	<logger name="run.acloud.commons.controller.ServiceCheckController" level="ERROR">
+		<appender-ref ref="dailyRollingFileAppenderChecker"/>
+	</logger>
+	<logger name="terminal.logger" level="ERROR">
+		<appender-ref ref="dailyRollingFileAppenderTerminal"/>
+	</logger>
+	<logger name="run.acloud.api.terminal" level="${TERMINAL_LOG_LEVEL}">
+		<appender-ref ref="dailyRollingFileAppenderTerminal"/>
+	</logger>
+	<logger name="run.acloud.framework.configuration.TerminalWebSocketConfig" level="${TERMINAL_LOG_LEVEL}">
+		<appender-ref ref="dailyRollingFileAppenderTerminal"/>
+	</logger>
+	<logger name="run.acloud" level="INFO" />
+	<logger name="run.acloud.api.monitoring" level="ERROR" />
+	<logger name="server.state.logger" level="INFO" />
+	<logger name="run.acloud.api.code.dao.ICodeMapper" level="ERROR" />
+	<logger name="run.acloud.api.auth.dao.IUserMapper" level="ERROR" />
+	<logger name="audit.logger" level="${AUDIT_LOG_LEVEL}">
+		<appender-ref ref="dailyRollingFileAppender"/>
+	</logger>
+	<logger name="resource.access.checker.logger" level="${RESOURCE_ACCESS_CHECKER_LOG_LEVEL}">
+		<appender-ref ref="dailyRollingFileAppender"/>
+	</logger>
+	<logger name="inquire.audit.logger" level="ERROR" additivity="false">
+		<appender-ref ref="dailyRollingFileAppenderInquireAudit"/>
+	</logger>
+	<!--
+        <logger name="run.acloud.framework.filter" level="INFO" />
+        <logger name="AppmapController" level="INFO" />
+        <logger name="ICodeMapper" level="ERROR"/>
+        <logger name="IAppmapMapper" level="ERROR"/>
+        <logger name="IClusterMapper" level="ERROR"/>
+        <logger name="IGroupMapper" level="ERROR"/>
+        <logger name="IJobMapper" level="ERROR"/>
+        <logger name="IDeployMapper" level="ERROR"/>
+        <logger name="IComponentMapper" level="ERROR"/>
+    -->
+	<!--logger name="run.acloud.api.cserver.dao" level="INFO"/>
+		<logger name="run.acloud.api.resource.dao" level="INFO"/> <logger
+		name="run.acloud.api.configuration.dao" level="INFO"/> <logger
+		name="run.acloud.api.monitoring.dao" level="INFO"/> <logger name="KubeWorker"
+		level="WARN"/> <logger name="KubeResourceService"
+		level="INFO"/ -->
+	<root level="INFO">
+		<appender-ref ref="dailyRollingFileAppender" />
+		<appender-ref ref="dailyRollingFileAppenderError" />
+		<appender-ref ref="TEXT_CONSOLE" />
+	</root>
+
+	<!-- https://logback.qos.ch/manual/configuration.html#shutdownHook and https://jira.qos.ch/browse/LOGBACK-1090 -->
+	<shutdownHook
+			class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+	<contextListener
+			class="ch.qos.logback.classic.jul.LevelChangePropagator">
+		<resetJUL>true</resetJUL>
+	</contextListener>
+</configuration>

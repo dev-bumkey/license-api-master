@@ -1,0 +1,391 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IAccountApplicationMapper">
+
+	<resultMap type="AccountApplication" id="AccountApplicationMap" autoMapping="true">
+	</resultMap>
+
+	<insert id="insertAccountApplication" parameterType="AccountApplication" useGeneratedKeys="true" keyProperty="accountApplicationSeq" keyColumn="account_application_seq">
+		INSERT /* [AccountApplication.xml].[insertAccountApplication].[01] 변경일자(20220112) */
+		INTO account_application(
+			account_application_seq,
+			prd_type,
+		    account_code,
+		    user_name,
+		    user_email,
+			user_password,
+			hash_salt,
+		    customer_name,
+		    customer_address,
+			customer_phone_number,
+			registration_path,
+		    organization_name,
+		    agree_personal_info_yn,
+			agree_personal_info_time,
+			agree_marketing_yn,
+			agree_marketing_time,
+		    status,
+		    created,
+		    updated,
+		    updater
+		) VALUES (
+			#{accountApplicationSeq},
+			#{prdType},
+			#{accountCode},
+			#{userName},
+			#{userEmail},
+			#{userPassword},
+			#{hashSalt},
+			#{customerName},
+			#{customerAddress},
+			#{customerPhoneNumber},
+			#{registrationPath},
+			#{organizationName},
+			#{agreePersonalInfoYn},
+			UTC_TIMESTAMP(),
+			#{agreeMarketingYn},
+			UTC_TIMESTAMP(),
+			'A',
+			UTC_TIMESTAMP(),
+			UTC_TIMESTAMP(),
+		    1
+		)
+	</insert>
+
+	<update id="updateAccountApplicationStatus" parameterType="map">
+		UPDATE /* [AccountApplication.xml].[updateAccountApplication].[01] 변경일자(20220112) */
+			account_application as aa
+		SET
+			  aa.status = #{status}
+			, aa.updated = UTC_TIMESTAMP()
+			, aa.updater = #{updater}
+		<where>
+			aa.account_application_seq = #{accountApplicationSeq}
+		</where>
+	</update>
+
+	<delete id="deleteAccountApplication" parameterType="map">
+		UPDATE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220118) */
+			account_application aa
+		SET
+			  aa.prd_type = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.account_code = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_email = LEFT(TO_BASE64(SHA(RAND())), 100)
+		    , aa.user_password = LEFT(TO_BASE64(SHA(RAND())), 500)
+		    , aa.hash_salt = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , aa.customer_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_address = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.customer_phone_number = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.registration_path = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.organization_name = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.agree_personal_info_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+			, aa.agree_marketing_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+		WHERE account_application_seq = #{accountApplicationSeq};
+
+		UPDATE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220118) */
+			account_application aa
+		SET
+			  aa.prd_type = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.account_code = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_email = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.user_password = LEFT(TO_BASE64(SHA(RAND())), 500)
+			, aa.hash_salt = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_address = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.customer_phone_number = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.registration_path = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.organization_name = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.agree_personal_info_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+			, aa.agree_marketing_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+		WHERE account_application_seq = #{accountApplicationSeq};
+
+		UPDATE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220118) */
+			account_application aa
+		SET
+			  aa.prd_type = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.account_code = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_email = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.user_password = LEFT(TO_BASE64(SHA(RAND())), 500)
+			, aa.hash_salt = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_address = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.customer_phone_number = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.registration_path = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.organization_name = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.agree_personal_info_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+			, aa.agree_marketing_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+		WHERE account_application_seq = #{accountApplicationSeq};
+
+		UPDATE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220118) */
+			account_application as aa
+		SET
+			  aa.prd_type = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.account_code = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_email = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.user_password = LEFT(TO_BASE64(SHA(RAND())), 500)
+			, aa.hash_salt = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_address = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.customer_phone_number = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.registration_path = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.organization_name = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.agree_personal_info_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+			, aa.agree_marketing_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+		WHERE account_application_seq = #{accountApplicationSeq};
+
+		UPDATE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220118) */
+			account_application as aa
+		SET
+			  aa.prd_type = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.account_code = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.user_email = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.user_password = LEFT(TO_BASE64(SHA(RAND())), 500)
+			, aa.hash_salt = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+			, aa.customer_address = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.customer_phone_number = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.registration_path = LEFT(TO_BASE64(SHA(RAND())), 300)
+			, aa.organization_name = LEFT(TO_BASE64(SHA(RAND())), 100)
+			, aa.agree_personal_info_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+			, aa.agree_marketing_yn = LEFT(TO_BASE64(SHA(RAND())), 1)
+		WHERE account_application_seq = #{accountApplicationSeq};
+
+		DELETE /* [AccountApplication.xml].[deleteAccountApplication].[01] 변경일자(20220112) */
+			`aa` /* Account Application Alias */
+		FROM account_application as `aa`
+		<where>
+			aa.account_application_seq = #{accountApplicationSeq}
+		</where>
+	</delete>
+
+	<select id="getDetailByUser" parameterType="map" resultMap="AccountApplicationMap">
+		SELECT /* [AccountApplication.xml].[getAccountApplications].[01] 변경일자(20220112) */
+			  aa.account_application_seq as accountApplicationSeq
+			, aa.prd_type as prdType
+			, aa.account_code as accountCode
+			, aa.user_name as userName
+			, aa.user_email as userEmail
+			, aa.user_password as userPassword
+			, aa.hash_salt as hashSalt
+			, aa.customer_name as customerName
+			, aa.customer_address as customerAddress
+			, aa.customer_phone_number as customerPhoneNumber
+			, aa.registration_path as registrationPath
+			, aa.organization_name as organizationName
+			, aa.agree_personal_info_yn as agreePersonalInfoYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_personal_info_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_personal_info_time, '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</otherwise>
+		</choose>
+		, aa.agree_marketing_yn as agreeMarketingYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_marketing_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_marketing_time, '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</otherwise>
+		</choose>
+		, aa.status as status
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.created, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.updated, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+		, aa.updater as updater
+		, u.user_name as updaterName
+		FROM account_application as aa
+		LEFT OUTER JOIN users u ON u.user_seq = aa.updater AND u.use_yn = 'Y'
+		LEFT OUTER JOIN user_role ur ON ur.user_seq = u.user_seq AND ur.role_code = 'ADMIN'
+		<where>
+			<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(accountCode)'>
+				AND aa.account_code = #{accountCode}
+			</if>
+			<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(userEmail)'>
+				AND aa.user_email = #{userEmail}
+			</if>
+		</where>
+	</select>
+
+	<select id="getDetailByAdmin" parameterType="map" resultMap="AccountApplicationMap">
+		SELECT /* [AccountApplication.xml].[getAccountApplications].[01] 변경일자(20220112) */
+			  aa.account_application_seq as accountApplicationSeq
+			, aa.prd_type as prdType
+			, aa.account_code as accountCode
+			, aa.user_name as userName
+			, aa.user_email as userEmail
+			, aa.user_password as userPassword
+			, aa.hash_salt as hashSalt
+			, aa.customer_name as customerName
+			, aa.customer_address as customerAddress
+			, aa.customer_phone_number as customerPhoneNumber
+			, aa.registration_path as registrationPath
+			, aa.organization_name as organizationName
+			, aa.agree_personal_info_yn as agreePersonalInfoYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_personal_info_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_personal_info_time, '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</otherwise>
+		</choose>
+		, aa.agree_marketing_yn as agreeMarketingYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_marketing_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_marketing_time, '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</otherwise>
+		</choose>
+		, aa.status as status
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.created, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.updated, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+		, aa.updater as updater
+		, u.user_name as updaterName
+		FROM account_application as aa
+		LEFT OUTER JOIN users u ON u.user_seq = aa.updater AND u.use_yn = 'Y'
+		LEFT OUTER JOIN user_role ur ON ur.user_seq = u.user_seq AND ur.role_code = 'ADMIN'
+		<where>
+			<if test="accountApplicationSeq != null">
+				AND aa.account_application_seq = #{accountApplicationSeq}
+			</if>
+		</where>
+	</select>
+
+	<select id="getAccountApplications" parameterType="AccountApplicationSearch" resultMap="AccountApplicationMap">
+		SELECT /* [AccountApplication.xml].[getAccountApplications].[01] 변경일자(20220112) */
+			  aa.account_application_seq as accountApplicationSeq
+			, aa.prd_type as prdType
+			, aa.account_code as accountCode
+			, aa.user_name as userName
+			, aa.user_email as userEmail
+			, aa.customer_name as customerName
+			, aa.customer_address as customerAddress
+			, aa.customer_phone_number as customerPhoneNumber
+			, aa.registration_path as registrationPath
+			, aa.organization_name as organizationName
+			, aa.agree_personal_info_yn as agreePersonalInfoYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_personal_info_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_personal_info_time, '%Y-%m-%d %H:%i:%s') as agreePersonalInfoTime
+			</otherwise>
+		</choose>
+		, aa.agree_marketing_yn as agreeMarketingYn
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.agree_marketing_time, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.agree_marketing_time, '%Y-%m-%d %H:%i:%s') as agreeMarketingTime
+			</otherwise>
+		</choose>
+		, aa.status as status
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.created, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(defaultTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(aa.updated, 'GMT', IFNULL(#{defaultTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(aa.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+		, aa.updater as updater
+		, u.user_name as updaterName
+		FROM account_application as aa
+		LEFT OUTER JOIN users u ON u.user_seq = aa.updater AND u.use_yn = 'Y'
+		LEFT OUTER JOIN user_role ur ON ur.user_seq = u.user_seq AND ur.role_code = 'ADMIN'
+		<where>
+			<if test="paging.maxId != null">
+				AND aa.account_application_seq <![CDATA[<=]]> #{paging.maxId}
+			</if>
+		</where>
+		ORDER BY
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "created")'>
+				created
+			</when>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "updated")'>
+				updated
+			</when>
+			<otherwise>
+				created
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+				DESC
+			</when>
+			<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+				ASC
+			</when>
+			<otherwise>
+				DESC
+			</otherwise>
+		</choose>
+		LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+	</select>
+
+	<select id="getAccountApplicationCountAndMaxId" parameterType="AccountApplicationSearch" resultType="ListCount">
+		SELECT	/* [AccountApplication.xml].[getAlertUserCountAndMaxId].[01] 변경일자(20220114) */
+			count(*) as cnt,
+		    max(aa.account_application_seq) as maxId
+		FROM account_application as aa
+	</select>
+
+	<select id="getAccountCodeCount" parameterType="map" resultType="Integer">
+		SELECT	/* [AccountApplication.xml].[getAlertUserCountAndMaxId].[01] 변경일자(20220114) */
+			count(account_code) as cnt
+		FROM account_application as aa
+		<where>
+			<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(accountCode)'>
+				AND account_code = #{accountCode}
+			</if>
+		</where>
+	</select>
+
+</mapper>

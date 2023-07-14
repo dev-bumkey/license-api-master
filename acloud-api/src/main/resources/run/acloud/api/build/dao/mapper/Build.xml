@@ -1,0 +1,756 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.build.dao.IBuildMapper">
+
+	<resultMap id="PipelineBuildMap" type="PipelineBuild" autoMapping="true">
+		<id property="buildSeq" column="buildSeq" />
+		<collection property="buildSteps" columnPrefix="bs_"  resultMap="PipelineBuildStepMap" />
+	</resultMap>
+
+	<resultMap id="PipelineBuildStepMap" type="PipelineBuildStep" autoMapping="true">
+		<id property="buildStepSeq" column="buildStepSeq" />
+	</resultMap>
+
+	<resultMap id="PipelineImageMap" type="PipelineBuildImage" autoMapping="true">
+		<id property="buildSeq" column="buildSeq" />
+		<collection property="tags" columnPrefix="img_"  resultMap="PipelineImageInfoMap" />
+	</resultMap>
+
+	<resultMap id="PipelineImageInfoMap" type="PipelineBuildImageInfo" autoMapping="true">
+		<id property="buildRunSeq" column="buildRunSeq" />
+	</resultMap>
+
+	<insert id="addBuild" parameterType="PipelineBuildAdd" useGeneratedKeys="true" keyProperty="buildSeq">
+		INSERT INTO build /* [Build.xml].[addBuild].[01] 변경일자(20190827) */
+		(
+			build_no,
+		    build_name,
+		    build_desc,
+		    account_seq,
+		    registry_project_id,
+		    registry_name,
+			external_registry_seq,
+			build_server_host,
+			build_server_tls_verify,
+			build_server_cacrt,
+			build_server_client_cert,
+			build_server_client_key,
+			image_name,
+			autotag_use_yn,
+			autotag_prefix,
+			autotag_seq_type,
+			tag_name,
+			sort_order,
+		    created,
+		    creator,
+		    updated,
+		    updater
+		)
+		VALUES
+	    (
+			IFNULL( (
+						SELECT MAX(b.build_no)
+						FROM build b
+						WHERE b.registry_name = #{registryName}
+						  AND b.image_name = #{imageName}
+					), 0),
+			#{buildName},
+			#{buildDesc},
+			#{accountSeq},
+			#{registryProjectId},
+			#{registryName},
+			#{externalRegistrySeq},
+			#{buildServerHost},
+			IFNULL(#{buildServerTlsVerify}, 'N'),
+			#{buildServerCacrt},
+			#{buildServerClientCert},
+			#{buildServerClientKey},
+			#{imageName},
+			IFNULL(#{autotagUseYn}, 'N'),
+			#{autotagPrefix},
+			#{autotagSeqType},
+			#{tagName},
+	        0,
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+	     )
+	</insert>
+
+	<update id="editBuild" parameterType="PipelineBuildAdd">
+		UPDATE /* [Builds.xml].[editBuild].[01] 변경일자(20190906) */
+			   build
+		   SET build_name = #{buildName}
+		     , build_desc = #{buildDesc}
+			 , autotag_use_yn = IFNULL(#{autotagUseYn}, 'N')
+			 , autotag_prefix = #{autotagPrefix}
+			 , autotag_seq_type = #{autotagSeqType}
+		     , tag_name = #{tagName}
+			 , build_server_host = #{buildServerHost}
+			 , build_server_tls_verify = IFNULL(#{buildServerTlsVerify}, 'N')
+			 , build_server_cacrt = #{buildServerCacrt}
+			 , build_server_client_cert = #{buildServerClientCert}
+			 , build_server_client_key = #{buildServerClientKey}
+		<if test="updater != null">
+			 , updater = #{updater}
+		</if>
+		     , updated = UTC_TIMESTAMP()
+		 WHERE build_seq = #{buildSeq}
+	</update>
+
+	<update id="removeBuild" parameterType="PipelineBuild">
+		UPDATE /* [Builds.xml].[removeBuild].[01] 변경일자(20190906) */
+			   build
+		   SET use_yn = 'N'
+		<if test="updater != null">
+			, updater = #{updater}
+		</if>
+		    , updated = UTC_TIMESTAMP()
+		WHERE build_seq = #{buildSeq}
+	</update>
+
+	<insert id="addBuildStep" parameterType="PipelineBuildStep" useGeneratedKeys="true" keyProperty="buildStepSeq">
+		INSERT /* [Build.xml].[addBuildStep].[01] 변경일자(20190827) */
+		INTO build_step
+		(	  build_step_seq
+			, build_seq
+			, step_type
+			, step_config
+			, step_order
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES (
+			  #{buildStepSeq}
+			, #{buildSeq}
+			, #{stepType}
+			, #{stepConfig}
+			, #{stepOrder}
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{updater}
+		)
+		ON DUPLICATE KEY UPDATE
+		<!--
+			build_step_seq가 존재하는데 use_yn이 빈값이면 'N'로
+			값이 존재한다면
+			use_yn = 'Y'이면 update할 항목을 반영
+			use_yn = 'N'이면 use_yn만 'N'로 반영
+		-->
+		<choose>
+			<when test="@org.apache.commons.lang3.StringUtils@isNotBlank(useYn)">
+				<if test='useYn eq "Y"'>
+				step_config = #{stepConfig},
+			    step_order = #{stepOrder},
+				</if>
+			    use_yn = #{useYn},
+			</when>
+			<otherwise>
+			    use_yn = 'N',
+			</otherwise>
+		</choose>
+		<if test="updater != null">
+			    updater = #{updater},
+		</if>
+			    updated = UTC_TIMESTAMP()
+	</insert>
+
+	<update id="editBuildStep" parameterType="PipelineBuildStep">
+		UPDATE /* [Build.xml].[editBuildStep].[01] 변경일자(20190916) */
+	   		   build_step
+	   	SET step_config = #{stepConfig},
+		<if test="updater != null">
+			updater = #{updater},
+		</if>
+	   		updated = UTC_TIMESTAMP()
+	   	WHERE build_step_seq = #{buildStepSeq}
+	   	AND build_seq = #{buildSeq}
+	   	AND step_type = #{stepType}
+	</update>
+
+	<update id="removeBuildSteps" parameterType="PipelineBuild">
+		UPDATE /* [Build.xml].[removeBuildSteps].[01] 변경일자(20190916) */
+		       build_step
+		   SET use_yn = 'N'
+			<if test="updater != null">
+			 , updater = #{updater}
+			</if>
+		     , updated = UTC_TIMESTAMP()
+		WHERE  build_seq = #{buildSeq}
+	</update>
+
+	<update id="updateBuildNo" parameterType="map">
+		UPDATE /* [Build.xml].[updateBuildNo].[01] 변경일자(20190828) */
+			build
+		SET
+			build_no = #{buildNo},
+			updated = UTC_TIMESTAMP()
+		WHERE build_seq = #{buildSeq}
+	</update>
+
+	<update id="getNextBuildNo" parameterType="PipelineBuild">
+		<selectKey keyProperty="buildNo" resultType="java.lang.Integer" order="AFTER">
+			SELECT build_no AS buildNo
+			  FROM build
+			 WHERE build_seq = #{buildSeq}
+		</selectKey>
+		UPDATE /* [Build.xml].[getNextBuildNo].[01] 변경일자(20190910) */
+		       build
+		   SET build_no = build_no+1
+		     , updated = UTC_TIMESTAMP()
+		 WHERE build_seq = #{buildSeq}
+		   AND use_yn = 'Y'
+	</update>
+	<select id="checkImageName" parameterType="map" resultType="int">
+		SELECT /* [Build.xml].[checkImageName].[01] 변경일자(20190902) */
+			   COUNT(1)
+		  FROM build b
+		 WHERE b.registry_name = #{registryName}
+		   AND b.image_name = #{imageName}
+		<if test="registryProjectId != null">
+			AND b.registry_project_id = #{registryProjectId}
+		</if>
+		<if test="externalRegistrySeq != null">
+			AND b.external_registry_seq = #{externalRegistrySeq}
+		</if>
+		<if test="buildSeq != null">
+		   AND b.build_seq != #{buildSeq}
+		</if>
+		   AND b.use_yn = 'Y'
+	</select>
+
+	<select id="getSystemBuildCount" parameterType="java.lang.Integer" resultType="SystemBuildCount">
+		SELECT /* [Build.xml].[getBuildCountBySystem].[01] 변경일자(20190904) */
+			   bd.account_seq as accountSeq
+			 , count(1) as buildCount
+		  FROM build bd
+		 WHERE bd.use_yn = 'Y'
+		   AND bd.account_seq = #{accountSeq}
+	  group BY bd.account_seq
+	</select>
+
+	<select id="getBuildList" parameterType="map" resultType="PipelineBuild">
+		select /* [Build.xml].[getBuildList].[01] 변경일자(20190828) */
+		       bd.build_seq as buildSeq
+		     , bd.image_name as imageName
+			 , bd.registry_name as registryName
+			 , regexp_replace(ifnull(case when bd.registry_project_id > 0 then #{registryUrl}
+				else er.endpoint_url
+				end, ''), '^(https?):\/\/', '') as hostUrl
+		     , bd.external_registry_seq AS externalRegistrySeq
+			 , count(br.build_run_seq) as buildCount
+			 , count(if(br.run_state='RUNNING',run_state,null)) as runningCount
+			 , count(if(br.run_state='DONE',run_state,null)) as doneCount
+			 , count(if(br.run_state='ERROR',run_state,null)) as errorCount
+		     , (select count(br_tmp.build_seq)
+				  from (select max(br_in.build_seq) as build_seq
+				          from build_run br_in
+				         where br_in.use_yn = 'Y'
+				           and br_in.run_type = 'BUILD'
+				           and br_in.run_state='DONE'
+				           and br_in.image_url is not null
+				           and br_in.image_size > 0
+				         group by br_in.image_url ) br_tmp
+				         where br_tmp.build_seq = bd.build_seq
+			   ) as tagCount
+			 , IFNULL( avg( if(br.run_state='DONE' and br.run_type = 'BUILD' and br.use_yn = 'Y' and br.image_size > 0, IFNULL(TIMESTAMPDIFF(SECOND, br.begin_time, br.end_time),0), null) ),0 ) buildTimeAvg
+			 , IFNULL( avg( if(br.run_state='DONE' and br.run_type = 'BUILD' and br.use_yn = 'Y' and br.image_size > 0, br.image_size, null) ),0 ) as imgSizeAvg
+			 , IFNULL( (select TIMESTAMPDIFF(SECOND, begin_time, end_time)
+			 			  from build_run
+			             where build_seq = bd.build_seq
+			               and use_yn = 'Y'
+			               and run_type = 'BUILD'
+			               and run_state='DONE'
+			               and image_url is not null
+			               and image_size > 0
+			             order by build_run_seq desc
+			             limit 1), 0) as latestBuildTime
+			 , IFNULL( (select image_size
+			 			  from build_run
+			             where build_seq = bd.build_seq
+			               and use_yn = 'Y'
+			               and run_type = 'BUILD'
+			               and run_state='DONE'
+			               and image_url is not null
+			               and image_size > 0
+			             order by build_run_seq desc
+			             limit 1), 0) as latestImgSize
+		  from build bd
+				left outer join build_run br on bd.build_seq = br.build_seq and br.use_yn = 'Y'
+				left outer join external_registry er on bd.external_registry_seq = er.external_registry_seq and er.use_yn = 'Y'
+		 where bd.use_yn = 'Y'
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(registryProjectIds)">
+		   and bd.registry_project_id in (<foreach collection="registryProjectIds" item="registryProjectId" separator=", ">#{registryProjectId}</foreach>)
+		</if>
+		<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(externalRegistrySeqs)">
+		   and bd.external_registry_seq in (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", ">#{externalRegistrySeq}</foreach>)
+		</if>
+		<if test="serviceSeq != null">
+		   and ( bd.registry_project_id in (select project_id from service_registry sr where sr.service_seq = #{serviceSeq} )
+			   or bd.external_registry_seq  in (select external_registry_seq from external_registry_service_mapping ersm where ersm.service_seq = #{serviceSeq}) )
+		</if>
+		<if test="accountSeq != null">
+		   and bd.account_seq = #{accountSeq}
+		</if>
+	  group by bd.build_seq, bd.registry_name
+	</select>
+
+	<select id="getBuild" parameterType="map" resultMap="PipelineBuildMap">
+		SELECT /* [Build.xml].[getBuild].[01] 변경일자(20190828) */
+			   bd.build_seq AS buildSeq
+			 , bd.build_no AS buildNo
+			 , bd.build_name AS buildName
+			 , bd.build_desc AS buildDesc
+			 , bd.account_seq AS accountSeq
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , bd.build_server_host AS buildServerHost
+			 , bd.build_server_tls_verify AS buildServerTlsVerify
+			 , bd.build_server_cacrt AS buildServerCacrt
+			 , bd.build_server_client_cert AS buildServerClientCert
+			 , bd.build_server_client_key AS buildServerClientKey
+			 , bd.autotag_use_yn AS autotagUseYn
+			 , bd.autotag_prefix AS autotagPrefix
+			 , bd.autotag_seq_type AS autotagSeqType
+			 , bd.tag_name AS tagName
+			 , bd.updated AS updated
+			 , bd.updater AS updater
+		     , bd.use_yn AS useYn
+			 , bs.build_step_seq AS bs_buildStepSeq
+		     , bs.build_seq AS bs_buildSeq
+			 , bs.step_type AS bs_stepType
+			 , bs.step_config AS bs_stepConfig
+			 , bs.step_order AS bs_stepOrder
+			 , bs.use_yn AS bs_useYn
+		     , IF(bs.use_yn = 'Y', true, false) AS bs_useFlag
+		  FROM build bd
+			   inner join build_step bs on bd.build_seq = bs.build_seq
+		 WHERE bd.build_seq = #{buildSeq}
+		   AND bd.use_yn = 'Y'
+		   AND bs.use_yn = 'Y'
+	  ORDER BY bs.step_order
+	</select>
+
+	<select id="getBuildWithoutUseYn" parameterType="map" resultMap="PipelineBuildMap">
+		SELECT /* [Build.xml].[getBuild].[01] 변경일자(20190828) */
+			bd.build_seq AS buildSeq
+			, bd.build_no AS buildNo
+			, bd.build_name AS buildName
+			, bd.build_desc AS buildDesc
+			, bd.account_seq AS accountSeq
+			, bd.registry_project_id AS registryProjectId
+			, bd.registry_name AS registryName
+			, bd.image_name AS imageName
+			, bd.external_registry_seq AS externalRegistrySeq
+			, bd.build_server_host AS buildServerHost
+			, bd.build_server_tls_verify AS buildServerTlsVerify
+			, bd.build_server_cacrt AS buildServerCacrt
+			, bd.build_server_client_cert AS buildServerClientCert
+			, bd.build_server_client_key AS buildServerClientKey
+			, bd.autotag_use_yn AS autotagUseYn
+			, bd.autotag_prefix AS autotagPrefix
+			, bd.autotag_seq_type AS autotagSeqType
+			, bd.tag_name AS tagName
+			, bd.updated AS updated
+			, bd.updater AS updater
+			, bd.use_yn AS useYn
+			, bs.build_step_seq AS bs_buildStepSeq
+			, bs.build_seq AS bs_buildSeq
+			, bs.step_type AS bs_stepType
+			, bs.step_config AS bs_stepConfig
+			, bs.step_order AS bs_stepOrder
+			, bs.use_yn AS bs_useYn
+			, IF(bs.use_yn = 'Y', true, false) AS bs_useFlag
+		FROM build bd
+			inner join build_step bs on bd.build_seq = bs.build_seq
+		WHERE bd.build_seq = #{buildSeq}
+		ORDER BY bs.step_order
+		LIMIT 1
+	</select>
+
+	<select id="getBuildNames" parameterType="map" resultType="PipelineBuild">
+		SELECT /* [Build.xml].[getBuildNames].[01] 변경일자(20190930) */
+		       bd.build_seq AS buildSeq
+		     , bd.build_name AS buildName
+		     , bd.image_name AS imageName
+		  FROM build bd
+		 WHERE bd.use_yn = 'Y'
+		<if test="serviceSeq != null">
+		   and ( bd.registry_project_id in (select project_id from service_registry sr where sr.service_seq = #{serviceSeq} )
+			   or bd.external_registry_seq  in (select external_registry_seq from external_registry_service_mapping ersm where ersm.service_seq = #{serviceSeq}) )
+		</if>
+		<if test="accountSeq != null">
+			AND bd.account_seq = #{accountSeq}
+		</if>
+		ORDER BY bd.image_name
+	</select>
+
+	<select id="getBuildImages" parameterType="map" resultMap="PipelineImageMap">
+		SELECT /* [Build.xml].[getBuildImages].[01] 변경일자(20190930) */
+		       bd.build_seq AS buildSeq
+			 , concat(bd.registry_name,'/',bd.image_name) AS registryImagePath
+			 , bd.registry_project_id AS registryProjectId
+			 , bd.registry_name AS registryName
+			 , bd.image_name AS imageName
+			 , bd.external_registry_seq AS externalRegistrySeq
+			 , br.build_server_host AS buildServerHost
+			 , br.build_run_seq AS img_buildRunSeq
+			 , SUBSTRING_INDEX(image_url,':',-1) img_tag
+			 , br.run_desc as img_runDesc
+			 , br.build_no AS img_buildNo
+			 , br.image_url AS img_imageUrl
+			 , br.image_size AS img_imageSize
+			 , br.image_digest AS img_imageDigest
+			 , br.begin_time AS img_beginTime
+			 , br.end_time AS img_endTime
+		  FROM build_run br
+				INNER JOIN (  SELECT max(build_run_seq) AS build_run_seq
+							    FROM build_run imgbr
+							   WHERE run_type = 'BUILD'
+								 AND run_state = 'DONE'
+								 AND image_url is not null
+								 AND image_size > 0
+								 AND build_seq = #{buildSeq}
+								 AND use_yn = 'Y'
+							   GROUP BY image_url
+				           ) img_br on img_br.build_run_seq = br.build_run_seq
+				INNER JOIN build bd on bd.build_seq = br.build_seq
+		 WHERE br.use_yn = 'Y'
+	  ORDER BY br.build_run_seq DESC
+	</select>
+
+	<delete id="deleteBuildStepRunByAccount" parameterType="map">
+
+		UPDATE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+			build_step_run
+		SET
+			  step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_result = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					 INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+			build_step_run
+		SET
+			  step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_result = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					 INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+			build_step_run
+		SET
+			  step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_result = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					 INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+			build_step_run
+		SET
+			  step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_result = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					 INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+			build_step_run
+		SET
+			  step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, step_result = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					 INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		DELETE /* [Build.xml].[deleteBuildStepRunByAccount].[01] 변경일자(20210706) */
+		FROM build_step_run
+		WHERE build_run_seq IN (
+			SELECT br.build_run_seq
+			FROM build b
+					INNER JOIN build_run br ON b.build_seq = br.build_seq
+			WHERE b.account_seq = #{accountSeq}
+		);
+	</delete>
+
+	<delete id="deleteBuildRunByAccount" parameterType="map">
+
+		UPDATE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+			build_run
+		SET
+			run_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , related_pipeline = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_digest = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+			build_run
+		SET
+			run_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , related_pipeline = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_digest = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+			build_run
+		SET
+			run_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , related_pipeline = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_digest = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+			build_run
+		SET
+			run_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , related_pipeline = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_digest = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+			build_run
+		SET
+			run_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , related_pipeline = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_digest = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		DELETE /* [Build.xml].[deleteBuildRunByAccount].[01] 변경일자(20210706) */
+		FROM build_run
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+	</delete>
+
+	<delete id="deleteBuildStepByAccount" parameterType="map">
+
+		UPDATE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+			build_step
+		SET
+			step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+			build_step
+		SET
+			step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+			build_step
+		SET
+			step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+			build_step
+		SET
+			step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		UPDATE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+			build_step
+		SET
+			step_type = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , step_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+
+		DELETE /* [Build.xml].[deleteBuildStepByAccount].[01] 변경일자(20210706) */
+		FROM build_step
+		WHERE build_seq IN (
+			SELECT b.build_seq
+			FROM build b
+			WHERE b.account_seq = #{accountSeq}
+		);
+	</delete>
+
+	<delete id="deleteBuildByAccount" parameterType="map">
+
+		UPDATE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+			build
+		SET
+			build_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE account_seq = #{accountSeq};
+
+		UPDATE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+			build
+		SET
+			build_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE account_seq = #{accountSeq};
+
+		UPDATE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+			build
+		SET
+			build_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE account_seq = #{accountSeq};
+
+		UPDATE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+			build
+		SET
+			build_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE account_seq = #{accountSeq};
+
+		UPDATE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+			build
+		SET
+			build_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_desc = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_host = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_cacrt = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_cert = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , build_server_client_key = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , tag_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE account_seq = #{accountSeq};
+
+		DELETE /* [Build.xml].[deleteBuildByAccount].[01] 변경일자(20210706) */
+		FROM build
+		WHERE account_seq = #{accountSeq};
+	</delete>
+</mapper>
