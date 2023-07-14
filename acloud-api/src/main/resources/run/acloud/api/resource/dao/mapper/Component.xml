@@ -1,0 +1,404 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.resource.dao.IComponentMapper">
+    <resultMap type="Component" id="ComponentMap" autoMapping="true">
+        <id property="componentSeq" column="componentSeq"/>
+    </resultMap>
+
+    <resultMap type="ComponentDetails" id="ComponentDetailsMap" autoMapping="true">
+    	<id property="servicemapSeq" column="servicemapSeq" />
+    	<collection property="components" ofType="Component" columnPrefix="cp_" resultMap="ComponentMap" />
+    </resultMap>
+
+    <select id="getComponent" parameterType="int" resultType="Component">
+    	SELECT /* [Component.xml].[getComponent].[01] 변경일자(20170224) */
+    		component_seq		componentSeq,
+			workload_group_seq	workloadGroupSeq,
+    		cluster_seq			clusterSeq,
+    		namespace_name		namespaceName,
+    		component_name		componentName,
+    		component_type		componentType,
+    		description,
+    		sort_order			sortOrder,
+    		state_code			stateCode,
+			workload_type		workloadType,
+			workload_version	workloadVersion,
+    		use_yn				useYn
+    	FROM components
+    	WHERE component_seq = #{componentSeq}
+    </select>
+
+	<select id="getComponentByClusterAndNames" parameterType="map" resultType="Component">
+		select /* [Component.xml].[getComponentByClusterAndNames].[01] 변경일자(20200107) */
+			   com.component_seq componentSeq
+			 , com.workload_group_seq workloadGroupSeq
+			 , com.cluster_seq clusterSeq
+			 , com.namespace_name namespaceName
+			 , com.component_name componentName
+			 , com.component_type componentType
+			 , com.description
+			 , com.sort_order sortOrder
+			 , com.state_code stateCode
+			 , com.workload_type workloadType
+			 , com.workload_version workloadVersion
+			 , com.workload_manifest workloadManifest
+			 , com.error_message errorMessage
+			 , com.use_yn useYn
+		  from components com
+		 where com.use_yn = 'Y'
+		   and com.component_name = #{componentName}
+		   and com.cluster_seq = #{clusterSeq}
+		   and com.namespace_name = #{namespaceName}
+	</select>
+
+	<select id="getComponentsInAppmapByClusterAndNames" parameterType="map" resultType="Component">
+		select /* [Component.xml].[getComponentsInAppmapByClusterAndNames].[01] 변경일자(20191007) */
+			   com.component_seq componentSeq
+			 , com.workload_group_seq workloadGroupSeq
+			 , com.cluster_seq clusterSeq
+			 , com.namespace_name namespaceName
+			 , com.component_name componentName
+			 , com.component_type componentType
+			 , com.description
+			 , com.sort_order sortOrder
+			 , com.state_code stateCode
+			 , com.workload_type workloadType
+			 , com.workload_version workloadVersion
+			 , com.workload_manifest workloadManifest
+			 , com.error_message errorMessage
+			 , com.use_yn useYn
+		  from components com
+		 where com.use_yn = 'Y'
+		   <if test="@org.apache.commons.lang3.StringUtils@isNotBlank(componentName)">
+			   and com.component_name = #{componentName}
+		   </if>
+		   and com.cluster_seq = #{clusterSeq}
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(namespaceName)">
+		   		and com.namespace_name = #{namespaceName}
+			</if>
+	</select>
+
+    <select id="getComponentDetails" parameterType="ComponentFilter" resultMap="ComponentDetailsMap">
+		SELECT /* [Component.xml].[getComponentDetails].[01] 변경일자(20170206) */
+			cp.cluster_seq					clusterSeq,
+			cp.namespace_name				namespaceName,
+			sm.servicemap_seq 				servicemapSeq,
+			sm.servicemap_name 				servicemapName,
+			cp.component_seq				cp_componentSeq,
+			cp.workload_group_seq			cp_workloadGroupSeq,
+			cp.component_type				cp_componentType,
+			cp.cluster_seq					cp_clusterSeq,
+			cp.namespace_name				cp_namespaceName,
+			cp.component_name				cp_componentName,
+			cp.description					cp_description,
+			cp.sort_order					cp_sortOrder,
+			cp.state_code					cp_stateCode,
+			cp.use_yn						cp_useYn,
+			cp.updated						cp_updated,
+			cp.created						cp_created
+		FROM components cp
+			LEFT OUTER JOIN servicemaps sm ON sm.cluster_seq = cp.cluster_seq and sm.namespace_name = cp.namespace_name AND sm.use_yn = 'Y'
+		<where>
+			<if test="!includeDeleted">AND cp.use_yn = 'Y'</if>
+			<if test="exceptComponentSeq != null"> AND cp.component_seq <![CDATA[<>]]> #{exceptComponentSeq}</if>
+			<if test="componentSeq != null"> AND cp.component_seq = #{componentSeq}</if>
+			<if test="clusterSeq != null"> AND cp.cluster_seq = #{clusterSeq}</if>
+			<if test="namespaceName != null"> AND cp.namespace_name = #{namespaceName}</if>
+			AND cp.component_seq IS NOT NULL
+		</where>
+		ORDER BY cp.sort_order
+    </select>
+
+    <select id="getServerDetails" parameterType="ComponentFilter" resultMap="ComponentDetailsMap">
+		SELECT /* [Component.xml].[getServerDetails].[01] 변경일자(20170206) */
+			cl.cluster_seq					clusterSeq,
+			cp.namespace_name				namespaceName,
+			sm.servicemap_seq				servicemapSeq,
+			sm.servicemap_name				servicemapName,
+			cp.component_seq				cp_componentSeq,
+			cp.workload_group_seq			cp_workloadGroupSeq,
+			cp.component_type				cp_componentType,
+			cp.cluster_seq					cp_clusterSeq,
+			cp.namespace_name				cp_namespaceName,
+			cp.component_name				cp_componentName,
+			cp.description					cp_description,
+			cp.sort_order					cp_sortOrder,
+			cp.state_code					cp_stateCode,
+			cp.workload_type				cp_workloadType,
+			cp.workload_version				cp_workloadVersion,
+			cp.workload_manifest			cp_workloadManifest,
+			cp.error_message				cp_errorMessage,
+			cl.cluster_name					cp_clusterName,
+			sm.servicemap_name				cp_servicemapName,
+			cp.namespace_name				cp_namespaceName,
+			cp.use_yn						cp_useYn,
+			cp.updated						cp_updated,
+			cp.created						cp_created
+		FROM components cp
+			LEFT OUTER JOIN servicemaps sm ON sm.cluster_seq = cp.cluster_seq and sm.namespace_name = cp.namespace_name AND sm.use_yn = 'Y'
+			LEFT OUTER JOIN workload_groups wg ON wg.servicemap_seq = sm.servicemap_seq and wg.workload_group_seq = cp.workload_group_seq and wg.use_yn = 'Y'
+			LEFT OUTER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+		<where>
+			<if test="!includeDeleted">AND cp.use_yn = 'Y'</if>
+			<if test="exceptComponentSeq != null"> AND cp.component_seq <![CDATA[<>]]> #{exceptComponentSeq}</if>
+			<if test="servicemapSeq != null"> AND sm.servicemap_seq = #{servicemapSeq}</if>
+			<if test="componentSeq != null"> AND cp.component_seq = #{componentSeq}</if>
+			<if test="clusterSeq != null"> AND cp.cluster_seq = #{clusterSeq}</if>
+			<if test="namespaceName != null"> AND cp.namespace_name = #{namespaceName}</if>
+			<if test="componentName != null"> AND cp.component_name = #{componentName}</if>
+		</where>
+		ORDER BY cp.cluster_seq, sm.servicemap_seq, cp.sort_order
+    </select>
+
+    <insert id="addComponent" useGeneratedKeys="true" keyProperty="componentSeq"
+            parameterType="run.acloud.api.resource.vo.ComponentVO">
+		INSERT /* [Component.xml].[addComponent].[01] 변경일자(20170125) */
+		INTO components (
+			workload_group_seq,
+			cluster_seq,
+			namespace_name,
+			component_name,
+			component_type,
+			description,
+			sort_order,
+			state_code,
+		    workload_type,
+		    workload_version,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) SELECT
+		    IFNULL(#{workloadGroupSeq}, 0),
+			#{clusterSeq},
+			#{namespaceName},
+			#{componentName},
+			#{componentType},
+			IFNULL(#{description}, ''),
+		<choose>
+			<when test="sortOrder == 0">
+			IFNULL(
+				(
+					SELECT COUNT(sort_order) + 1
+					FROM components
+					WHERE use_yn = 'Y'
+					AND workload_group_seq = #{workloadGroupSeq}
+					GROUP BY workload_group_seq
+				),
+			  1
+			),
+			</when>
+			<otherwise>
+			#{sortOrder},
+			</otherwise>
+		</choose>
+			#{stateCode},
+		    #{workloadType},
+		    IFNULL(#{workloadVersion}, 'V1'),
+			IFNULL(#{useYn}, 'Y'),
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+    </insert>
+
+	<update id="updateComponentInitSortOrder" parameterType="map">
+		UPDATE /* [Component.xml].[updateComponentInitSortOrder].[01] 변경일자(20180723) */
+				components c
+			INNER JOIN (
+						   SELECT @rnum := @rnum + 1 AS rnum,
+							   ct.component_seq
+						   FROM (SELECT component_seq FROM components WHERE workload_group_seq = #{workloadGroupSeq} AND use_yn  = 'Y' ORDER BY sort_order) ct
+							   INNER JOIN (SELECT @rnum := 0) t
+					   ) t
+				ON t.component_seq = c.component_seq
+		SET c.sort_order = t.rnum,
+			c.updated = UTC_TIMESTAMP()
+		WHERE c.workload_group_seq = #{workloadGroupSeq}
+			  AND c.use_yn = 'Y'
+	</update>
+
+    <update id="updateComponentSortOrder" parameterType="map">
+    	UPDATE /* [Component.xml].[updateComponentSortOrder].[01] 변경일자(20170225) */
+    		components
+    	SET
+    		sort_order = sort_order + #{increment}
+    	WHERE
+    		use_yn = 'Y'
+    		AND workload_group_seq = #{workloadGroupSeq}
+    	<if test="fromOrder != null">
+    		AND sort_order >= #{fromOrder}
+    	</if>
+    	<if test="toOrder != null">
+    		AND sort_order <![CDATA[<=]]> #{toOrder}
+    	</if>
+    </update>
+
+    <update id="updateComponentSelfSortOrder" parameterType="Component">
+		UPDATE /* [Component.xml].[updateComponentSelfSortOrder].[02] 변경일자(20170711) */
+			components
+		SET
+			workload_group_seq = #{workloadGroupSeq},
+            sort_order = #{sortOrder},
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE
+			component_seq = #{componentSeq}
+    </update>
+
+    <update id="updateComponent" parameterType="Component">
+    	UPDATE /* [Component.xml].[updateComponent].[02] 변경일자(20170711) */
+    		components
+    	SET
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(componentName)">
+			component_name = #{componentName},
+		</if>
+    	<if test="stateCode != null">
+    		state_code = #{stateCode},
+    	</if>
+    	<if test="workloadGroupSeq != null">
+    		workload_group_seq = #{workloadGroupSeq},
+    	</if>
+        <if test="description != null">
+            description = #{description},
+        </if>
+        <if test="useYn != null">
+			use_yn = #{useYn},
+        </if>
+    	<choose>
+			<when test='stateCode != null and "ERROR".equals(stateCode)'>
+				error_message = #{errorMessage},
+			</when>
+    	    <otherwise>
+				error_message = null,
+			</otherwise>
+		</choose>
+			updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		component_seq = #{componentSeq}
+    </update>
+
+	<update id="updateComponentState" parameterType="Component">
+		UPDATE /* [Component.xml].[updateComponentState].[01] 변경일자(20190925) */
+		components
+		SET
+		<if test="stateCode != null">
+			state_code = #{stateCode}
+		</if>
+		WHERE
+		component_seq = #{componentSeq}
+	</update>
+
+	<update id="removeComponent" parameterType="Component">
+    	UPDATE /* [Component.xml].[removeComponent].[01] 변경일자(20170225) */
+    		components
+    	SET
+    		state_code = 'DELETED',
+    	    workload_manifest = null,
+			error_message = null,
+    		use_yn = #{useYn},
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		component_seq = #{componentSeq}
+    </update>
+
+	<select id="getComponentsInServicemapByName" parameterType="map" resultType="Component">
+		SELECT /* [Component.xml].[getComponentsInServicemapByName].[01] 변경일자(20220413) */
+			component_seq AS componentSeq,
+			workload_group_seq AS workloadGroupSeq,
+			component_name AS componentName,
+			component_type AS componentType,
+			description AS description,
+			state_code AS stateCode,
+			use_yn AS useYn
+		FROM components
+		WHERE workload_group_seq IN (
+			SELECT wg.workload_group_seq FROM workload_groups wg
+			WHERE wg.servicemap_seq = #{servicemapSeq})
+		  AND component_name = #{name}
+		  AND use_yn = 'Y';
+	</select>
+
+	<select id="getComponentListInClusterByName" parameterType="map" resultType="Component">
+		SELECT /* [Appmap.xml].[getComponentListInClusterByName].[01] 변경일자(20190315) */
+			component_seq AS componentSeq,
+			workload_group_seq AS workloadGroupSeq,
+			component_name AS componentName,
+			component_type AS componentType,
+			description AS description,
+			state_code AS stateCode,
+			sort_order	AS sortOrder,
+			workload_type AS workloadType,
+			workload_version AS workloadVersion,
+			use_yn AS useYn
+		FROM components
+		WHERE	workload_group_seq IN (
+					SELECT wg.workload_group_seq
+					FROM workload_groups wg
+						inner join servicemaps sm on sm.servicemap_seq = wg.servicemap_seq
+					WHERE wg.use_yn = 'Y' and sm.cluster_seq = #{clusterSeq}
+				)
+		<if test="name != null">
+			AND	component_name = #{name}
+		</if>
+			AND use_yn = 'Y';
+	</select>
+
+	<update id="updateComponentManifestByNamespace" parameterType="map">
+		UPDATE /* [Component.xml].[updateComponentManifestByNamespace].[01] 변경일자(20190926) */
+			components
+		<set>
+			workload_manifest = #{workloadManifest},
+			<if test="updater != null">
+				updated = UTC_TIMESTAMP(),
+				updater = #{updater}
+			</if>
+		</set>
+		WHERE cluster_seq = #{clusterSeq}
+		AND namespace_name = #{namespaceName}
+        AND component_name = #{componentName}
+		AND use_yn = 'Y'
+	</update>
+
+	<update id="updateComponentManifestAndGroupByNamespace" parameterType="map">
+		UPDATE /* [Component.xml].[updateComponentManifestAndGroupByNamespace].[01] 변경일자(20190926) */
+		components
+		<set>
+			workload_manifest = #{workloadManifest},
+			<if test="workloadGroupSeq != null">
+				workload_group_seq = #{workloadGroupSeq},
+			</if>
+			<if test="updater != null">
+				updated = UTC_TIMESTAMP(),
+				updater = #{updater}
+			</if>
+		</set>
+		WHERE cluster_seq = #{clusterSeq}
+		AND namespace_name = #{namespaceName}
+		AND component_name = #{componentName}
+		AND use_yn = 'Y'
+	</update>
+
+	<update id="updateComponentManiDescGrpByNamespace" parameterType="map">
+		UPDATE /* [Component.xml].[updateComponentManiDescGrpByNamespace].[01] 변경일자(20200227) */
+			components
+		<set>
+			description = #{description},
+			workload_manifest = #{workloadManifest},
+			<if test="workloadGroupSeq != null">
+				workload_group_seq = #{workloadGroupSeq},
+			</if>
+			<if test="updater != null">
+				updated = UTC_TIMESTAMP(),
+				updater = #{updater}
+			</if>
+		</set>
+		WHERE cluster_seq = #{clusterSeq}
+		AND namespace_name = #{namespaceName}
+		AND component_name = #{componentName}
+		AND use_yn = 'Y'
+	</update>
+
+</mapper>

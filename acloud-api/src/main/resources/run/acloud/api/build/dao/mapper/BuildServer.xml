@@ -1,0 +1,143 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.build.dao.IBuildServerMapper">
+
+	<resultMap id="BuildServerMap" type="BuildServer" autoMapping="true">
+		<id property="buildServerSeq" column="buildServerSeq" />
+	</resultMap>
+
+	<resultMap type="PackageDeployHistory" id="PackageDeployHistoryMap" autoMapping="true">
+		<id property="packageDeployHistorySeq" column="packageDeployHistorySeq"/>
+	</resultMap>
+
+	<insert id="addBuildServer" parameterType="BuildServer" useGeneratedKeys="true" keyProperty="buildServerSeq">
+		INSERT INTO build_server /* [BuildServer.xml].[addBuildServer].[01] 변경일자(20230607) */
+		(
+			build_server_name,
+			build_server_desc,
+			cluster_seq,
+			cluster_id,
+			namespace,
+			controller_name,
+			deploy_config,
+		    created,
+		    creator,
+		    updated,
+		    updater
+		)
+		VALUES
+	    (
+			#{buildServerName},
+			#{buildServerDesc},
+			#{clusterSeq},
+			#{clusterId},
+			#{namespace},
+			#{controllerName},
+			#{deployConfig},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+	     )
+	</insert>
+
+	<insert id="addBuildServerMapping" parameterType="BuildServer" useGeneratedKeys="true" keyProperty="buildServerSeq">
+		INSERT INTO build_server_account_mapping /* [BuildServer.xml].[addBuildServerMapping].[01] 변경일자(20230607) */
+		(
+			build_server_seq,
+			account_seq,
+			created,
+			creator
+		)
+		VALUES
+			(
+				#{buildServerSeq},
+				#{accountSeq},
+				UTC_TIMESTAMP(),
+				#{creator}
+			)
+	</insert>
+
+	<update id="editBuildServer" parameterType="BuildServer">
+		UPDATE /* [BuildServer.xml].[editBuildServer].[01] 변경일자(20230607) */
+				build_server
+		   SET build_server_desc = #{buildServerDesc}
+			 , deploy_config = #{deployConfig}
+		<if test="updater != null">
+			 , updater = #{updater}
+		</if>
+		     , updated = UTC_TIMESTAMP()
+		 WHERE build_server_seq = #{buildServerSeq}
+	</update>
+
+	<delete id="removeBuildServer" parameterType="BuildServerAdd">
+		DELETE /* [BuildServer.xml].[removeBuildServer].[01] 변경일자(20230607) */
+		FROM build_server
+		WHERE build_server_seq = #{buildServerSeq}
+	</delete>
+
+	<select id="getBuildServerList" parameterType="map" resultMap="BuildServerMap">
+		select /* [BuildServer.xml].[getBuildServerList].[01] 변경일자(20230607) */
+				bs.build_server_seq AS buildServerSeq
+				, bs.build_server_name AS buildServerName
+				, bs.build_server_desc AS buildServerDesc
+				, bs.cluster_seq AS clusterSeq
+				, bs.cluster_id AS clusterId
+				, bs.namespace AS namespace
+				, bs.controller_name AS controllerName
+				, bs.deploy_config AS deployConfig
+				, bs.created AS created
+				, bs.creator AS creator
+				, bs.updated AS updated
+				, bs.updater AS updater
+		  from build_server bs
+					inner join build_server_account_mapping bm on bs.build_server_seq = bm.build_server_seq
+					inner join accounts ac on ac.account_seq = bm.account_seq and ac.use_yn = 'Y'
+		 where ac.account_seq = #{accountSeq}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(topicName)">
+			AND CONCAT(bs.build_server_name, '-', bs.namespace, '-', bs.cluster_id) = #{topicName}
+		</if>
+	</select>
+
+	<select id="getBuildServer" parameterType="map" resultMap="BuildServerMap">
+		SELECT /* [BuildServer.xml].[getBuildServer].[01] 변경일자(20230607) */
+			   bs.build_server_seq AS buildServerSeq
+			 , bs.build_server_name AS buildServerName
+			 , bs.build_server_desc AS buildServerDesc
+			 , bs.cluster_seq AS clusterSeq
+			 , bs.cluster_id AS clusterId
+			 , bs.namespace AS namespace
+			 , bs.controller_name AS controllerName
+			 , bs.deploy_config AS deployConfig
+			 , bs.created AS created
+			 , bs.creator AS creator
+			 , bs.updated AS updated
+			 , bs.updater AS updater
+		     , ac.account_seq AS accountSeq
+		  FROM build_server bs
+					inner join build_server_account_mapping bm on bs.build_server_seq = bm.build_server_seq
+			  		inner join accounts ac on ac.account_seq = bm.account_seq and ac.use_yn = 'Y'
+		 WHERE bs.build_server_seq = #{buildServerSeq}
+	</select>
+
+	<select id="getBuildServerListForRef" parameterType="map" resultMap="BuildServerMap">
+		SELECT /* [BuildServer.xml].[getBuildServerListForRef].[01] 변경일자(20230607) */
+			   bs.build_server_seq AS buildServerSeq
+			 , bs.build_server_name AS buildServerName
+			 , bs.cluster_seq AS clusterSeq
+			 , bs.cluster_id AS clusterId
+			 , bs.namespace AS namespace
+			 , bs.controller_name AS controllerName
+		     , ac.account_seq AS accountSeq
+		  FROM build_server bs
+					inner join build_server_account_mapping bm on bs.build_server_seq = bm.build_server_seq
+			  		inner join accounts ac on ac.account_seq = bm.account_seq and ac.use_yn = 'Y'
+					inner join account_service_mapping asm ON asm.account_seq = ac.account_seq
+					inner join services sv on asm.service_seq = sv.service_seq and sv.use_yn = 'Y'
+					inner join build_server_service_mapping bssm on bssm.service_seq = sv.service_seq and bssm.build_server_seq = bs.build_server_seq
+		 WHERE bssm.service_seq = #{serviceSeq}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(topicName)">
+			AND CONCAT(bs.build_server_name, '-', bs.namespace, '-', bs.cluster_id) = #{topicName}
+		</if>
+	</select>
+
+</mapper>

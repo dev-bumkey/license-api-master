@@ -1,0 +1,145 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.log.dao.ILogAgentMapper">
+    <insert id="addLogAgent" parameterType="LogAgent" useGeneratedKeys="true" keyProperty="agentSeq">
+        INSERT INTO log_agent (
+            log_agent_name,
+            log_agent_description,
+            deploy_config,
+            cluster_seq,
+            cluster_id,
+            namespace,
+            controller_name,
+            application_name,
+            token,
+            created,
+            creator,
+            updated,
+            updater
+        ) VALUES (
+             #{agentName},
+             #{agentDescription},
+             #{deployConfig},
+             #{clusterSeq},
+             #{clusterId},
+             #{namespace},
+             #{controllerName},
+             #{applicationName},
+             #{token},
+             UTC_TIMESTAMP(),
+             #{creator},
+             UTC_TIMESTAMP(),
+             #{creator}
+        )
+    </insert>
+
+    <insert id="addLogAgentAccountMapping" parameterType="LogAgentAccountMapping">
+        INSERT INTO log_agent_account_mapping (
+            account_seq,
+            log_agent_seq,
+            created,
+            creator
+        ) VALUES (
+             #{accountSeq},
+             #{logAgentSeq},
+             UTC_TIMESTAMP(),
+             #{creator}
+         )
+    </insert>
+
+    <select id="getLogAgentList" resultType="LogAgent">
+        SELECT
+            log_agent_seq as agentSeq,
+            log_agent_name as agentName,
+            cluster_seq,
+            cluster_id,
+            namespace,
+            controller_name,
+            application_name,
+            created,
+            updated
+        FROM log_agent
+        WHERE
+            addon_log_agent_yn = 'N'
+    </select>
+
+    <select id="getLogAgent" parameterType="java.lang.Integer" resultType="LogAgent" >
+        SELECT
+            log_agent_seq as agentSeq,
+            log_agent_name as agentName,
+            log_agent_description as agentDescription,
+            deploy_config,
+            cluster_seq,
+            cluster_id,
+            namespace,
+            controller_name,
+            application_name,
+            token,
+            created,
+            updated
+        FROM
+            log_agent
+        WHERE
+            log_agent_seq = #{agentSeq}
+        AND
+            addon_log_agent_yn = 'N'
+    </select>
+
+    <update id="editLogAgent" >
+        UPDATE
+            log_agent
+        SET
+            <if test="agentDescription != null">
+                log_agent_description = #{agentDescription},
+            </if>
+            <if test="deployConfig != null">
+                deploy_config = #{deployConfig},
+            </if>
+            <if test="clusterSeq != null">
+                cluster_seq = #{clusterSeq},
+            </if>
+            <if test="clusterId != null">
+                cluster_id = #{clusterId},
+            </if>
+            <if test="namespace != null">
+                namespace = #{namespace},
+            </if>
+            <if test="controllerName != null">
+                controller_name = #{controllerName},
+            </if>
+            <if test="applicationName != null">
+                application_name = #{applicationName},
+            </if>
+            updated = UTC_TIMESTAMP(),
+            updater = #{updater}
+        WHERE
+            log_agent_seq = #{agentSeq}
+        AND
+            addon_log_agent_yn = 'N'
+    </update>
+
+    <delete id="removeLogAgent" >
+        DELETE
+        FROM
+            log_agent
+        WHERE
+            log_agent_seq = #{agentSeq}
+        AND
+            addon_log_agent_yn = 'N'
+    </delete>
+
+    <select id="getTokenList" resultType="java.lang.String">
+        SELECT
+            token
+        FROM
+            log_agent
+    </select>
+
+    <select id="getApplicationList" resultType="java.lang.String">
+        SELECT
+            distinct application_name
+        FROM
+            log_agent
+        WHERE
+            addon_log_agent_yn = 'N'
+    </select>
+</mapper>

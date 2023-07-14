@@ -1,0 +1,290 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.resource.dao.IPersistentVolumeMapper">
+    <resultMap id="PersistentVolumeMap" type="PersistentVolume" autoMapping="true">
+        <id property="volumeSeq" column="volumeSeq" />
+        <collection property="parameters" ofType="run.acloud.api.resource.vo.PersistentVolumeParamterVO" columnPrefix="vp_" autoMapping="true">
+        </collection>
+    </resultMap>
+
+    <insert id="addPersistentVolume" useGeneratedKeys="true" keyProperty="volumeSeq"
+            parameterType="run.acloud.api.resource.vo.PersistentVolumeVO">
+        INSERT
+        INTO persistent_volume (
+            cluster_seq,
+            `name`,
+            capacity,
+            access_mode,
+            reclaim_policy,
+            storage_class_seq,
+            plugin,
+            description,
+			created,
+			creator,
+			updated,
+			updater
+        ) VALUES (
+            #{clusterSeq},
+            #{name},
+            #{capacity},
+            #{accessMode},
+            #{reclaimPolicy},
+            #{storageClassSeq},
+            #{plugin},
+            #{description},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+        )
+    </insert>
+
+    <insert id="addPersistentVolumeParameters" parameterType="map">
+        INSERT
+        INTO persistent_volume_parameters (
+            volume_seq,
+            `name`,
+            `value`
+        ) VALUES
+        <foreach collection="list" item="item" open="(" separator="), (" close=")">
+                #{item.volumeSeq},
+                #{item.name},
+                #{item.value}
+        </foreach>
+    </insert>
+
+    <select id="getPersistentVolumes" resultMap="PersistentVolumeMap">
+        SELECT
+            pv.volume_seq				volumeSeq,
+            pv.cluster_seq				clusterSeq,
+            pv.name						`name`,
+            pv.capacity					capacity,
+            pv.access_mode				accessMode,
+            pv.reclaim_policy			reclaimPolicy,
+            pv.plugin					plugin,
+            pv.bound_yn                 boundYn,
+            pv.description              description,
+			pv.use_yn					useYn,
+			pv.updated					updated,
+			pv.updater					updater,
+			pv.created					created,
+			pv.creator					creator,
+            vp.volume_seq               vp_volumeSeq,
+            vp.name						vp_name,
+            vp.value					vp_value
+        FROM persistent_volume pv
+        LEFT OUTER JOIN persistent_volume_parameters vp ON pv.volume_seq = vp.volume_seq
+        WHERE
+            use_yn = 'Y'
+    </select>
+
+    <select id="getPersistentVolumesOfCluster" parameterType="int" resultMap="PersistentVolumeMap">
+        SELECT
+            pv.volume_seq				volumeSeq,
+            pv.cluster_seq				clusterSeq,
+            pv.name						`name`,
+            pv.capacity					capacity,
+            pv.access_mode				accessMode,
+            pv.reclaim_policy			reclaimPolicy,
+            pv.plugin					plugin,
+            pv.bound_yn                 boundYn,
+            pv.description              description,
+			pv.use_yn					useYn,
+			pv.updated					updated,
+			pv.updater					updater,
+			pv.created					created,
+			pv.creator					creator,
+            vp.volume_seq               vp_volumeSeq,
+            vp.name						vp_name,
+            vp.value					vp_value
+        FROM persistent_volume pv
+        LEFT OUTER JOIN persistent_volume_parameters vp ON pv.volume_seq = vp.volume_seq
+        WHERE
+            pv.cluster_seq = #{clusterSeq}
+    		AND use_yn = 'Y'
+    </select>
+
+    <select id="getPersistentVolume" parameterType="int" resultMap="PersistentVolumeMap">
+        SELECT
+            pv.volume_seq				volumeSeq,
+            pv.cluster_seq				clusterSeq,
+            pv.name						`name`,
+            pv.capacity					capacity,
+            pv.access_mode				accessMode,
+            pv.reclaim_policy			reclaimPolicy,
+            pv.plugin					plugin,
+            pv.bound_yn                 boundYn,
+            pv.description              description,
+            pv.use_yn					useYn,
+            pv.updated					updated,
+            pv.updater					updater,
+            pv.created					created,
+            pv.creator					creator,
+            vp.volume_seq               vp_volumeSeq,
+            vp.name						vp_name,
+            vp.value					vp_value
+        FROM persistent_volume pv
+        LEFT OUTER JOIN persistent_volume_parameters vp ON pv.volume_seq = vp.volume_seq
+        WHERE
+          pv.volume_seq = #{volumeSeq}
+    </select>
+
+    <select id="getPersistentVolumeInClusterByName" parameterType="map" resultMap="PersistentVolumeMap">
+        SELECT
+        pv.volume_seq				volumeSeq,
+        pv.cluster_seq				clusterSeq,
+        pv.name						`name`,
+        pv.capacity					capacity,
+        pv.access_mode				accessMode,
+        pv.reclaim_policy			reclaimPolicy,
+        pv.plugin					plugin,
+        pv.bound_yn                 boundYn,
+        pv.description              description,
+        pv.use_yn					useYn,
+        pv.updated					updated,
+        pv.updater					updater,
+        pv.created					created,
+        pv.creator					creator,
+        vp.volume_seq               vp_volumeSeq,
+        vp.name						vp_name,
+        vp.value					vp_value
+        FROM persistent_volume pv
+        LEFT OUTER JOIN persistent_volume_parameters vp ON pv.volume_seq = vp.volume_seq
+        WHERE
+          pv.cluster_seq = #{clusterSeq}
+          AND pv.name = #{name}
+    </select>
+
+    <update id="updatePersistentVolumeUseYn" parameterType="run.acloud.api.resource.vo.PersistentVolumeVO">
+        UPDATE
+            persistent_volume
+        SET
+            use_yn = #{useYn}
+        WHERE
+            volume_seq = #{volumeSeq}
+    </update>
+
+    <update id="updatePersistentVolumeBoundYn" parameterType="run.acloud.api.resource.vo.PersistentVolumeVO">
+        UPDATE
+          persistent_volume
+        SET
+          bound_yn = #{boundYn}
+        WHERE
+        volume_seq = #{volumeSeq}
+    </update>
+
+    <insert id="addPersistentVolumeClaim" useGeneratedKeys="true" keyProperty="claimSeq"
+            parameterType="run.acloud.api.resource.vo.PersistentVolumeClaimGuiVO">
+        INSERT
+        INTO persistent_volume_claim (
+        volume_seq,
+        `name`,
+        capacity,
+        access_mode,
+        description,
+        use_yn,
+        created,
+        creator,
+        updated,
+        updater
+        ) VALUES (
+        #{volumeSeq},
+        #{name},
+        #{capacity},
+        #{accessMode},
+        #{description},
+        #{useYn},
+        UTC_TIMESTAMP(),
+        #{creator},
+        UTC_TIMESTAMP(),
+        #{creator}
+        )
+    </insert>
+
+    <select id="getPersistentVolumeClaimsOfCluster" parameterType="int"
+            resultType="run.acloud.api.resource.vo.PersistentVolumeClaimGuiVO" >
+        SELECT
+        	pvc.claim_seq				claimSeq,
+            pvc.volume_seq				volumeSeq,
+            pvc.name					`name`,
+            pvc.capacity				capacity,
+            pvc.access_mode				accessMode,
+            pvc.description             description,
+			pvc.use_yn					useYn,
+			pvc.updated					updated,
+			pvc.updater					updater,
+			pvc.created					created,
+			pvc.creator					creator
+        FROM persistent_volume_claim pvc
+        LEFT OUTER JOIN persistent_volume pv ON pvc.volume_seq = pv.volume_seq
+        WHERE
+            pv.cluster_seq = #{clusterSeq}
+    		AND pvc.use_yn = 'Y'
+
+    </select>
+
+    <select id="getPersistentVolumeClaim" parameterType="int"
+            resultType="run.acloud.api.resource.vo.PersistentVolumeClaimGuiVO" >
+        SELECT
+            pvc.claim_seq				claimSeq,
+            pvc.volume_seq				volumeSeq,
+            pvc.name					`name`,
+            pvc.capacity				capacity,
+            pvc.access_mode				accessMode,
+            pvc.description             description,
+            pvc.use_yn					useYn,
+            pvc.updated					updated,
+            pvc.updater					updater,
+            pvc.created					created,
+            pvc.creator					creator
+        FROM persistent_volume_claim pvc
+        LEFT OUTER JOIN persistent_volume pv ON pvc.volume_seq = pv.volume_seq
+        WHERE
+            pvc.claim_seq = #{claimSeq}
+    </select>
+
+    <select id="getVolumePluginCodes" resultType="run.acloud.api.code.vo.CodeVO">
+        SELECT
+            code_group_id     codeGroupId,
+            code              code,
+            `value`           `value`,
+            description       description
+        FROM codes
+        WHERE code_group_id = 'VOLUME_PLUGIN'
+        AND use_yn = 'Y'
+        ORDER BY sort_order
+    </select>
+
+
+    <insert id="addClusterVolume" useGeneratedKeys="true" keyProperty="volumeSeq"
+            parameterType="run.acloud.api.resource.vo.PersistentVolumeVO">
+        INSERT
+        INTO persistent_volume (
+        cluster_seq,
+        `name`,
+        capacity,
+        access_mode,
+        reclaim_policy,
+        storage_class_seq,
+        plugin,
+        description,
+        created,
+        creator,
+        updated,
+        updater
+        ) VALUES (
+        #{clusterSeq},
+        #{name},
+        #{capacity},
+        #{accessMode},
+        #{reclaimPolicy},
+        #{storageClassSeq},
+        #{plugin},
+        #{description},
+        UTC_TIMESTAMP(),
+        #{creator},
+        UTC_TIMESTAMP(),
+        #{creator}
+        )
+    </insert>
+
+</mapper>

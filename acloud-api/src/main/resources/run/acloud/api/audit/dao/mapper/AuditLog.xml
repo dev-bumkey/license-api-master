@@ -1,0 +1,252 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.audit.dao.IAuditLogMapper">
+	<resultMap type="AuditLog" id="AuditLogMap" autoMapping="true">
+		<id property="auditLogSeq" column="auditLogSeq"/>
+	</resultMap>
+
+	<sql id="excludeAdminConditionSql">
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(excludeAdmin) and @org.apache.commons.lang3.StringUtils@equalsIgnoreCase("Y", excludeAdmin)'>
+				INNER JOIN users us ON us.user_seq = al2.user_seq
+				INNER JOIN user_role ur ON ur.user_seq = us.user_seq
+											AND ur.role_code <![CDATA[<>]]> 'ADMIN'
+			</when>
+			<otherwise>
+				INNER JOIN users us ON us.user_seq = al2.user_seq
+				INNER JOIN user_role ur ON ur.user_seq = us.user_seq
+											AND ur.role_code = 'ADMIN'
+			</otherwise>
+		</choose>
+	</sql>
+
+	<select id="getAuditLogs" parameterType="map" resultMap="AuditLogMap">
+		SELECT	/* [AuditLog.xml].[getAuditLogs].[01] 변경일자(20190906) */
+			al.audit_log_seq                               AS auditLogSeq,
+			al.created                                     AS created,
+			us.user_id                                     AS userId,
+			al.user_seq                                    AS userSeq,
+			al.resource_name							   AS resourceName,
+			acc.account_name                               AS AccountName,
+			al.account_seq                                 AS accountSeq,
+			svc.service_name                               AS serviceName,
+			al.service_seq                                 AS serviceSeq,
+			smg.servicemap_group_name                      AS servicemapGroupName,
+			al.appmap_group_seq                            AS servicemapGroupSeq,
+			sm.servicemap_name                             AS servicemapName,
+			al.appmap_seq                                  AS servicemapSeq,
+			cl.cluster_name                                AS clusterName,
+			al.cluster_seq                                 AS clusterSeq,
+			wlg.workload_group_name                        AS workloadGroupName,
+			al.group_seq                                   AS workloadGroupSeq,
+			al.result_code                                 AS resultCode,
+			al.duration                                    AS duration,
+			al.resource_data                               AS resourceData,
+			al.request_data                                AS requestData,
+			al.response_data                               AS responseData,
+			al.audit_log_code                              AS auditLogCode
+		FROM   audit_logs al
+			   INNER JOIN (	SELECT	audit_log_seq as audit_log_seq2
+							FROM	audit_logs al2
+								<include refid="excludeAdminConditionSql" />
+							WHERE  al2.audit_log_seq <![CDATA[<=]]>  #{maxId}
+								AND al2.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+								<if test="systemUserSeq != null">
+								AND al2.account_seq = (SELECT acc.account_seq
+														FROM	accounts acc
+																INNER JOIN account_system_user_mapping asum
+																		ON asum.account_seq = acc.account_seq
+																		AND asum.user_seq = #{systemUserSeq}
+														LIMIT 1)
+								</if>
+								<if test="resourceName != null">
+								AND  al2.resource_name LIKE CONCAT('%', #{resourceName},'%')
+								</if>
+								<if test="userName != null">
+									AND  us.user_name LIKE CONCAT('%', #{userName},'%')
+								</if>
+								<if test="userId != null">
+									AND  us.user_id LIKE CONCAT('%', #{userId},'%')
+								</if>
+							ORDER  BY
+								<choose>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "created")'>
+										al2.created
+									</when>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "audit_log_seq")'>
+										al2.audit_log_seq
+									</when>
+									<otherwise>
+										al2.user_name
+									</otherwise>
+								</choose>
+								<choose>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "DESC")'>
+										DESC
+									</when>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "ASC")'>
+										ASC
+									</when>
+									<otherwise>
+										ASC
+									</otherwise>
+								</choose>
+							LIMIT  #{nextPage}, #{itemPerPage}
+							) alup
+							ON alup.audit_log_seq2 = al.audit_log_seq
+			   LEFT OUTER JOIN users us
+							ON us.user_seq = al.user_seq
+			   LEFT OUTER JOIN accounts acc
+							ON acc.account_seq = al.account_seq
+			   LEFT OUTER JOIN services svc
+							ON svc.service_seq = al.service_seq
+			   LEFT OUTER JOIN clusters cl
+							ON cl.cluster_seq = al.cluster_seq
+			   LEFT OUTER JOIN servicemap_groups smg
+							ON smg.servicemap_group_seq = al.appmap_group_seq
+			   LEFT OUTER JOIN servicemaps sm
+							ON sm.servicemap_seq = al.appmap_seq
+			   LEFT OUTER JOIN workload_groups wlg
+							ON wlg.workload_group_seq = al.group_seq
+ 		ORDER  BY
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "created")'>
+						created
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "audit_log_seq")'>
+						audit_log_seq
+					</when>
+					<otherwise>
+						user_name
+					</otherwise>
+				</choose>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "DESC")'>
+						DESC
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "ASC")'>
+						ASC
+					</when>
+					<otherwise>
+						ASC
+					</otherwise>
+				</choose>
+	</select>
+
+	<select id="getAuditLogCount" parameterType="map" resultType="int">
+		SELECT	/* [getAuditLogCount.xml].[getAuditLog].[01] 변경일자(20190910) */
+				count(*)
+		FROM audit_logs al2
+				<include refid="excludeAdminConditionSql" />
+		WHERE al2.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		<if test="systemUserSeq != null">
+			AND al2.account_seq = (SELECT acc.account_seq
+									FROM	accounts acc
+									INNER JOIN account_system_user_mapping asum
+									ON asum.account_seq = acc.account_seq
+									AND asum.user_seq = #{systemUserSeq}
+									LIMIT 1)
+		</if>
+		<if test="resourceName != null">
+			AND  al2.resource_name LIKE CONCAT('%', #{resourceName},'%')
+		</if>
+		<if test="userName != null">
+			AND  us.user_name LIKE CONCAT('%', #{userName},'%')
+		</if>
+		<if test="userId != null">
+			AND  us.user_id LIKE CONCAT('%', #{userId},'%')
+		</if>
+
+	</select>
+
+	<select id="getAuditLogCountAndMaxId" parameterType="map" resultType="ListCount">
+		SELECT	/* [getAuditLogCountAndMaxId.xml].[getAuditLog].[01] 변경일자(20190911) */
+				count(*) as cnt
+				,max(al2.audit_log_seq) as maxId
+		FROM audit_logs al2
+				<include refid="excludeAdminConditionSql" />
+		WHERE al2.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		<if test="systemUserSeq != null">
+		   AND al2.account_seq = (SELECT acc.account_seq
+								 FROM	accounts acc
+										INNER JOIN account_system_user_mapping asum
+												ON asum.account_seq = acc.account_seq
+											   AND asum.user_seq = #{systemUserSeq}
+								 LIMIT 1)
+		</if>
+		<if test="resourceName != null">
+			AND  al2.resource_name LIKE CONCAT('%', #{resourceName},'%')
+		</if>
+		<if test="userName != null">
+			AND  us.user_name LIKE CONCAT('%', #{userName},'%')
+		</if>
+		<if test="userId != null">
+			AND  us.user_id LIKE CONCAT('%', #{userId},'%')
+		</if>
+	</select>
+
+	<select id="getAuditLogMaxCount" parameterType="map" resultType="int">
+		SELECT /* [getAuditLogMaxCount.xml].[getAuditLog].[01] 변경일자(20190906) */
+			MAX(audit_log_seq)
+		FROM   audit_logs al
+		WHERE al.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+	</select>
+
+	<insert id="addAuditLog" parameterType="AuditLog" useGeneratedKeys="true" keyProperty="auditLogSeq" keyColumn="audit_log_seq">
+		INSERT  /* [AuditLog.xml].[addAuditLog].[01] 변경일자(20190827) */
+		INTO audit_logs (
+			audit_log_code
+			,resource_name
+			,http_method
+			,uri
+			,controller_name
+			,method_name
+			,account_seq
+			,service_seq
+			,appmap_group_seq
+			,appmap_seq
+			,cluster_seq
+			,group_seq
+			,user_seq
+			,result_code
+			,duration
+			,request_data
+			,response_data
+			,resource_data
+			,created
+		)
+		VALUES (
+			#{auditLogCode}
+			,#{resourceName}
+			,#{httpMethod}
+			,#{uri}
+			,#{controllerName}
+			,#{methodName}
+			,#{accountSeq}
+			,#{serviceSeq}
+			,#{servicemapGroupSeq}
+			,#{servicemapSeq}
+			,#{clusterSeq}
+			,#{workloadGroupSeq}
+			,#{userSeq}
+			,#{resultCode}
+			,#{duration}
+			,#{requestData}
+			,#{responseData}
+			,#{resourceData}
+			,UTC_TIMESTAMP()
+		)
+	</insert>
+
+	<select id="getAuditLogCountForBatch" parameterType="map" resultType="int">
+		SELECT /* [AuditLog.xml].[getAuditLogCountForBatch].[01] 변경일자(20210708) */
+			COUNT(audit_log_seq)
+		FROM   audit_logs
+		WHERE created <![CDATA[<]]> #{baseDate}
+	</select>
+
+	<delete id="deleteAuditLogForBatch" parameterType="map">
+		DELETE /* [AuditLog.xml].[deleteAuditLogForBatch].[01] 변경일자(20210708) */
+		FROM   audit_logs
+		WHERE created <![CDATA[<]]> #{baseDate}
+	</delete>
+</mapper>

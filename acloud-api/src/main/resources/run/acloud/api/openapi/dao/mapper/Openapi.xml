@@ -1,0 +1,1124 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.openapi.dao.IOpenapiMapper">
+
+	<resultMap type="ApiGatewayGroups" id="ApiGatewayGroupsMap" autoMapping="true">
+		<id property="apiGroupSeq" column="apiGroupSeq"/>
+		<collection property="apis" columnPrefix="ag_" resultMap="ApiGatewaysMap" />
+	</resultMap>
+
+	<resultMap type="ApiGateways" id="ApiGatewaysMap" autoMapping="true">
+		<id property="apiSeq" column="apiSeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenIssue" id="ApiTokenIssueMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<collection property="permissionsScopes" columnPrefix="ps_" resultMap="ApiTokenPermissionsScopeMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenIssueDetail" id="ApiTokenIssueDetailMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<collection property="permissionsScopes" columnPrefix="ps_" resultMap="ApiTokenPermissionsScopeMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScope" id="ApiTokenPermissionsScopeMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<id property="apiSeq" column="apiSeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenIssueExcel" id="ApiTokenIssueExcelMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<collection property="permissionsScopes" columnPrefix="ps_" resultMap="ApiTokenPermissionsScopeGroupExcelMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScopeGroupExcel" id="ApiTokenPermissionsScopeGroupExcelMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<id property="apiGroupSeq" column="apiGroupSeq"/>
+		<collection property="apis" columnPrefix="api_" resultMap="ApiTokenPermissionsScopeExcelMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScopeExcel" id="ApiTokenPermissionsScopeExcelMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<id property="apiGroupSeq" column="apiGroupSeq"/>
+		<id property="apiSeq" column="apiSeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenIssueHistory" id="ApiTokenIssueHistoryMap" autoMapping="true">
+		<id property="apiTokenIssueHistorySeq" column="apiTokenIssueHistorySeq"/>
+		<collection property="permissionsScopes" columnPrefix="ps_" resultMap="ApiTokenPermissionsScopeHistoryMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScopeHistory" id="ApiTokenPermissionsScopeHistoryMap" autoMapping="true">
+		<id property="apiTokenPermissionsScopeHistorySeq" column="apiTokenPermissionsScopeHistorySeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenIssueHistoryExcel" id="ApiTokenIssueHistoryExcelMap" autoMapping="true">
+		<id property="apiTokenIssueHistorySeq" column="apiTokenIssueHistorySeq"/>
+		<collection property="permissionsScopes" columnPrefix="ps_" resultMap="ApiTokenPermissionsScopeHistoryGroupExcelMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScopeHistoryGroupExcel" id="ApiTokenPermissionsScopeHistoryGroupExcelMap" autoMapping="true">
+		<id property="apiTokenIssueHistorySeq" column="apiTokenIssueHistorySeq"/>
+		<id property="apiGroupSeq" column="apiGroupSeq"/>
+		<collection property="apis" columnPrefix="api_" resultMap="ApiTokenPermissionsScopeHistoryExcelMap" />
+	</resultMap>
+
+	<resultMap type="ApiTokenPermissionsScopeHistoryExcel" id="ApiTokenPermissionsScopeHistoryExcelMap" autoMapping="true">
+		<id property="apiTokenPermissionsScopeHistorySeq" column="apiTokenPermissionsScopeHistorySeq"/>
+		<id property="apiTokenIssueHistorySeq" column="apiTokenIssueHistorySeq"/>
+		<id property="apiGroupSeq" column="apiGroupSeq"/>
+		<id property="apiSeq" column="apiSeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenAuditLog" id="ApiTokenAuditLogMap" autoMapping="true">
+		<id property="apiTokenAuditLogSeq" column="apiTokenAuditLogSeq"/>
+	</resultMap>
+
+	<resultMap type="ApiTokenIssueRelation" id="ApiTokenIssueRelationMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<id property="accountSeq" column="accountSeq"/>
+		<collection property="permissionsScopes" ofType="java.lang.Integer" javaType="java.util.ArrayList" columnPrefix="ps_">
+			<result column="apiSeq" />
+		</collection>
+	</resultMap>
+
+	<resultMap type="ApiTokenRequestCount" id="ApiTokenRequestCountMap" autoMapping="true">
+		<id property="apiTokenIssueSeq" column="apiTokenIssueSeq"/>
+		<id property="accountSeq" column="accountSeq"/>
+	</resultMap>
+
+	<sql id="apiTokenIssueColumnSql">
+		  ati.api_token_issue_seq  		AS apiTokenIssueSeq
+		, ati.account_seq				AS accountSeq
+		, ati.api_token_name			AS apiTokenName
+		, ati.api_token_description		AS apiTokenDescription
+		, ati.white_ip_list				AS whiteIpListJson
+		, ati.black_ip_list				AS blackIpListJson
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ati.issue_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS issueDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ati.issue_datetime, '%Y-%m-%d %H:%i:%s') AS issueDatetime
+			</otherwise>
+		</choose>
+		, IFNULL(DATE_FORMAT(ati.expiration_datetime, '%Y-%m-%d'), null)		AS expirationDatetime
+		, IFNULL(ati.curr_request_count, 0)		AS currRequestCount
+		, ati.total_request_count		AS totalRequestCount
+		, ati.issue_user_seq			AS issueUserSeq
+		, ati.issue_user_id				AS issueUserId
+		, ati.issue_user_name			AS issueUserName
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ati.created, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ati.created, '%Y-%m-%d %H:%i:%s') AS created
+			</otherwise>
+		</choose>
+		, ati.creator					AS creator
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ati.updated, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ati.updated, '%Y-%m-%d %H:%i:%s') AS updated
+			</otherwise>
+		</choose>
+		, ati.updater					AS updater
+	</sql>
+
+	<sql id="apiTokenIssuePermissionsScopeColumnSql">
+			, atps.api_token_issue_seq  	AS ps_apiTokenIssueSeq
+			, atps.api_seq           		AS ps_apiSeq
+			, agg.api_group_seq				AS ps_apiGroupSeq
+			, agg.api_group_name			AS ps_apiGroupName
+			, agg.sort_order				AS ps_apiGroupSortOrder
+			, ag.api_name					AS ps_apiName
+			, ag.api_description			AS ps_apiDescription
+			, ag.api_content_type			AS ps_apiContentType
+			, ag.api_url					AS ps_apiUrl
+			, ag.api_method					AS ps_apiMethod
+			, ag.api_backend_host			AS ps_apiBackendHost
+			, ag.api_backend_url			AS ps_apiBackendUrl
+			, ag.api_backend_extra_config   AS ps_apiBackendExtraConfig
+			, ag.sort_order					AS ps_sortOrder
+	</sql>
+
+	<sql id="apiTokenIssueInnerColumnSql">
+					ati.api_token_issue_seq
+					, ati.account_seq
+					, ati.api_token_name
+					, ati.api_token_description
+					, ati.white_ip_list
+					, ati.black_ip_list
+					, ati.issue_datetime
+					, ati.expiration_datetime
+					, ati.curr_request_count
+					, ati.total_request_count
+					, atih.update_user_seq AS issue_user_seq
+					, atih.update_user_id AS issue_user_id
+					, atih.update_user_name AS issue_user_name
+					, ati.created
+					, ati.creator
+					, ati.updated
+					, ati.updater
+					, u.user_id AS updater_id
+					, u.user_name AS updater_name
+	</sql>
+
+	<select id="getApiGatewayGroups" resultMap="ApiGatewayGroupsMap">
+		SELECT /* [Openapi.xml].[getApiGatewayGroups].[01] 변경일자(20230308) */
+			   agg.api_group_seq 		AS apiGroupSeq
+			 , agg.api_group_code 		AS apiGroupCode
+			 , agg.api_group_name 		AS apiGroupName
+			 , agg.sort_order 			AS sortOrder
+		FROM api_gateway_groups agg
+		WHERE agg.use_yn = 'Y'
+		ORDER BY agg.sort_order
+	</select>
+
+	<select id="getApiGatewayGroupsWithApi" resultMap="ApiGatewayGroupsMap">
+		SELECT /* [Openapi.xml].[getApiGatewayGroupsWithApi].[01] 변경일자(20230308) */
+			   agg.api_group_seq 		AS apiGroupSeq
+			 , agg.api_group_code 		AS apiGroupCode
+			 , agg.api_group_name 		AS apiGroupName
+			 , agg.sort_order 			AS sortOrder
+			 , ag.api_seq            	AS ag_apiSeq
+			 , ag.api_group_seq      	AS ag_apiGroupSeq
+			 , ag.api_name           	AS ag_apiName
+			 , ag.api_description    	AS ag_apiDescription
+			 , ag.api_content_type   	AS ag_apiContentType
+			 , ag.api_url            	AS ag_apiUrl
+			 , ag.api_method         	AS ag_apiMethod
+			 , ag.api_backend_host   	AS ag_apiBackendHost
+			 , ag.api_backend_url    	AS ag_apiBackendUrl
+			 , ag.api_backend_extra_config  AS ag_apiBackendExtraConfig
+			 , ag.sort_order         	AS ag_sortOrder
+		FROM api_gateway_groups agg
+				 INNER JOIN api_gateways ag ON ag.api_group_seq = agg.api_group_seq AND ag.use_yn = 'Y'
+		WHERE agg.use_yn = 'Y'
+		ORDER BY agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiGateways" parameterType="map" resultMap="ApiGatewaysMap">
+		SELECT /* [Openapi.xml].[getApiGateways].[01] 변경일자(20230308) */
+			   ag.api_seq            		AS apiSeq
+			 , agg.api_group_seq 			AS apiGroupSeq
+			 , agg.api_group_code 			AS apiGroupCode
+			 , agg.api_group_name 			AS apiGroupName
+			 , ag.api_name           		AS apiName
+			 , ag.api_description    		AS apiDescription
+			 , ag.api_content_type   		AS apiContentType
+			 , ag.api_url            		AS apiUrl
+			 , ag.api_method         		AS apiMethod
+			 , ag.api_backend_host   		AS apiBackendHost
+			 , ag.api_backend_url    		AS apiBackendUrl
+			 , ag.api_backend_extra_config  AS apiBackendExtraConfig
+			 , ag.sort_order         		AS sortOrder
+		FROM api_gateway_groups agg
+				 INNER JOIN api_gateways ag ON ag.api_group_seq = agg.api_group_seq AND ag.use_yn = 'Y'
+		WHERE agg.use_yn = 'Y'
+	<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(apiSeqs)">
+		AND ag.api_seq IN
+		<foreach collection="apiSeqs" item="item" open="(" separator=", " close=")">
+			#{item}
+		</foreach>
+	</if>
+		ORDER BY agg.sort_order, ag.sort_order
+	</select>
+
+	<insert id="addApiTokenIssue" parameterType="ApiTokenIssueAdd" useGeneratedKeys="true" keyProperty="apiTokenIssueSeq" keyColumn="api_token_issue_seq">
+		INSERT /* [Openapi.xml].[addApiTokenIssue].[01] 변경일자(20230308) */
+		INTO api_token_issue (
+			  account_seq
+			, api_token_name
+			, api_token_description
+			, token
+			, white_ip_list
+			, black_ip_list
+			, issue_datetime
+			, expiration_datetime
+			, total_request_count
+			, created
+			, creator
+			, updated
+			, updater
+		)
+		VALUES (
+			  #{accountSeq}
+			, trim(#{apiTokenName})
+			, trim(#{apiTokenDescription})
+			, #{token}
+			, #{whiteIpListJson}
+			, #{blackIpListJson}
+			, UTC_TIMESTAMP()
+			, #{expirationDatetime}
+			, #{totalRequestCount}
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{creator}
+		)
+	</insert>
+
+	<delete id="deleteApiTokenIssue" parameterType="map">
+		DELETE /* [Openapi.xml].[deleteApiTokenIssue].[01] 변경일자(20230310) */
+		FROM api_token_issue
+		WHERE api_token_issue_seq = #{apiTokenIssueSeq}
+		AND account_seq = #{accountSeq}
+	</delete>
+
+	<insert id="addApiTokenPermissionsScopes" parameterType="map">
+		INSERT /* [Openapi.xml].[addApiTokenPermissionsScopes].[01] 변경일자(20230310) */
+		INTO api_token_permissions_scope (
+		      api_token_issue_seq
+			, api_seq
+			, created
+			, creator
+		)
+		SELECT
+			  #{apiTokenIssueSeq}
+			, ag.api_seq
+			, UTC_TIMESTAMP()
+			, #{creator}
+		FROM
+			api_gateways ag
+				INNER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq
+		WHERE ag.api_seq IN
+		<foreach collection="permissionsScopes" item="item" open="(" separator=", " close=")">
+			#{item}
+		</foreach>
+	</insert>
+
+	<delete id="deleteApiTokenPermissionsScopes" parameterType="map">
+		DELETE /* [Openapi.xml].[deleteApiTokenPermissionsScopes].[01] 변경일자(20230310) */
+		FROM api_token_permissions_scope
+		WHERE api_token_issue_seq = #{apiTokenIssueSeq}
+	</delete>
+
+	<insert id="addApiTokenIssueHistory" parameterType="ApiTokenIssueHistory" useGeneratedKeys="true" keyProperty="apiTokenIssueHistorySeq" keyColumn="api_token_issue_history_seq">
+		INSERT /* [Openapi.xml].[addApiTokenIssueHistory].[01] 변경일자(20230308) */
+		INTO api_token_issue_history (
+			   api_token_issue_seq
+			 , account_seq
+			 , api_token_name
+			 , api_token_description
+			 , token
+			 , white_ip_list
+			 , black_ip_list
+			 , update_user_seq
+			 , update_user_id
+			 , update_user_name
+			 , expiration_datetime
+			 , total_request_count
+			 , history_state
+			 , history_datetime
+			 , history_message
+		)
+		SELECT
+			   ati.api_token_issue_seq
+			 , ati.account_seq
+			 , ati.api_token_name
+			 , ati.api_token_description
+			 , ati.token
+			 , ati.white_ip_list
+			 , ati.black_ip_list
+			 , IFNULL((SELECT x.user_seq FROM users x WHERE x.user_seq = #{updateUserSeq}), 0)
+			 , IFNULL((SELECT x.user_id FROM users x WHERE x.user_seq = #{updateUserSeq}), '-')
+			 , IFNULL((SELECT x.user_name FROM users x WHERE x.user_seq = #{updateUserSeq}), '-')
+			 , ati.expiration_datetime
+			 , ati.total_request_count
+			 , #{historyState} AS history_state
+			 , UTC_TIMESTAMP() AS history_datetime
+			 , #{historyMessage} AS history_message
+		FROM
+			api_token_issue ati
+		WHERE ati.api_token_issue_seq = #{apiTokenIssueSeq}
+		LIMIT 1
+	</insert>
+
+	<insert id="addApiTokenPermissionsScopeHistory" parameterType="ApiTokenPermissionsScopeHistory" useGeneratedKeys="true" keyProperty="apiTokenPermissionsScopeHistorySeq" keyColumn="api_token_permissions_scope_history_seq">
+		INSERT /* [Openapi.xml].[addApiTokenPermissionsScopeHistory].[01] 변경일자(20230308) */
+		INTO api_token_permissions_scope_history (
+			   api_token_issue_history_seq
+			 , api_seq
+			 , api_name
+			 , api_group_seq
+			 , api_group_name
+			 , api_content_type
+			 , api_url
+			 , api_method
+			 , api_backend_host
+			 , api_backend_url
+			 , created
+			 , creator
+		)
+		SELECT
+			   atih.api_token_issue_history_seq
+			 , ag.api_seq
+			 , ag.api_name
+			 , agg.api_group_seq
+			 , agg.api_group_name
+			 , ag.api_content_type
+			 , ag.api_url
+			 , ag.api_method
+			 , ag.api_backend_host
+			 , ag.api_backend_url
+			 , UTC_TIMESTAMP() AS created
+			 , atih.update_user_seq
+		FROM
+			api_token_issue_history atih
+				INNER JOIN api_token_issue ati ON ati.api_token_issue_seq = atih.api_token_issue_seq
+				INNER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				INNER JOIN api_gateways ag ON ag.api_seq = atps.api_seq
+				INNER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq
+		WHERE atih.api_token_issue_history_seq = #{apiTokenIssueHistorySeq}
+	</insert>
+
+	<sql id="getApiTokenIssuesCondition">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "TOKEN_NAME")'>
+					AND ati.api_token_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+					AND atih.update_user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+					AND atih.update_user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<select id="getApiTokenIssuesList" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenIssueMap">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesList].[01] 변경일자(20230308) */
+			<include refid="apiTokenIssueColumnSql" />
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(max_atal.max_log_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS lastRequestDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(max_atal.max_log_datetime, '%Y-%m-%d %H:%i:%s') AS lastRequestDatetime
+			</otherwise>
+		</choose>
+			<if test="withApi == true">
+				<include refid="apiTokenIssuePermissionsScopeColumnSql" />
+			</if>
+		FROM
+			(
+				SELECT
+					<include refid="apiTokenIssueInnerColumnSql"/>
+				FROM
+					api_token_issue ati
+						INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+					<if test="systemUserSeq != null">
+						INNER JOIN account_system_user_mapping asum ON asum.account_seq = ati.account_seq AND asum.user_seq = #{systemUserSeq}
+					</if>
+						LEFT OUTER JOIN api_token_issue_history atih ON atih.api_token_issue_seq = ati.api_token_issue_seq AND atih.history_state = 'GRANT'
+						LEFT OUTER JOIN users u ON u.user_seq = ati.updater
+			<where>
+				AND ati.account_seq = #{accountSeq}
+				<include refid="getApiTokenIssuesCondition" />
+			</where>
+				ORDER BY ati.issue_datetime DESC
+				LIMIT #{paging.nextPage}, #{paging.itemPerPage}
+			) ati
+				LEFT OUTER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'
+				LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'
+				LEFT OUTER JOIN (
+					SELECT
+						atal.api_token_issue_seq
+						, MAX(atal.log_datetime) AS max_log_datetime
+					FROM api_token_audit_log atal
+					WHERE atal.account_seq = #{accountSeq}
+					AND atal.api_token_audit_log_seq IS NOT NULL
+					GROUP BY atal.api_token_issue_seq
+				) max_atal
+					ON max_atal.api_token_issue_seq = ati.api_token_issue_seq
+		ORDER BY ati.issue_datetime DESC, atps.api_token_issue_seq, agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiTokenIssuesCount" parameterType="ApiTokenIssueSearch" resultType="ListCount">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesCount].[01] 변경일자(20230313) */
+			count(1) as cnt
+		FROM
+			api_token_issue ati
+				INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+			<if test="systemUserSeq != null">
+				INNER JOIN account_system_user_mapping asum ON asum.account_seq = ati.account_seq AND asum.user_seq = #{systemUserSeq}
+			</if>
+		<where>
+			AND ati.account_seq = #{accountSeq}
+<!--			AND EXISTS (-->
+<!--				SELECT 1-->
+<!--				FROM api_token_permissions_scope atps-->
+<!--						LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'-->
+<!--						LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'-->
+<!--				WHERE atps.api_token_issue_seq = ati.api_token_issue_seq-->
+<!--			)-->
+			<include refid="getApiTokenIssuesCondition" />
+		</where>
+	</select>
+
+	<select id="getApiTokenIssuesForExcel" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenIssueExcelMap" resultOrdered="true" fetchSize="1">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesForExcel].[01] 변경일자(20230308) */
+			<include refid="apiTokenIssueColumnSql" />
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(max_atal.max_log_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS lastRequestDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(max_atal.max_log_datetime, '%Y-%m-%d %H:%i:%s') AS lastRequestDatetime
+			</otherwise>
+		</choose>
+		     , ${withApi}					AS withApi
+		<if test="withApi == true">
+		     , atps.api_token_issue_seq  	AS ps_apiTokenIssueSeq
+			 , agg.api_group_seq			AS ps_apiGroupSeq
+			 , agg.api_group_name			AS ps_groupName
+			 , atps.api_token_issue_seq  	AS ps_api_apiTokenIssueSeq
+			 , agg.api_group_seq			AS ps_api_apiGroupSeq
+			 , atps.api_seq           		AS ps_api_apiSeq
+			 , ag.api_name					AS ps_api_name
+			 , ag.api_method				AS ps_api_method
+			 , ag.api_url					AS ps_api_url
+		</if>
+		FROM
+			(
+				SELECT
+					<include refid="apiTokenIssueInnerColumnSql"/>
+				FROM
+					api_token_issue ati
+						INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+					<if test="systemUserSeq != null">
+						INNER JOIN account_system_user_mapping asum ON asum.account_seq = ati.account_seq AND asum.user_seq = #{systemUserSeq}
+					</if>
+						LEFT OUTER JOIN api_token_issue_history atih ON atih.api_token_issue_seq = ati.api_token_issue_seq AND atih.history_state = 'GRANT'
+						LEFT OUTER JOIN users u ON u.user_seq = ati.updater
+			<where>
+				AND ati.account_seq = #{accountSeq}
+				<include refid="getApiTokenIssuesCondition" />
+			</where>
+				ORDER BY ati.issue_datetime DESC
+			) ati
+				LEFT OUTER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'
+				LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'
+				LEFT OUTER JOIN (
+					SELECT
+						atal.api_token_issue_seq
+						, MAX(atal.log_datetime) AS max_log_datetime
+					FROM api_token_audit_log atal
+					WHERE atal.account_seq = #{accountSeq}
+					AND atal.api_token_audit_log_seq IS NOT NULL
+					GROUP BY atal.api_token_issue_seq
+				) max_atal
+					ON max_atal.api_token_issue_seq = ati.api_token_issue_seq
+		ORDER BY ati.issue_datetime DESC, atps.api_token_issue_seq, agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiTokenIssues" parameterType="map" resultMap="ApiTokenIssueMap">
+		SELECT /* [Openapi.xml].[getApiTokenIssues].[01] 변경일자(20230308) */
+			<include refid="apiTokenIssueColumnSql" />
+			<if test="withApi == true">
+				<include refid="apiTokenIssuePermissionsScopeColumnSql" />
+			</if>
+		FROM
+			(
+				SELECT
+					<include refid="apiTokenIssueInnerColumnSql"/>
+				FROM
+					api_token_issue ati
+						INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+					<if test="systemUserSeq != null">
+						INNER JOIN account_system_user_mapping asum ON asum.account_seq = ati.account_seq AND asum.user_seq = #{systemUserSeq}
+					</if>
+						LEFT OUTER JOIN api_token_issue_history atih ON atih.api_token_issue_seq = ati.api_token_issue_seq AND atih.history_state = 'GRANT'
+						LEFT OUTER JOIN users u ON u.user_seq = ati.updater
+			<where>
+				<if test="accountSeq != null ">
+					AND ati.account_seq = #{accountSeq}
+				</if>
+				<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(expirationDatetime)'>
+					AND ati.expiration_datetime IS NOT NULL AND ati.expiration_datetime <![CDATA[<=]]> #{expirationDatetime}
+				</if>
+			</where>
+			) ati
+				LEFT OUTER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'
+				LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'
+		ORDER BY ati.issue_datetime DESC, atps.api_token_issue_seq, agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiTokenIssuesRelation" parameterType="map" resultMap="ApiTokenIssueRelationMap">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesRelation].[01] 변경일자(20230308) */
+			   ati.api_token_issue_seq  	AS apiTokenIssueSeq
+			 , ati.account_seq				AS accountSeq
+			 , ati.token					AS tokenEnc
+			 , ati.white_ip_list			AS whiteIpListJson
+			 , ati.black_ip_list			AS blackIpListJson
+			 , IFNULL(DATE_FORMAT(ati.expiration_datetime, '%Y-%m-%d'), '9999-12-31')		AS expirationDatetime
+			 , IFNULL(ati.curr_request_count, 0)		AS currRequestCount
+			 , ati.total_request_count		AS totalRequestCount
+			 , DATE_FORMAT(ati.updated, '%Y-%m-%d %H:%i:%s') AS updated
+		     , atps.api_token_issue_seq  	AS ps_apiTokenIssueSeq
+			 , atps.api_seq           		AS ps_apiSeq
+		FROM
+			api_token_issue ati
+				INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+				LEFT OUTER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'
+				LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'
+		<where>
+			<if test="accountSeq != null">
+				AND ati.account_seq = #{accountSeq}
+			</if>
+		</where>
+		ORDER BY ati.account_seq, ati.api_token_issue_seq, atps.api_token_issue_seq, agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiTokenRequestCount" parameterType="map" resultMap="ApiTokenRequestCountMap">
+		SELECT /* [Openapi.xml].[getApiTokenRequestCount].[01] 변경일자(20230331) */
+			   ati.api_token_issue_seq  	AS apiTokenIssueSeq
+			 , ati.account_seq				AS accountSeq
+			 , IFNULL(ati.curr_request_count, 0)		AS currRequestCount
+			 , ati.total_request_count		AS totalRequestCount
+		FROM
+			api_token_issue ati
+		WHERE ati.account_seq = #{accountSeq}
+		AND ati.api_token_issue_seq = #{apiTokenIssueSeq}
+		LIMIT 1
+	</select>
+
+	<select id="getApiTokenIssue" parameterType="map" resultMap="ApiTokenIssueDetailMap">
+		SELECT /* [Openapi.xml].[getApiTokenIssue].[01] 변경일자(20230313) */
+			<include refid="apiTokenIssueColumnSql" />
+			<if test="withToken == true">
+				, ati.token						AS tokenEnc
+			</if>
+			<include refid="apiTokenIssuePermissionsScopeColumnSql" />
+		FROM
+			(
+				SELECT
+					<include refid="apiTokenIssueInnerColumnSql"/>
+					, ati.token
+				FROM
+					api_token_issue ati
+						INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+					<if test="systemUserSeq != null">
+						INNER JOIN account_system_user_mapping asum ON asum.account_seq = ati.account_seq AND asum.user_seq = #{systemUserSeq}
+					</if>
+						LEFT OUTER JOIN api_token_issue_history atih ON atih.api_token_issue_seq = ati.api_token_issue_seq AND atih.history_state = 'GRANT'
+						LEFT OUTER JOIN users u ON u.user_seq = ati.updater
+				<where>
+					AND ati.account_seq = #{accountSeq}
+					AND ati.api_token_issue_seq = #{apiTokenIssueSeq}
+				</where>
+			) ati
+				LEFT OUTER JOIN api_token_permissions_scope atps ON atps.api_token_issue_seq = ati.api_token_issue_seq
+				LEFT OUTER JOIN api_gateways ag ON ag.api_seq = atps.api_seq AND ag.use_yn = 'Y'
+				LEFT OUTER JOIN api_gateway_groups agg ON agg.api_group_seq = ag.api_group_seq AND agg.use_yn = 'Y'
+		ORDER BY atps.api_token_issue_seq, agg.sort_order, ag.sort_order
+	</select>
+
+	<select id="getApiTokens" parameterType="map" resultMap="ApiTokenIssueDetailMap">
+		SELECT /* [Openapi.xml].[getApiTokens].[01] 변경일자(20230313) */
+			  ati.api_token_issue_seq  		AS apiTokenIssueSeq
+			, ati.account_seq				AS accountSeq
+			, ati.token						AS tokenEnc
+		FROM
+			api_token_issue ati
+				INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+		<where>
+			AND ati.account_seq = #{accountSeq}
+		</where>
+	</select>
+
+	<select id="getApiTokenNames" parameterType="map" resultMap="ApiTokenIssueMap">
+		SELECT /* [Openapi.xml].[getApiTokenNames].[01] 변경일자(20230313) */
+			  ati.api_token_issue_seq  		AS apiTokenIssueSeq
+			, ati.account_seq				AS accountSeq
+			, ati.api_token_name			AS apiTokenName
+		FROM
+			api_token_issue ati
+				INNER JOIN accounts ac ON ac.account_seq = ati.account_seq AND ac.use_yn = 'Y'
+		<where>
+			AND ati.account_seq = #{accountSeq}
+			AND ati.api_token_name = TRIM(#{apiTokenName})
+			<if test="excludeApiTokenIssueSeq != null">
+				AND NOT EXISTS (
+					SELECT 1
+					FROM api_token_issue x_ati
+					WHERE x_ati.api_token_issue_seq = ati.api_token_issue_seq
+					AND x_ati.api_token_issue_seq = #{excludeApiTokenIssueSeq}
+				)
+			</if>
+		</where>
+	</select>
+
+	<update id="editApiTokenIssue" parameterType="ApiTokenIssueEdit">
+		UPDATE /* [Openapi.xml].[editApiTokenIssue].[01] 변경일자(20230313) */
+			api_token_issue
+		SET
+			  api_token_name = trim(#{apiTokenName})
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(apiTokenDescription)'>
+				, api_token_description = trim(#{apiTokenDescription})
+			</when>
+			<otherwise>
+				, api_token_description = null
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(whiteIpListJson)'>
+				, white_ip_list = trim(#{whiteIpListJson})
+			</when>
+			<otherwise>
+				, white_ip_list = null
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(blackIpListJson)'>
+				, black_ip_list = trim(#{blackIpListJson})
+			</when>
+			<otherwise>
+				, black_ip_list = null
+			</otherwise>
+		</choose>
+		<choose>
+			<when test='totalRequestCount != null'>
+				, total_request_count = #{totalRequestCount}
+			</when>
+			<otherwise>
+				, total_request_count = null
+			</otherwise>
+		</choose>
+			, updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		WHERE api_token_issue_seq = #{apiTokenIssueSeq}
+	</update>
+
+	<sql id="getApiTokenIssuesHistoryCondition">
+		<if test="startDate != null and endDate != null">
+			AND atih.history_datetime BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "TOKEN_NAME")'>
+					AND atih.api_token_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+					AND atih.update_user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+					AND atih.update_user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(historyState)">
+			AND atih.history_state = #{historyState}
+		</if>
+	</sql>
+
+	<select id="getApiTokenIssuesHistoryList" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenIssueHistoryMap">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesHistoryList].[01] 변경일자(20230317) */
+			  atih.api_token_issue_history_seq  				AS apiTokenIssueHistorySeq
+			, atih.api_token_issue_seq  						AS apiTokenIssueSeq
+			, atih.account_seq									AS accountSeq
+			, atih.api_token_name								AS apiTokenName
+			, atih.api_token_description						AS apiTokenDescription
+			, atih.white_ip_list								AS whiteIpListJson
+			, atih.black_ip_list								AS blackIpListJson
+			, atih.update_user_seq								AS updateUserSeq
+			, atih.update_user_id								AS updateUserId
+			, atih.update_user_name								AS updateUserName
+			, IFNULL(DATE_FORMAT(atih.expiration_datetime, '%Y-%m-%d'), null) AS expirationDatetime
+			, atih.total_request_count							AS totalRequestCount
+			, atih.history_state								AS historyState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(atih.history_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS historyDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(atih.history_datetime, '%Y-%m-%d %H:%i:%s') AS historyDatetime
+			</otherwise>
+		</choose>
+			, atih.history_message								AS historyMessage
+		<if test="withApi == true">
+			, atpsh.api_token_permissions_scope_history_seq  	AS ps_apiTokenPermissionsScopeHistorySeq
+			, atpsh.api_token_issue_history_seq  				AS ps_apiTokenIssueHistorySeq
+			, atpsh.api_seq           							AS ps_apiSeq
+			, atpsh.api_name									AS ps_apiName
+			, atpsh.api_group_seq								AS ps_apiGroupSeq
+			, atpsh.api_group_name								AS ps_apiGroupName
+			, atpsh.api_content_type							AS ps_apiContentType
+			, atpsh.api_url										AS ps_apiUrl
+			, atpsh.api_method									AS ps_apiMethod
+			, atpsh.api_backend_host							AS ps_apiBackendHost
+			, atpsh.api_backend_url								AS ps_apiBackendUrl
+		</if>
+		FROM
+			(
+				SELECT
+					  atih.api_token_issue_history_seq
+					, atih.api_token_issue_seq
+					, atih.account_seq
+					, atih.api_token_name
+					, atih.api_token_description
+					, atih.white_ip_list
+					, atih.black_ip_list
+					, atih.expiration_datetime
+					, atih.total_request_count
+					, atih.update_user_seq
+					, atih.update_user_id
+					, atih.update_user_name
+					, atih.history_state
+					, atih.history_datetime
+					, atih.history_message
+				FROM
+					api_token_issue_history atih
+						INNER JOIN accounts ac ON ac.account_seq = atih.account_seq AND ac.use_yn = 'Y'
+						<if test="systemUserSeq != null">
+							INNER JOIN account_system_user_mapping asum ON asum.account_seq = atih.account_seq AND asum.user_seq = #{systemUserSeq}
+						</if>
+				<where>
+					AND atih.account_seq = #{accountSeq}
+					<include refid="getApiTokenIssuesHistoryCondition" />
+				</where>
+				ORDER BY atih.api_token_issue_history_seq DESC
+				LIMIT #{paging.nextPage}, #{paging.itemPerPage}
+			) atih
+				INNER JOIN api_token_permissions_scope_history atpsh ON atpsh.api_token_issue_history_seq = atih.api_token_issue_history_seq
+		ORDER BY atih.history_datetime DESC, atpsh.api_token_issue_history_seq, atpsh.api_group_seq, atpsh.api_seq
+	</select>
+
+	<select id="getApiTokenIssuesHistoryCount" parameterType="ApiTokenIssueSearch" resultType="ListCount">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesHistoryCount].[01] 변경일자(20230317) */
+			count(1) as cnt
+		FROM
+			api_token_issue_history atih
+				INNER JOIN accounts ac ON ac.account_seq = atih.account_seq AND ac.use_yn = 'Y'
+				<if test="systemUserSeq != null">
+					INNER JOIN account_system_user_mapping asum ON asum.account_seq = atih.account_seq AND asum.user_seq = #{systemUserSeq}
+				</if>
+		<where>
+			AND atih.account_seq = #{accountSeq}
+			<include refid="getApiTokenIssuesHistoryCondition" />
+		</where>
+	</select>
+
+	<select id="getApiTokenIssuesHistoryForExcel" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenIssueHistoryExcelMap" resultOrdered="true" fetchSize="1">
+		SELECT /* [Openapi.xml].[getApiTokenIssuesHistoryForExcel].[01] 변경일자(20230317) */
+			  atih.api_token_issue_history_seq  				AS apiTokenIssueHistorySeq
+			, atih.api_token_issue_seq  						AS apiTokenIssueSeq
+			, atih.account_seq									AS accountSeq
+			, atih.api_token_name								AS apiTokenName
+			, atih.api_token_description						AS apiTokenDescription
+			, atih.white_ip_list								AS whiteIpListJson
+			, atih.black_ip_list								AS blackIpListJson
+			, atih.update_user_seq								AS updateUserSeq
+			, atih.update_user_id								AS updateUserId
+			, atih.update_user_name								AS updateUserName
+			, IFNULL(DATE_FORMAT(atih.expiration_datetime, '%Y-%m-%d'), null) AS expirationDatetime
+			, atih.total_request_count							AS totalRequestCount
+			, atih.history_state								AS historyState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(atih.history_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS historyDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(atih.history_datetime, '%Y-%m-%d %H:%i:%s') AS historyDatetime
+			</otherwise>
+		</choose>
+			, atih.history_message								AS historyMessage
+			, ${withApi}					AS withApi
+		<if test="withApi == true">
+			, atpsh.api_token_issue_history_seq  				AS ps_apiTokenIssueHistorySeq
+			, atpsh.api_group_seq								AS ps_apiGroupSeq
+			, atpsh.api_group_name								AS ps_groupName
+			, atpsh.api_token_permissions_scope_history_seq  	AS ps_api_apiTokenPermissionsScopeHistorySeq
+			, atpsh.api_token_issue_history_seq  				AS ps_api_apiTokenIssueHistorySeq
+			, atpsh.api_group_seq								AS ps_api_apiGroupSeq
+			, atpsh.api_seq           							AS ps_api_apiSeq
+			, atpsh.api_name									AS ps_api_name
+			, atpsh.api_method									AS ps_api_method
+			, atpsh.api_url										AS ps_api_url
+		</if>
+		FROM
+			(
+				SELECT
+					  atih.api_token_issue_history_seq
+					, atih.api_token_issue_seq
+					, atih.account_seq
+					, atih.api_token_name
+					, atih.api_token_description
+					, atih.white_ip_list
+					, atih.black_ip_list
+					, atih.expiration_datetime
+					, atih.total_request_count
+					, atih.update_user_seq
+					, atih.update_user_id
+					, atih.update_user_name
+					, atih.history_state
+					, atih.history_datetime
+					, atih.history_message
+				FROM
+					api_token_issue_history atih
+						INNER JOIN accounts ac ON ac.account_seq = atih.account_seq AND ac.use_yn = 'Y'
+						<if test="systemUserSeq != null">
+							INNER JOIN account_system_user_mapping asum ON asum.account_seq = atih.account_seq AND asum.user_seq = #{systemUserSeq}
+						</if>
+				<where>
+					AND atih.account_seq = #{accountSeq}
+					<include refid="getApiTokenIssuesHistoryCondition" />
+				</where>
+				ORDER BY atih.api_token_issue_history_seq DESC
+			) atih
+				INNER JOIN api_token_permissions_scope_history atpsh ON atpsh.api_token_issue_history_seq = atih.api_token_issue_history_seq
+		ORDER BY atih.history_datetime DESC, atpsh.api_token_issue_history_seq, atpsh.api_group_seq, atpsh.api_seq
+	</select>
+
+	<insert id="addApiTokenAuditLog" parameterType="ApiTokenAuditLogAdd" useGeneratedKeys="true" keyProperty="apiTokenAuditLogSeq" keyColumn="api_token_audit_log_seq">
+		INSERT /* [Openapi.xml].[addApiTokenAuditLog].[01] 변경일자(20230315) */
+		INTO api_token_audit_log (
+				   log_datetime
+				 , api_seq
+				 , api_name
+				 , url
+				 , http_method
+				 , client_ip
+				 , referer
+				 , user_agent
+				 , api_token_issue_seq
+				 , api_token_name
+				 , account_seq
+				 , account_name
+				 , processing_time
+				 , `result`
+				 , request
+				 , response
+		) VALUES(
+				  UTC_TIMESTAMP()
+				, #{apiSeq}
+			<choose>
+				<when test="(apiSeq != null and apiSeq == 0) or apiSeq == null">
+					, '존재하지 않는 API'
+				</when>
+				<otherwise>
+					, (SELECT x.api_name FROM api_gateways x where x.api_seq = #{apiSeq})
+				</otherwise>
+			</choose>
+				, #{url}
+				, #{httpMethod}
+				, #{clientIp}
+				, #{referer}
+				, #{userAgent}
+				, #{apiTokenIssueSeq}
+				, (SELECT x.api_token_name FROM api_token_issue x where x.api_token_issue_seq = #{apiTokenIssueSeq})
+				, #{accountSeq}
+				, (SELECT x.account_name FROM accounts x WHERE x.account_seq = #{accountSeq})
+				, #{processingTime}
+				, #{result}
+				, #{request}
+				, #{response}
+		)
+	</insert>
+
+	<update id="editRequestCountByToken" parameterType="map">
+		UPDATE /* [Openapi.xml].[editApiTokenIssue].[01] 변경일자(20230313) */
+			api_token_issue
+		SET
+			curr_request_count = IFNULL(curr_request_count, 0) + 1
+		WHERE api_token_issue_seq = #{apiTokenIssueSeq}
+		AND account_seq = #{accountSeq}
+	</update>
+
+	<sql id="getApiTokenAuditLogCondition">
+		<if test="startDate != null and endDate != null">
+			AND atal.log_datetime BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(resultCode)">
+			AND atal.result = #{resultCode}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "API_NAME")'>
+					AND atal.api_name LIKE CONCAT(#{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "TOKEN_NAME")'>
+					AND atal.api_token_name LIKE CONCAT(#{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "CLIENT_IP")'>
+					AND atal.client_ip LIKE CONCAT(#{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<select id="getApiTokenAuditLogList" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenAuditLogMap">
+		SELECT /* [Openapi.xml].[getApiTokenAuditLogList].[01] 변경일자(20230317) */
+			  atal.api_token_audit_log_seq 		AS apiTokenAuditLogSeq
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(atal.log_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS logDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(atal.log_datetime, '%Y-%m-%d %H:%i:%s') AS logDatetime
+			</otherwise>
+		</choose>
+			, atal.api_seq                 		AS apiSeq
+			, atal.api_name                		AS apiName
+			, atal.url                     		AS url
+			, atal.http_method             		AS httpMethod
+			, atal.client_ip               		AS clientIp
+			, atal.referer                 		AS referer
+			, atal.user_agent              		AS userAgent
+			, atal.api_token_issue_seq     		AS apiTokenIssueSeq
+			, atal.api_token_name          		AS apiTokenName
+			, atal.account_seq             		AS accountSeq
+			, atal.account_name            		AS accountName
+			, atal.processing_time         		AS processingTime
+			, atal.result                  		AS result
+			, atal.request                 		AS request
+			, atal.response                		AS response
+		FROM
+			(
+				SELECT
+					  atal.api_token_audit_log_seq
+					, atal.log_datetime
+					, atal.api_seq
+					, atal.api_name
+					, atal.url
+					, atal.http_method
+					, atal.client_ip
+					, atal.referer
+					, atal.user_agent
+					, atal.api_token_issue_seq
+					, atal.api_token_name
+					, atal.account_seq
+					, atal.account_name
+					, atal.processing_time
+					, atal.result
+					, atal.request
+					, atal.response
+				FROM
+					api_token_audit_log atal
+						INNER JOIN (
+							SELECT atal.api_token_audit_log_seq
+							FROM api_token_audit_log atal
+							<where>
+								AND atal.account_seq = #{accountSeq}
+								<include refid="getApiTokenAuditLogCondition" />
+							</where>
+							ORDER BY atal.log_datetime DESC
+							LIMIT #{paging.nextPage}, #{paging.itemPerPage}
+						) i_atal ON atal.api_token_audit_log_seq = i_atal.api_token_audit_log_seq
+			) atal
+				INNER JOIN accounts ac ON ac.account_seq = atal.account_seq AND ac.account_seq = #{accountSeq} AND ac.use_yn = 'Y'
+				<if test="systemUserSeq != null">
+					INNER JOIN account_system_user_mapping asum ON asum.account_seq = ac.account_seq AND asum.user_seq = #{systemUserSeq}
+				</if>
+	</select>
+
+	<select id="getApiTokenAuditLogCount" parameterType="ApiTokenIssueSearch" resultType="ListCount">
+		SELECT /* [Openapi.xml].[getApiTokenAuditLogCount].[01] 변경일자(20230317) */
+			count(1) as cnt
+		FROM
+			api_token_audit_log atal
+				INNER JOIN (
+					SELECT atal.api_token_audit_log_seq
+					FROM api_token_audit_log atal
+					<where>
+						AND atal.account_seq = #{accountSeq}
+						<include refid="getApiTokenAuditLogCondition" />
+					</where>
+				) i_atal ON atal.api_token_audit_log_seq = i_atal.api_token_audit_log_seq
+				INNER JOIN accounts ac ON ac.account_seq = atal.account_seq AND ac.account_seq = #{accountSeq} AND ac.use_yn = 'Y'
+				<if test="systemUserSeq != null">
+					INNER JOIN account_system_user_mapping asum ON asum.account_seq = ac.account_seq AND asum.user_seq = #{systemUserSeq}
+				</if>
+	</select>
+
+	<select id="getApiTokenAuditLogForExcel" parameterType="ApiTokenIssueSearch" resultMap="ApiTokenAuditLogMap" resultOrdered="true" fetchSize="1">
+		SELECT /* [Openapi.xml].[getApiTokenAuditLogForExcel].[01] 변경일자(20230317) */
+			  atal.api_token_audit_log_seq 		AS apiTokenAuditLogSeq
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(atal.log_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') AS logDatetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(atal.log_datetime, '%Y-%m-%d %H:%i:%s') AS logDatetime
+			</otherwise>
+		</choose>
+			, atal.api_seq                 		AS apiSeq
+			, atal.api_name                		AS apiName
+			, atal.url                     		AS url
+			, atal.http_method             		AS httpMethod
+			, atal.client_ip               		AS clientIp
+			, atal.referer                 		AS referer
+			, atal.user_agent              		AS userAgent
+			, atal.api_token_issue_seq     		AS apiTokenIssueSeq
+			, atal.api_token_name          		AS apiTokenName
+			, atal.account_seq             		AS accountSeq
+			, atal.account_name            		AS accountName
+			, atal.processing_time         		AS processingTime
+			, atal.result                  		AS result
+			, atal.request                 		AS request
+			, atal.response                		AS response
+		FROM
+			(
+				SELECT
+					  atal.api_token_audit_log_seq
+					, atal.log_datetime
+					, atal.api_seq
+					, atal.api_name
+					, atal.url
+					, atal.http_method
+					, atal.client_ip
+					, atal.referer
+					, atal.user_agent
+					, atal.api_token_issue_seq
+					, atal.api_token_name
+					, atal.account_seq
+					, atal.account_name
+					, atal.processing_time
+					, atal.result
+					, atal.request
+					, atal.response
+				FROM
+					api_token_audit_log atal
+						INNER JOIN (
+							SELECT atal.api_token_audit_log_seq
+							FROM api_token_audit_log atal
+							<where>
+								AND atal.account_seq = #{accountSeq}
+								<include refid="getApiTokenAuditLogCondition" />
+							</where>
+						) i_atal ON atal.api_token_audit_log_seq = i_atal.api_token_audit_log_seq
+				ORDER BY atal.log_datetime DESC
+			) atal
+				INNER JOIN accounts ac ON ac.account_seq = atal.account_seq AND ac.account_seq = #{accountSeq} AND ac.use_yn = 'Y'
+				<if test="systemUserSeq != null">
+					INNER JOIN account_system_user_mapping asum ON asum.account_seq = ac.account_seq AND asum.user_seq = #{systemUserSeq}
+				</if>
+		<where>
+			AND atal.account_seq = #{accountSeq}
+			<include refid="getApiTokenAuditLogCondition" />
+		</where>
+	</select>
+
+	<select id="getApiTokenAuditLogCountForBatch" parameterType="map" resultType="int">
+		SELECT /* [Openapi.xml].[getApiTokenAuditLogCountForBatch].[01] 변경일자(20230321) */
+			COUNT(api_token_audit_log_seq)
+		FROM   api_token_audit_log
+		WHERE log_datetime <![CDATA[<]]> #{baseDate}
+	</select>
+
+	<delete id="deleteApiTokenAuditLogForBatch" parameterType="map">
+		DELETE /* [Openapi.xml].[deleteApiTokenAuditLogForBatch].[01] 변경일자(20230321) */
+		FROM   api_token_audit_log
+		WHERE log_datetime <![CDATA[<]]> #{baseDate}
+	</delete>
+</mapper>

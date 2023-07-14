@@ -1,0 +1,238 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package run.acloud.api.k8sextended.models;
+
+import com.google.gson.annotations.SerializedName;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.Objects;
+
+/**
+ * MetricSpec specifies how to scale based on a single metric (only &#x60;type&#x60; and one other
+ * matching field should be set at once).
+ */
+@Schema(
+    description =
+        "MetricSpec specifies how to scale based on a single metric (only `type` and one other matching field should be set at once).")
+@jakarta.annotation.Generated(
+    value = "org.openapitools.codegen.languages.JavaClientCodegen",
+    date = "2022-05-06T16:45:00.555Z[Etc/UTC]")
+public class V2beta1MetricSpec {
+  public static final String SERIALIZED_NAME_CONTAINER_RESOURCE = "containerResource";
+
+  @SerializedName(SERIALIZED_NAME_CONTAINER_RESOURCE)
+  private V2beta1ContainerResourceMetricSource containerResource;
+
+  public static final String SERIALIZED_NAME_EXTERNAL = "external";
+
+  @SerializedName(SERIALIZED_NAME_EXTERNAL)
+  private V2beta1ExternalMetricSource external;
+
+  public static final String SERIALIZED_NAME_OBJECT = "object";
+
+  @SerializedName(SERIALIZED_NAME_OBJECT)
+  private V2beta1ObjectMetricSource _object;
+
+  public static final String SERIALIZED_NAME_PODS = "pods";
+
+  @SerializedName(SERIALIZED_NAME_PODS)
+  private V2beta1PodsMetricSource pods;
+
+  public static final String SERIALIZED_NAME_RESOURCE = "resource";
+
+  @SerializedName(SERIALIZED_NAME_RESOURCE)
+  private V2beta1ResourceMetricSource resource;
+
+  public static final String SERIALIZED_NAME_TYPE = "type";
+
+  @SerializedName(SERIALIZED_NAME_TYPE)
+  private String type;
+
+  public V2beta1MetricSpec containerResource(
+      V2beta1ContainerResourceMetricSource containerResource) {
+
+    this.containerResource = containerResource;
+    return this;
+  }
+
+  /**
+   * Get containerResource
+   *
+   * @return containerResource
+   */
+  @jakarta.annotation.Nullable
+  @Schema(description = "")
+  public V2beta1ContainerResourceMetricSource getContainerResource() {
+    return containerResource;
+  }
+
+  public void setContainerResource(V2beta1ContainerResourceMetricSource containerResource) {
+    this.containerResource = containerResource;
+  }
+
+  public V2beta1MetricSpec external(V2beta1ExternalMetricSource external) {
+
+    this.external = external;
+    return this;
+  }
+
+  /**
+   * Get external
+   *
+   * @return external
+   */
+  @jakarta.annotation.Nullable
+  @Schema(description = "")
+  public V2beta1ExternalMetricSource getExternal() {
+    return external;
+  }
+
+  public void setExternal(V2beta1ExternalMetricSource external) {
+    this.external = external;
+  }
+
+  public V2beta1MetricSpec _object(V2beta1ObjectMetricSource _object) {
+
+    this._object = _object;
+    return this;
+  }
+
+  /**
+   * Get _object
+   *
+   * @return _object
+   */
+  @jakarta.annotation.Nullable
+  @Schema(description = "")
+  public V2beta1ObjectMetricSource getObject() {
+    return _object;
+  }
+
+  public void setObject(V2beta1ObjectMetricSource _object) {
+    this._object = _object;
+  }
+
+  public V2beta1MetricSpec pods(V2beta1PodsMetricSource pods) {
+
+    this.pods = pods;
+    return this;
+  }
+
+  /**
+   * Get pods
+   *
+   * @return pods
+   */
+  @jakarta.annotation.Nullable
+  @Schema(description = "")
+  public V2beta1PodsMetricSource getPods() {
+    return pods;
+  }
+
+  public void setPods(V2beta1PodsMetricSource pods) {
+    this.pods = pods;
+  }
+
+  public V2beta1MetricSpec resource(V2beta1ResourceMetricSource resource) {
+
+    this.resource = resource;
+    return this;
+  }
+
+  /**
+   * Get resource
+   *
+   * @return resource
+   */
+  @jakarta.annotation.Nullable
+  @Schema(description = "")
+  public V2beta1ResourceMetricSource getResource() {
+    return resource;
+  }
+
+  public void setResource(V2beta1ResourceMetricSource resource) {
+    this.resource = resource;
+  }
+
+  public V2beta1MetricSpec type(String type) {
+
+    this.type = type;
+    return this;
+  }
+
+  /**
+   * type is the type of metric source. It should be one of \&quot;ContainerResource\&quot;,
+   * \&quot;External\&quot;, \&quot;Object\&quot;, \&quot;Pods\&quot; or \&quot;Resource\&quot;,
+   * each mapping to a matching field in the object. Note: \&quot;ContainerResource\&quot; type is
+   * available on when the feature-gate HPAContainerMetrics is enabled
+   *
+   * @return type
+   */
+  @Schema(
+      required = true,
+      description =
+          "type is the type of metric source.  It should be one of 'ContainerResource', 'External', 'Object', 'Pods' or 'Resource', each mapping to a matching field in the object. Note: 'ContainerResource' type is available on when the feature-gate HPAContainerMetrics is enabled")
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    V2beta1MetricSpec v2beta1MetricSpec = (V2beta1MetricSpec) o;
+    return Objects.equals(this.containerResource, v2beta1MetricSpec.containerResource)
+        && Objects.equals(this.external, v2beta1MetricSpec.external)
+        && Objects.equals(this._object, v2beta1MetricSpec._object)
+        && Objects.equals(this.pods, v2beta1MetricSpec.pods)
+        && Objects.equals(this.resource, v2beta1MetricSpec.resource)
+        && Objects.equals(this.type, v2beta1MetricSpec.type);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(containerResource, external, _object, pods, resource, type);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("class V2beta1MetricSpec {\n");
+    sb.append("    containerResource: ").append(toIndentedString(containerResource)).append("\n");
+    sb.append("    external: ").append(toIndentedString(external)).append("\n");
+    sb.append("    _object: ").append(toIndentedString(_object)).append("\n");
+    sb.append("    pods: ").append(toIndentedString(pods)).append("\n");
+    sb.append("    resource: ").append(toIndentedString(resource)).append("\n");
+    sb.append("    type: ").append(toIndentedString(type)).append("\n");
+    sb.append("}");
+    return sb.toString();
+  }
+
+  /**
+   * Convert the given object to string with each line indented by 4 spaces (except the first line).
+   */
+  private String toIndentedString(Object o) {
+    if (o == null) {
+      return "null";
+    }
+    return o.toString().replace("\n", "\n    ");
+  }
+}

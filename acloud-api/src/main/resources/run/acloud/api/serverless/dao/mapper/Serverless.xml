@@ -1,0 +1,382 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.serverless.dao.IServerlessMapper">
+	<resultMap type="Cluster" id="ClusterMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+		<association property="providerAccount" columnPrefix="pa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="cloudProviderAccount" columnPrefix="cpa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+	</resultMap>
+
+	<resultMap type="ServerlessWorkspace" id="ServerlessWorkspaceMap" autoMapping="true">
+		<id property="serviceSeq" column="serviceSeq" />
+		<association property="account" column="accountSeq" select="run.acloud.api.configuration.dao.IAccountMapper.getAccountInfoForRef" />
+		<collection property="users" column="serviceSeq" select="run.acloud.api.cserver.dao.IServiceMapper.getServiceUsersForRef" javaType="list" ofType="User" />
+		<collection property="clusters" column="{serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IClusterMapper.getClusters" javaType="list" ofType="Cluster" />
+		<collection property="servicemaps" column="{serviceSeq=serviceSeq}" select="run.acloud.api.cserver.dao.IServicemapMapper.getServicemapsByServiceClustersForResource" javaType="list" ofType="ServicemapDetailResource" />
+		<collection property="servicemapGroups" column="serviceSeq" select="run.acloud.api.cserver.dao.IServicemapGroupMapper.getServicemapGroupsOfService" javaType="list" ofType="ServicemapGroup" />
+		<collection property="projects" ofType="run.acloud.api.configuration.vo.ServiceRegistryVO" columnPrefix="sr_" resultMap="run.acloud.api.cserver.dao.IServiceMapper.ServiceRegistryMap"/>
+		<collection property="externalRegistries" column="{accountSeq=accountSeq,serviceSeq=serviceSeq}" select="run.acloud.api.configuration.dao.IExternalRegistryMapper.getExternalRegistries" javaType="list" ofType="ExternalRegistry" />
+	</resultMap>
+
+	<resultMap type="Serverless" id="ServerlessMap" autoMapping="true">
+		<id property="serverlessSeq" column="serverlessSeq" />
+		<collection property="serverlessInfos" ofType="ServerlessInfo" columnPrefix="sli_" resultMap="ServerlessInfoMap"/>
+	</resultMap>
+
+	<resultMap type="ServerlessInfo" id="ServerlessInfoMap" autoMapping="true">
+		<id property="serverlessInfoSeq" column="serverlessInfoSeq" />
+	</resultMap>
+
+	<resultMap type="GatewayCertificate" id="GatewayCertificateMap" autoMapping="true">
+		<id property="gatewayCertificateSeq" column="gatewayCertificateSeq" />
+	</resultMap>
+
+	<select id="getClusterByClusterId" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusterByClusterId].[01] 변경일자(20190131) */
+			cl.cluster_seq					clusterSeq,
+			cl.cluster_type					clusterType,
+			cl.cluster_name					clusterName,
+			cl.region_code					regionCode,
+			cl.cluster_state				clusterState,
+			cl.cluster_id					clusterId,
+			cl.cube_type					cubeType,
+			cl.auth_type					authType,
+			cl.api_url						apiUrl,
+			cl.billing_group_id				billingGroupId,
+			cl.use_yn						useYn,
+			cl.provider_account_seq			providerAccountSeq,
+			cl.api_key				    	apiKey,
+			cl.api_secret			    	apiSecret,
+			cl.client_auth_data		    	clientAuthData,
+			cl.client_key_data              clientKeyData,
+			cl.server_auth_data		    	serverAuthData,
+			cl.node_port_supported			nodePortSupported,
+			cl.ingress_supported			ingressSupported,
+			cl.loadbalancer_supported   	loadbalancerSupported,
+			cl.persistent_volume_supported	persistentVolumeSupported,
+			cl.ingress_host					ingressHost,
+			cl.node_port_url				nodePortUrl,
+			cl.node_port_range				nodePortRange,
+			cl.k8s_version					k8sVersion,
+			cl.billing_provider_account_seq billingProviderAccountSeq,
+			<include refid="run.acloud.api.auth.dao.IUserMapper.accountColumnSql" />
+			pa.provider_account_seq			pa_providerAccountSeq,
+			pa.account_use_type 			pa_accountUseType,
+			pa.provider_code				pa_providerCode,
+			pa.provider_name				pa_providerName,
+			pa.description					pa_description,
+			pa.provider_account_config		pa_providerAccountConfig,
+			cpa.provider_account_seq		cpa_providerAccountSeq,
+			cpa.account_use_type 			cpa_accountUseType,
+			cpa.provider_code				cpa_providerCode,
+			cpa.provider_name				cpa_providerName,
+			cpa.description					cpa_description,
+			cpa.api_account_password		cpa_apiAccountPassword,
+			cpa.provider_account_config		cpa_providerAccountConfig
+		FROM clusters cl
+				INNER JOIN provider_account pa ON	pa.provider_account_seq = cl.provider_account_seq
+				INNER JOIN account_provider_account_mapping apam ON pa.provider_account_seq = apam.provider_account_seq
+				INNER JOIN accounts a ON apam.account_seq = a.account_seq AND a.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa ON	cpa.provider_account_seq = cl.cloud_provider_account_seq
+		WHERE cl.use_yn = 'Y'
+		AND cl.cluster_id = #{clusterId}
+	</select>
+
+	<select id="getWorkspaces" parameterType="map" resultMap="ServerlessWorkspaceMap">
+		SELECT /* [Serverless.xml].[getWorkspaces].[01] 변경일자(20220428) */
+			DISTINCT
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn,
+			asm.account_seq				accountSeq,
+			sr.service_seq				sr_serviceSeq,
+			sr.project_id             	sr_projectId,
+			sr.project_type             sr_projectType,
+			sr.project_name             sr_projectName,
+			sr.description 				sr_description,
+			DATE_FORMAT(sr.created, '%Y-%m-%d') sr_created
+		FROM services sv
+				INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+				LEFT OUTER JOIN service_registry sr     ON  sr.service_seq = sv.service_seq
+		WHERE sv.use_yn = 'Y'
+		AND sv.service_type = 'NORMAL'
+		<if test="accountSeq != null">AND asm.account_seq = #{accountSeq}</if>
+		<if test="serviceName != null">AND sv.service_name = TRIM(#{serviceName}) </if>
+		<if test="userId != null">
+			AND EXISTS (
+				SELECT 1
+				FROM users u
+						INNER JOIN service_user su ON su.user_seq = u.user_seq
+				WHERE su.service_seq = sv.service_seq
+				AND u.use_yn = 'Y'
+				AND u.user_id = TRIM(#{userId})
+			)
+		</if>
+	</select>
+
+	<select id="getWorkspace" parameterType="map" resultMap="ServerlessWorkspaceMap">
+		SELECT /* [Serverless.xml].[getWorkspace].[01] 변경일자(20220428) */
+			DISTINCT
+			sv.service_seq				serviceSeq,
+			sv.service_name				serviceName,
+			sv.description				description,
+			sv.color_code				colorCode,
+			sv.registry_user_id         registryUserId,
+			sv.registry_user_password   registryUserPassword,
+			sv.cluster_tenancy			clusterTenancy,
+			sv.service_type				serviceType,
+			sv.use_yn					useYn,
+			asm.account_seq				accountSeq,
+			sr.service_seq				sr_serviceSeq,
+			sr.project_id             	sr_projectId,
+			sr.project_type             sr_projectType,
+			sr.project_name             sr_projectName,
+			sr.description 				sr_description,
+			DATE_FORMAT(sr.created, '%Y-%m-%d') sr_created
+		FROM services sv
+				INNER JOIN account_service_mapping asm ON asm.service_seq = sv.service_seq
+				LEFT OUTER JOIN service_registry sr     ON  sr.service_seq = sv.service_seq
+		WHERE sv.use_yn = 'Y'
+		AND sv.service_type = 'NORMAL'
+		<if test="accountSeq != null">AND asm.account_seq = #{accountSeq}</if>
+		<if test="serviceSeq != null">AND sv.service_seq = #{serviceSeq} </if>
+		<if test="serviceName != null">AND sv.service_name = TRIM(#{serviceName}) </if>
+		<if test="userId != null">
+			AND EXISTS (
+				SELECT 1
+				FROM users u
+						INNER JOIN service_user su ON su.user_seq = u.user_seq
+				WHERE su.service_seq = sv.service_seq
+				AND u.use_yn = 'Y'
+				AND u.user_id = TRIM(#{userId})
+			)
+		</if>
+	</select>
+
+	<insert id="addServerless" parameterType="Serverless" useGeneratedKeys="true" keyProperty="serverlessSeq">
+		INSERT /* [Serverless.xml].[addServerless].[01] 변경일자(20220429) */
+		INTO serverless (
+			  servicemap_seq
+			, project_name
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES (
+			  #{servicemapSeq}
+			, TRIM(#{projectName})
+			, 'Y'
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{creator}
+		 )
+	</insert>
+
+	<update id="removeServerless" parameterType="map">
+		UPDATE /* [Serverless.xml].[removeServerless].[01] 변경일자(20220510) */
+			serverless sl
+		SET
+			  sl.use_yn                = 'N'
+			, sl.updated               = UTC_TIMESTAMP()
+			, sl.updater               = IFNULL(#{updater}, 1)
+		WHERE sl.use_yn = 'Y'
+		AND sl.servicemap_seq = #{servicemapSeq}
+	</update>
+
+	<insert id="addServerlessInfo" parameterType="ServerlessInfo" useGeneratedKeys="true" keyProperty="serverlessInfoSeq">
+		INSERT /* [Serverless.xml].[addServerlessInfo].[01] 변경일자(20220510) */
+		INTO serverless_info (
+				  serverless_seq
+				, serverless_type
+				, function_name
+				, token
+				, use_yn
+				, created
+				, creator
+				, updated
+				, updater
+		) VALUES (
+				   #{serverlessSeq}
+				 , #{serverlessType}
+				 , TRIM(#{functionName})
+				 , #{token}
+				 , 'Y'
+				 , UTC_TIMESTAMP()
+				 , #{creator}
+				 , UTC_TIMESTAMP()
+				 , #{creator}
+		)
+	</insert>
+
+	<update id="updateFunctionToken" parameterType="map">
+		UPDATE /* [Serverless.xml].[updateFunctionToken].[01] 변경일자(20220511) */
+			serverless_info
+		SET
+			token                 = #{token}
+		  , updated               = UTC_TIMESTAMP()
+		  , updater               = IFNULL(#{updater}, 1)
+		WHERE use_yn = 'Y'
+		AND serverless_info_seq = #{serverlessInfoSeq}
+	</update>
+
+	<update id="updateFunctionTokenByName" parameterType="map">
+		UPDATE /* [Serverless.xml].[updateFunctionTokenByName].[01] 변경일자(20220511) */
+			serverless_info sli
+				INNER JOIN serverless sl ON sl.serverless_seq = sli.serverless_seq AND sl.servicemap_seq = #{servicemapSeq}
+		SET
+			sli.token                 = #{token}
+		  , sli.updated               = UTC_TIMESTAMP()
+		  , sli.updater               = IFNULL(#{updater}, 1)
+		WHERE sli.use_yn = 'Y'
+		<if test="serverlessType != null">
+		  AND sli.serverless_type = #{serverlessType}
+		</if>
+		  AND sli.function_name = TRIM(#{functionName})
+	</update>
+
+	<update id="removeServerlessInfoByProject" parameterType="map">
+		UPDATE /* [Serverless.xml].[removeServerlessInfoByProject].[01] 변경일자(20220510) */
+			serverless_info sli
+				INNER JOIN serverless sl ON sl.serverless_seq = sli.serverless_seq AND sl.servicemap_seq = #{servicemapSeq}
+		SET
+			sli.token                 = null
+		  , sli.use_yn                = 'N'
+		  , sli.updated               = UTC_TIMESTAMP()
+		  , sli.updater               = IFNULL(#{updater}, 1)
+		WHERE sli.use_yn = 'Y'
+	</update>
+
+	<update id="removeServerlessInfo" parameterType="map">
+		UPDATE /* [Serverless.xml].[removeServerlessInfo].[01] 변경일자(20220510) */
+			serverless_info sli
+				INNER JOIN serverless sl ON sl.serverless_seq = sli.serverless_seq AND sl.servicemap_seq = #{servicemapSeq}
+		SET
+			sli.token                 = null
+		  , sli.use_yn                = 'N'
+		  , sli.updated               = UTC_TIMESTAMP()
+		  , sli.updater               = IFNULL(#{updater}, 1)
+		WHERE sli.use_yn = 'Y'
+		<if test="serverlessType != null">
+			AND sli.serverless_type = #{serverlessType}
+		</if>
+		AND sli.function_name = TRIM(#{functionName})
+	</update>
+
+	<update id="deleteServerlessInfoByProject" parameterType="map">
+		DELETE sli /* [Serverless.xml].[deleteServerlessInfoByProject].[01] 변경일자(20220510) */
+		FROM serverless_info sli
+				INNER JOIN serverless sl ON sl.serverless_seq = sli.serverless_seq AND sl.servicemap_seq = #{servicemapSeq}
+	</update>
+
+	<update id="deleteServerlessInfoByName" parameterType="map">
+		DELETE sli /* [Serverless.xml].[deleteServerlessInfo].[01] 변경일자(20220510) */
+		FROM serverless_info sli
+				INNER JOIN serverless sl ON sl.serverless_seq = sli.serverless_seq AND sl.servicemap_seq = #{servicemapSeq}
+		WHERE sli.function_name = TRIM(#{functionName})
+		<if test="serverlessType != null">
+			AND sli.serverless_type = #{serverlessType}
+		</if>
+	</update>
+
+	<update id="deleteServerlessInfo" parameterType="map">
+		DELETE /* [Serverless.xml].[deleteServerlessInfo].[01] 변경일자(20220510) */
+		FROM serverless_info
+		WHERE serverless_info_seq = #{serverlessInfoSeq}
+	</update>
+
+	<select id="getServerlesses" parameterType="map" resultMap="ServerlessMap">
+		SELECT /* [Serverless.xml].[getServerlesses].[01] 변경일자(20220511) */
+			  sl.serverless_seq			  						serverlessSeq
+			, sm.servicemap_seq			  						servicemapSeq
+			, sl.project_name			  						projectName
+			, DATE_FORMAT(sl.created, '%Y-%m-%d %H:%i:%s') 		created
+			, sm.namespace_name          						namespaceName
+			, cl.cluster_id          							clusterId
+			, cl.cluster_seq          							clusterSeq
+			, sli.serverless_info_seq          					sli_serverlessInfoSeq
+			, sli.serverless_seq          						sli_serverlessSeq
+			, sli.serverless_type		  						sli_serverlessType
+			, sli.function_name          						sli_functionName
+			, sli.token          								sli_token
+			, DATE_FORMAT(sli.created, '%Y-%m-%d %H:%i:%s') 	sli_created
+			, DATE_FORMAT(sli.updated, '%Y-%m-%d %H:%i:%s') 	sli_updated
+		FROM serverless sl
+				INNER JOIN servicemaps sm    		ON  sm.servicemap_seq = sl.servicemap_seq AND sm.use_yn = 'Y'
+				INNER JOIN clusters cl    		ON  cl.cluster_seq = sm.cluster_seq AND sm.use_yn = 'Y'
+				INNER JOIN service_servicemap_mapping ssm  ON ssm.servicemap_seq = sm.servicemap_seq
+				INNER JOIN services sv ON sv.service_seq = ssm.service_seq AND sv.use_yn = 'Y'
+				LEFT OUTER JOIN serverless_info sli  ON  sli.serverless_seq = sl.serverless_seq AND sli.use_yn = 'Y'
+												<if test="serverlessType != null">
+													AND sli.serverless_type = #{serverlessType}
+												</if>
+		WHERE sl.use_yn = 'Y'
+		AND sv.service_seq = #{serviceSeq}
+	</select>
+
+	<select id="getServerless" parameterType="map" resultMap="ServerlessMap">
+		SELECT /* [Serverless.xml].[getServerless].[01] 변경일자(20220511) */
+			  sl.serverless_seq			  						serverlessSeq
+			, sm.servicemap_seq			  						servicemapSeq
+			, sl.project_name			  						projectName
+			, DATE_FORMAT(sl.created, '%Y-%m-%d %H:%i:%s') 		created
+			, sm.namespace_name          						namespaceName
+			, cl.cluster_id          							clusterId
+			, cl.cluster_seq          							clusterSeq
+			, sli.serverless_info_seq          					sli_serverlessInfoSeq
+			, sli.serverless_seq          						sli_serverlessSeq
+			, sli.serverless_type		  						sli_serverlessType
+			, sli.function_name          						sli_functionName
+			, sli.token          								sli_token
+			, DATE_FORMAT(sli.created, '%Y-%m-%d %H:%i:%s') 	sli_created
+			, DATE_FORMAT(sli.updated, '%Y-%m-%d %H:%i:%s') 	sli_updated
+		FROM serverless sl
+				INNER JOIN servicemaps sm    		ON  sm.servicemap_seq = sl.servicemap_seq AND sm.use_yn = 'Y'
+				INNER JOIN clusters cl    		ON  cl.cluster_seq = sm.cluster_seq AND sm.use_yn = 'Y'
+				INNER JOIN service_servicemap_mapping ssm  ON ssm.servicemap_seq = sm.servicemap_seq
+				LEFT OUTER JOIN serverless_info sli  ON  sli.serverless_seq = sl.serverless_seq AND sli.use_yn = 'Y'
+		WHERE sl.use_yn = 'Y'
+		AND sl.serverless_seq = #{serverlessSeq}
+	</select>
+
+	<select id="getServerlessInfo" parameterType="map" resultMap="ServerlessInfoMap">
+		SELECT /* [Serverless.xml].[getServerlessInfo].[01] 변경일자(20220511) */
+			  sli.serverless_info_seq          					serverlessInfoSeq
+			, sli.serverless_seq          						serverlessSeq
+			, sli.serverless_type		  						serverlessType
+			, sli.function_name          						functionName
+			, sli.token          								token
+			, DATE_FORMAT(sli.created, '%Y-%m-%d %H:%i:%s') 	created
+			, DATE_FORMAT(sli.updated, '%Y-%m-%d %H:%i:%s') 	updated
+		FROM serverless_info sli
+		WHERE sli.use_yn = 'Y'
+		AND sli.serverless_info_seq = #{serverlessInfoSeq}
+	</select>
+
+
+	<insert id="addGatewayCertificate" parameterType="GatewayCertificate" useGeneratedKeys="true" keyProperty="gatewayCertificateSeq">
+		INSERT /* [Serverless.xml].[addGatewayCertificate].[01] 변경일자(20220512) */
+		INTO gateway_certificate (
+			  certificate
+			, created
+		) VALUES (
+			   #{certificate}
+			 , UTC_TIMESTAMP()
+		)
+	</insert>
+
+	<select id="getGatewayCertificates" resultMap="GatewayCertificateMap">
+		SELECT /* [Serverless.xml].[getGatewayCertificates].[01] 변경일자(20220512) */
+			   gateway_certificate_seq          			gatewayCertificateSeq
+			 , certificate          						certificate
+			 , DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') 	created
+		FROM gateway_certificate
+	</select>
+</mapper>

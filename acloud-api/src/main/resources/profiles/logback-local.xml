@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!-- <include resource="org/springframework/boot/logging/logback/base.xml"/>  -->
+
+	<!-- 콘솔 로그 출력 --> 
+	<appender name="TEXT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<charset>UTF-8</charset>
+			<!-- <Pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{35} - %msg%n</Pattern>>
+			<pattern>%d{HH:mm:ss, Asia/Seoul} [%thread] %-5level (%F:%L\) %msg%n</pattern -->
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-7relative %highlight(%-5level) [%thread][%X{TXID}] %cyan(%logger{35}) : %msg %n</pattern>
+		</encoder>
+		<withJansi>false</withJansi>
+	</appender>
+
+	<logger name="org.springframework" level="DEBUG" />
+	<logger name="org.springframework.jndi.JndiTemplate" level="INFO" />
+	<logger name="org.springframework.jndi.JndiPropertySource" level="INFO" />
+	<logger name="org.springframework.jndi.JndiLocatorDelegate" level="INFO" />
+	<logger name="org.apache.http.wire" level="INFO" />
+	<logger name="com.amazonaws" level="INFO" />
+	<logger name="run.acloud.commons.controller.ServiceCheckController" level="ERROR" />
+
+	<logger name="run.acloud" level="DEBUG" />
+	<logger name="run.acloud.api.monitoring" level="INFO" />
+	<logger name="server.state.logger" level="INFO" />
+	<logger name="run.acloud.api.code.dao.ICodeMapper" level="ERROR"/>
+ 
+	<root level="INFO">
+		<appender-ref ref="TEXT_CONSOLE" />
+	</root>
+</configuration>

@@ -1,0 +1,359 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.billing.dao.IAccountBillMapper">
+
+    <insert id="addAccountBill" parameterType="AccountBill" useGeneratedKeys="true" keyProperty="billSeq" keyColumn="bill_seq">
+		INSERT /* [AccountBill.xml].[addAccountBill].[01] 변경일자(20190524) */
+		INTO account_bill (
+			account_seq,
+			used_start_date,
+			used_end_date,
+			used_month,
+			bill_date,
+			due_date,
+			currency,
+			bill_amt,
+			additional_tax,
+			additional_tax_rate,
+			final_bill_amt,
+			bill_state,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) VALUES (
+			#{accountSeq},
+			#{usedStartDate},
+			#{usedEndDate},
+			#{usedMonth},
+			#{billDate},
+			#{dueDate},
+			#{currency},
+			#{billAmt},
+			#{additionalTax},
+			#{additionalTaxRate},
+			#{finalBillAmt},
+			#{billState},
+			#{useYn},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<update id="updateAccountBill" parameterType="AccountBill">
+		update account_bill /* [AccountBill.xml].[updateAccountBill].[01] 변경일자(20190527) */
+		set account_seq = #{accountSeq},
+			used_start_date = #{usedStartDate},
+			used_end_date = #{usedEndDate},
+			used_month = #{usedMonth},
+			bill_date = #{billDate},
+			due_date = #{dueDate},
+			currency = #{currency},
+			bill_amt = #{billAmt},
+			additional_tax = #{additionalTax},
+			additional_tax_rate = #{additionalTaxRate},
+			final_bill_amt = #{finalBillAmt},
+			bill_state = #{billState},
+			use_yn = #{useYn},
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		where bill_seq = #{billSeq}
+	</update>
+
+	<update id="removeAccountBill" parameterType="AccountBill">
+		update account_bill /* [AccountBill.xml].[removeAccountBill].[01] 변경일자(20190528) */
+		set use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		where bill_seq = #{billSeq}
+	</update>
+
+	<select id="getAccountBill" parameterType="int" resultType="AccountBill">
+		SELECT /* [AccountBill.xml].[getAccountBill].[01] 변경일자(20190528) */
+			ab.bill_seq as billSeq,
+			ab.account_seq as accountSeq,
+			ac.account_name as accountName,
+			ac.organization_name as organizationName,
+			DATE_FORMAT(ab.used_start_date, '%Y-%m-%d') as usedStartDate,
+			DATE_FORMAT(ab.used_end_date, '%Y-%m-%d') as usedEndDate,
+			ab.used_month as usedMonth,
+			DATE_FORMAT(ab.bill_date, '%Y-%m-%d') as billDate,
+			DATE_FORMAT(ab.due_date, '%Y-%m-%d') as dueDate,
+			ab.currency as currency,
+			ab.bill_amt as billAmt,
+			ab.additional_tax as additionalTax,
+			ab.additional_tax_rate as additionalTaxRate,
+			ab.final_bill_amt as finalBillAmt,
+			ab.bill_state as billState,
+			ab.use_yn as useYn,
+			DATE_FORMAT(ab.created, '%Y-%m-%d %H:%i:%s') as created,
+			ab.creator as creator,
+			DATE_FORMAT(ab.updated, '%Y-%m-%d %H:%i:%s') as updated,
+			ab.updater as updater
+		FROM account_bill AS ab
+		  INNER JOIN accounts AS ac ON ab.account_seq = ac.account_seq AND ac.use_yn = 'Y'
+		WHERE bill_seq = #{bill_seq}
+	</select>
+
+	<select id="getAccountBills" parameterType="map" resultType="AccountBill">
+		SELECT /* [AccountBill.xml].[getAccountBills].[01] 변경일자(20190528) */
+		    ab.bill_seq as billSeq,
+			ab.account_seq as accountSeq,
+		    ac.account_name as accountName,
+		    ac.organization_name as organizationName,
+			DATE_FORMAT(ab.used_start_date, '%Y-%m-%d') as usedStartDate,
+			DATE_FORMAT(ab.used_end_date, '%Y-%m-%d') as usedEndDate,
+			ab.used_month as usedMonth,
+			DATE_FORMAT(ab.bill_date, '%Y-%m-%d') as billDate,
+			DATE_FORMAT(ab.due_date, '%Y-%m-%d') as dueDate,
+			ab.currency as currency,
+			ab.bill_amt as billAmt,
+			ab.additional_tax as additionalTax,
+			ab.additional_tax_rate as additionalTaxRate,
+			ab.final_bill_amt as finalBillAmt,
+			ab.bill_state as billState,
+			ab.use_yn as useYn,
+			DATE_FORMAT(ab.created, '%Y-%m-%d %H:%i:%s') as created,
+			ab.creator as creator,
+			DATE_FORMAT(ab.updated, '%Y-%m-%d %H:%i:%s') as updated,
+			ab.updater as updater
+		FROM account_bill AS ab
+		  INNER JOIN accounts AS ac ON ab.account_seq = ac.account_seq AND ac.use_yn = 'Y'
+		<where>
+			<if test="accountSeqs != null">
+				AND ab.account_seq  IN (<foreach collection="accountSeqs" item="accountSeq" separator=", ">#{accountSeq}</foreach>)
+			</if>
+			<if test="usedMonth != null">
+				AND ab.used_month = #{usedMonth}
+			</if>
+			<if test="billState != null">
+				AND ab.bill_state = #{billState}
+			</if>
+				AND ab.use_yn = 'Y'
+		</where>
+	</select>
+
+	<select id="getAccountSeqByOrganizationName" parameterType="string" resultType="integer">
+		SELECT /* [AccountBill.xml].[getAccountSeqByOrganizationName].[01] 변경일자(20190528) */
+			  ac.account_seq AS accountSeq
+		FROM accounts AS ac
+		WHERE ac.use_yn='Y'
+		  AND ac.organization_name like CONCAT('%',#{orgName},'%')
+	</select>
+
+	<insert id="addAccountBillProducts" parameterType="AccountBill">
+		INSERT /* [AccountBill.xml].[addAccountBillProducts].[01] 변경일자(20190527) */
+		INTO account_bill_prd (
+			bill_seq,
+			svc_nm,
+			prd_nm,
+			prd_currency,
+			prd_amt,
+			discount_rate,
+			prd_bill_amt,
+			description,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) values
+		<foreach collection="billProducts" item="item" open="(" separator="), (" close=")">
+			#{billSeq},
+			#{item.svcNm},
+			#{item.prdNm},
+			#{item.prdCurrency},
+			#{item.prdAmt},
+			#{item.discountRate},
+			#{item.prdBillAmt},
+			#{item.description},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+
+	</insert>
+
+	<update id="removeAccountBillProducts" parameterType="AccountBill">
+		update account_bill_prd /* [AccountBill.xml].[removeAccountBillProducts].[01] 변경일자(20190527) */
+		set use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		where
+			bill_seq = #{billSeq}
+	</update>
+
+	<select id="getAccountBillProducts" parameterType="int" resultType="AccountBillProduct">
+		SELECT /* [AccountBill.xml].[getAccountBillProducts].[01] 변경일자(20190527) */
+			bill_prd_seq as billPrdSeq,
+			bill_seq as billSeq,
+			svc_nm as svcNm,
+			prd_nm as prdNm,
+			prd_currency as prdCurrency,
+			prd_amt as prdAmt,
+			discount_rate as discountRate,
+			prd_bill_amt as prdBillAmt,
+			description,
+			use_yn as useYn,
+			DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created,
+			creator as creator,
+			DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s') as updated,
+			updater as updater
+		FROM account_bill_prd
+		WHERE bill_seq = #{billSeq}
+        AND use_yn = 'Y'
+	</select>
+
+	<insert id="addAccountBillExchanges" parameterType="AccountBill">
+		INSERT /* [AccountBill.xml].[addAccountBillExchanges].[01] 변경일자(20190610) */
+		INTO account_bill_exchange (
+		bill_seq,
+		exchange_currency,
+		exchange_amt,
+		use_yn,
+		created,
+		creator,
+		updated,
+		updater
+		) values
+		<foreach collection="billExchanges" item="item" open="(" separator="), (" close=")">
+			#{billSeq},
+			#{item.exchangeCurrency},
+			#{item.exchangeAmt},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+
+	</insert>
+
+	<update id="removeAccountBillExchanges" parameterType="AccountBill">
+		update account_bill_exchange /* [AccountBill.xml].[removeAccountBillExchanges].[01] 변경일자(20190610) */
+		set use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		where
+			bill_seq = #{billSeq}
+	</update>
+
+	<select id="getAccountBillExchanges" parameterType="int" resultType="AccountBillExchange">
+		SELECT /* [AccountBill.xml].[getAccountBillExchanges].[01] 변경일자(20190610) */
+			bill_exchange_seq as billExchangeSeq,
+			bill_seq as billSeq,
+			exchange_currency as exchangeCurrency,
+			exchange_amt as exchangeAmt,
+			use_yn as useYn,
+			DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created,
+			creator as creator,
+			DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s') as updated,
+			updater as updater
+		FROM account_bill_exchange
+		WHERE bill_seq = #{billSeq}
+		  AND use_yn = 'Y'
+	</select>
+
+
+	<!-- account_bill_daily_charge, 일별 과금 정보 -->
+	<insert id="addAccountBillDailyCharge" parameterType="AccountBillDailyCharge">
+		INSERT /* [AccountBill.xml].[addAccountBillDailyCharge].[01] 변경일자(20190626) */
+		INTO account_bill_daily_charge (
+			account_seq,
+			charge_base_date,
+			add_parall_build_amt,
+			add_build_amt,
+			add_workspace_amt,
+			core_amt,
+			node_amt,
+			etc_amt,
+			created,
+			creator
+		) values (
+			#{accountSeq},
+			#{chargeBaseDate},
+			#{addParallBuildAmt},
+			#{addBuildAmt},
+			#{addWorkspaceAmt},
+			#{coreAmt},
+			#{nodeAmt},
+			#{etcAmt},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<insert id="addAccountBillDailyChargeList" parameterType="list">
+		INSERT /* [AccountBill.xml].[addAccountBillDailyCharge].[01] 변경일자(20190626) */
+		INTO account_bill_daily_charge (
+			account_seq,
+			charge_base_date,
+			add_parall_build_amt,
+			add_build_amt,
+			add_workspace_amt,
+			core_amt,
+			node_amt,
+			etc_amt,
+			created,
+			creator
+		) VALUES
+		<foreach collection="list" item="item" open="(" separator="), (" close=")">
+			#{item.accountSeq},
+			#{item.chargeBaseDate},
+			#{item.addParallBuildAmt},
+			#{item.addBuildAmt},
+			#{item.addWorkspaceAmt},
+			#{item.coreAmt},
+			#{item.nodeAmt},
+			#{item.etcAmt},
+			UTC_TIMESTAMP(),
+			#{item.creator}
+		</foreach>
+	</insert>
+
+	<select id="getAccountBillDailyCharges" parameterType="map" resultType="AccountBillDailyCharge">
+		SELECT /* [AccountBill.xml].[getAccountBillExchanges].[01] 변경일자(20190610) */
+			account_seq as accountSeq,
+			charge_base_date as chargeBaseDate,
+			add_parall_build_amt as addParallBuildAmt,
+			add_build_amt as addBuildAmt,
+			add_workspace_amt as addWorkspaceAmt,
+			core_amt as coreAmt,
+			node_amt as nodeAmt,
+			etc_amt as etcAmt,
+			DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s') as created,
+			creator as creator
+		FROM account_bill_daily_charge
+		WHERE account_seq = #{accountSeq}
+		  AND charge_base_date <![CDATA[>=]]> #{startDate}
+		  AND charge_base_date <![CDATA[<]]> #{endDate}
+	</select>
+
+	<select id="getSumDailyCharges" parameterType="map" resultType="AccountBillDailyCharge">
+		SELECT /* [AccountBill.xml].[getAccountBillExchanges].[01] 변경일자(20190610) */
+			account_seq as accountSeq,
+			SUM(add_parall_build_amt) as addParallBuildAmt,
+			SUM(add_build_amt) as addBuildAmt,
+			SUM(add_workspace_amt) as addWorkspaceAmt,
+			SUM(core_amt) as coreAmt,
+			SUM(node_amt) as nodeAmt,
+			SUM(etc_amt) as etcAmt,
+			DATE_FORMAT(MIN(charge_base_date), '%Y-%m-%d') AS usedStartDate,
+			DATE_FORMAT(MAX(charge_base_date), '%Y-%m-%d') AS usedEndDate
+		FROM account_bill_daily_charge
+		<where>
+		<if test="accountSeq != null">
+		  AND account_seq = #{accountSeq}
+		</if>
+		  AND charge_base_date <![CDATA[>=]]> DATE(#{baseDate})
+		  AND charge_base_date <![CDATA[<]]>  DATE_ADD(#{baseDate}, INTERVAL 1 MONTH)
+		</where>
+		GROUP BY account_seq
+	</select>
+
+
+</mapper>

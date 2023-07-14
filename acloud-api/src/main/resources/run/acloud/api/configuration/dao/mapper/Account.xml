@@ -1,0 +1,1260 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IAccountMapper">
+	<resultMap type="Account" id="AccountMap" autoMapping="true">
+		<id property="accountSeq" column="accountSeq"/>
+		<collection property="accountUsers" columnPrefix="us_" resultMap="run.acloud.api.auth.dao.IUserMapper.UserMap" />
+	</resultMap>
+
+	<resultMap id="AccountDetailMap" type="Account" autoMapping="true">
+		<id property="accountSeq" column="accountSeq"/>
+		<collection property="accountUsers" columnPrefix="us_" column="accountSeq" select="getAccountSystemUsersForRef" ofType="User" />
+		<collection property="providerAccounts" columnPrefix="pa_" column="accountSeq" select="getProviderAccountsOfAccountForRef" ofType="ProviderAccount" />
+		<collection property="users" columnPrefix="us2_"  column="accountSeq" select="getAccountUsersForRef" ofType="User" />
+	</resultMap>
+
+	<resultMap type="Account" id="AccountForRefMap" autoMapping="true">
+		<id property="accountSeq" column="accountSeq"/>
+		<collection property="accountUsers" columnPrefix="us_" resultMap="run.acloud.api.auth.dao.IUserMapper.UserMap" />
+	</resultMap>
+
+	<resultMap type="AccountService" id="AccountServiceMap" autoMapping="true">
+		<id property="accountSeq" column="accountSeq"/>
+		<collection property="services" columnPrefix="s_" resultMap="run.acloud.api.cserver.dao.IServiceMapper.ServiceMap" />
+	</resultMap>
+
+    <resultMap id="AccountUserForRefMap" type="User" autoMapping="true">
+        <id property="accountSeq" column="accountSeq"/>
+        <id property="userSeq" column="userSeq" />
+    </resultMap>
+
+    <resultMap type="ProviderAccount" id="ProviderAccountsOfAccountForRefMap" autoMapping="true">
+        <id property="accountSeq" column="accountSeq"/>
+        <id property="providerAccountSeq" column="providerAccountSeq"/>
+        <result property="config" column="providerAccountConfig" />
+        <collection property="clusterNames" ofType="java.lang.String" javaType="java.util.ArrayList" columnPrefix="c_">
+            <result column="clusterName" />
+        </collection>
+    </resultMap>
+
+	<select id="getAccounts" parameterType="map" resultMap="AccountMap">
+		SELECT /* [Account.xml].[getAccounts].[01] 변경일자(20181101) */
+			DISTINCT
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+			,ac.customer_name AS customerName
+			,ac.customer_email AS customerEmail
+			,ac.customer_address AS customerAddress
+			,ac.user_auth_type AS userAuthType
+			,ac.app_id AS appId
+			,ac.concurrent_session_yn AS concurrentSessionYn
+			,ac.license_key AS licenseKey
+			,ac.account_config AS accountConfigJson
+			,us.user_seq AS accountUserSeq
+			,us.user_id AS accountUserId
+			,us.user_seq AS us_userSeq
+			,us.user_id AS us_userId
+			,us.user_name AS us_userName
+			,us.description AS us_description
+			,us.user_language AS us_userLanguage
+			,us.last_service_seq AS us_lastServiceSeq
+			,ur.role_code AS us_userRole
+			,DATE_FORMAT(us.last_login, '%Y-%m-%d %H:%i:%s') AS us_lastLogin
+			,(SELECT
+			  COUNT(svc.service_seq)
+			  FROM account_service_mapping asm
+			  INNER JOIN services AS svc
+			  	ON asm.service_seq=svc.service_seq
+				<if test="excludePlatform != null">
+				AND svc.service_type <![CDATA[<>]]> 'PLATFORM'
+				</if>
+			  WHERE asm.account_seq = ac.account_seq AND svc.use_yn='Y') AS serviceCount
+			,(SELECT
+			  COUNT(pa.provider_account_seq)
+			  FROM account_provider_account_mapping AS apm
+			  INNER JOIN provider_account AS pa ON pa.provider_account_seq = apm.provider_account_seq AND pa.use_yn='Y'
+			  WHERE apm.account_seq = ac.account_seq) AS providerAccountCount
+			,(SELECT
+			  COUNT(us2.user_seq)
+			  FROM users AS us2
+			  WHERE us2.user_seq = aum.user_seq AND us2.use_yn='Y') AS userCount
+			,ac.organization_name AS organizationName
+			,ac.description AS description
+		FROM accounts AS ac
+		LEFT OUTER JOIN account_user_mapping aum on aum.account_seq = ac.account_seq
+		LEFT OUTER JOIN account_system_user_mapping asum ON asum.account_seq = ac.account_seq
+		LEFT OUTER JOIN users AS us ON us.user_seq = asum.user_seq AND us.use_yn='Y'
+		LEFT OUTER JOIN user_role ur ON ur.user_seq = us.user_seq
+		WHERE ac.use_yn='Y'
+		<if test="userSeq != null">
+		AND	aum.user_seq = #{userSeq}
+		</if>
+		<if test="accountUserSeq != null">
+		AND	asum.user_seq = #{accountUserSeq}
+		</if>
+	</select>
+
+	<select id="getAccount" parameterType="map" resultType="Account">
+		SELECT /* [Account.xml].[getAccount].[01] 변경일자(20181105) */
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+			,ac.organization_name AS organizationName
+			,ac.description AS description
+			,ac.base_language AS baseLanguage
+			,ac.logo_image AS logoImage
+			,ac.license_key AS licenseKey
+			,ac.customer_name AS customerName
+			,ac.customer_email AS customerEmail
+			,ac.customer_address AS customerAddress
+			,ac.user_auth_type AS userAuthType
+			,ac.app_id AS appId
+			,ac.concurrent_session_yn AS concurrentSessionYn
+			,ac.registry_download_user_id AS registryDownloadUserId
+			,ac.registry_download_user_password AS registryDownloadUserPassword
+			,ac.account_config AS accountConfigJson
+			,ac.use_yn AS useYn
+		FROM
+			accounts AS ac
+		WHERE ac.use_yn='Y'
+		AND ac.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountByService" parameterType="map" resultType="Account">
+		SELECT /* [Account.xml].[getAccountByService].[01] 변경일자(20220317) */
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+			,ac.organization_name AS organizationName
+			,ac.description AS description
+			,ac.base_language AS baseLanguage
+			,ac.user_auth_type AS userAuthType
+			,ac.app_id AS appId
+			,ac.concurrent_session_yn AS concurrentSessionYn
+			,ac.registry_download_user_id AS registryDownloadUserId
+			,ac.registry_download_user_password AS registryDownloadUserPassword
+			,ac.account_config AS accountConfigJson
+			,ac.use_yn AS useYn
+		FROM
+			accounts AS ac
+				INNER JOIN account_service_mapping asm ON asm.account_seq = ac.account_seq
+				INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y'
+		WHERE ac.use_yn='Y'
+		AND sv.service_seq = #{serviceSeq}
+	</select>
+
+	<select id="getAccountDetailInfo" parameterType="map" resultMap="AccountDetailMap">
+		SELECT /* [Account.xml].[getAccountDetailInfo].[01] 변경일자(20181105) */
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+			,ac.organization_name AS organizationName
+			,ac.description AS description
+			,ac.base_language AS baseLanguage
+			,ac.license_key AS licenseKey
+			,ac.customer_name AS customerName
+			,ac.customer_email AS customerEmail
+			,ac.customer_address AS customerAddress
+			,ac.user_auth_type AS userAuthType
+			,ac.app_id AS appId
+			,ac.concurrent_session_yn AS concurrentSessionYn
+			,ac.registry_download_user_id AS registryDownloadUserId
+			,ac.registry_download_user_password AS registryDownloadUserPassword
+			,ac.account_config AS accountConfigJson
+			,ac.use_yn AS useYn
+			,(SELECT
+			  COUNT(sv.service_seq)
+			  FROM account_service_mapping asm
+					INNER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_type  <![CDATA[<>]]> 'PLATFORM' AND sv.use_yn = 'Y'
+			  WHERE asm.account_seq = ac.account_seq) AS serviceCount
+		FROM
+			accounts AS ac
+		WHERE ac.use_yn='Y'
+		AND ac.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountInfoForRef" parameterType="map" resultMap="AccountForRefMap">
+		SELECT /* [Account.xml].[getAccountInfoForRef].[01] 변경일자(20191218) */
+			DISTINCT
+			a.account_seq 							accountSeq,
+			a.account_type 							accountType,
+			a.account_name 							accountName,
+			a.account_code 							accountCode,
+			a.organization_name 					organizationName,
+			a.description 							description,
+			a.base_language 						baseLanguage,
+			a.user_auth_type 						userAuthType,
+			a.app_id 								appId,
+			a.concurrent_session_yn     			concurrentSessionYn,
+			a.registry_download_user_id     		registryDownloadUserId,
+			a.registry_download_user_password     	registryDownloadUserPassword,
+			a.account_config     					accountConfigJson,
+			us.user_seq 							accountUserSeq,
+			us.user_id 								accountUserId,
+			us.user_seq 							us_userSeq,
+			us.user_id 								us_userId,
+			us.user_name 							us_userName,
+			us.description 							us_description,
+			us.user_language 						us_userLanguage,
+			us.last_service_seq 					us_lastServiceSeq,
+			ur.role_code 							us_userRole
+		FROM
+			accounts AS a
+				INNER JOIN
+					account_system_user_mapping asum ON asum.account_seq = a.account_seq
+				INNER JOIN <!-- Account User 조회 -->
+					users AS us ON us.user_seq = asum.user_seq AND us.use_yn='Y'
+				INNER JOIN
+					user_role ur ON us.user_seq=ur.user_seq
+		WHERE a.use_yn='Y'
+		AND a.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountSystemUsersForRef" parameterType="map" resultMap="AccountUserForRefMap">
+		SELECT /* [Account.xml].[getAccountSystemUsersForRef].[01] 변경일자(20191218) */
+				a.account_seq 				accountSeq
+				,us.user_seq AS userSeq
+				,us.user_id AS userId
+				,us.user_name AS userName
+				,us.description AS description
+				,us.user_language AS userLanguage
+				,us.last_service_seq AS lastServiceSeq
+				,DATE_FORMAT(us.last_login, '%Y-%m-%d %H:%i:%s') AS lastLogin
+				,ur.role_code AS userRole
+				,us.use_yn AS useYN
+		FROM
+			accounts AS a
+				INNER JOIN
+					account_system_user_mapping asum ON asum.account_seq = a.account_seq
+				INNER JOIN <!-- Account User 조회 -->
+					users AS us ON us.user_seq = asum.user_seq AND us.use_yn='Y'
+				INNER JOIN
+					user_role ur ON us.user_seq=ur.user_seq
+		WHERE a.use_yn='Y'
+		AND a.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountUsersForRef" parameterType="map" resultMap="AccountUserForRefMap">
+		SELECT /* [Account.xml].[getAccountUsersForRef].[01] 변경일자(20191218) */
+				a.account_seq 				accountSeq
+				,us.user_seq AS userSeq
+				,us.user_id AS userId
+				,us.user_name AS userName
+				,us.description AS description
+				,us.user_language AS userLanguage
+				,us.last_service_seq AS lastServiceSeq
+				,DATE_FORMAT(us.last_login, '%Y-%m-%d %H:%i:%s') AS lastLogin
+				,ur.role_code AS userRole
+				,us.use_yn AS useYN
+		FROM
+			accounts AS a
+				INNER JOIN
+					account_user_mapping aum ON aum.account_seq = a.account_seq
+				INNER JOIN <!-- Account User 조회 -->
+					users AS us ON us.user_seq = aum.user_seq AND us.use_yn='Y'
+				INNER JOIN
+					user_role ur ON us.user_seq=ur.user_seq
+		WHERE a.use_yn='Y'
+		AND a.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getProviderAccountsOfAccountForRef" parameterType="map" resultMap="ProviderAccountsOfAccountForRefMap">
+		SELECT /* [Account.xml].[getProviderAccountsOfAccountForRef].[01] 변경일자(20191218) */
+			ac.account_seq 				accountSeq
+			,pa.provider_account_seq AS providerAccountSeq
+			,pa.provider_code AS providerCode
+			,pa.provider_name AS providerName
+			,pa.description AS description
+			<!-- ,pa.use_yn AS pa_useYn -->
+			,pa.account_use_type AS accountUseType
+			,pa.account_group_id AS accountGroupId
+			,pa.api_account_id AS apiAccountId
+			,pa.api_account_password AS apiAccountPassword
+			,pa.provider_account_config AS providerAccountConfig
+			,c.cluster_name AS c_clusterName
+		FROM
+			accounts AS ac
+				INNER JOIN <!-- Provider Account List 조회 -->
+					account_provider_account_mapping AS apm ON apm.account_seq = ac.account_seq
+				INNER JOIN <!-- 2018.1.8 - METERING 유형만 등록하도록 수정 / 2020.03.13 - ACCESS_KEY 유형도 조회되도록 수정 -->
+					provider_account AS pa ON pa.provider_account_seq = apm.provider_account_seq AND pa.use_yn='Y'
+				LEFT OUTER JOIN
+					clusters c ON c.billing_provider_account_seq = pa.provider_account_seq AND c.use_yn = 'Y'
+		WHERE ac.use_yn='Y'
+		AND pa.account_use_type != 'USER'
+		AND ac.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountCountByName" parameterType="map" resultType="int">
+		SELECT /* [Account.xml].[getAccountCountByName].[01] 변경일자(2017047) */
+			COUNT(account_name)
+		FROM
+			accounts
+		WHERE account_name = #{accountName}
+		  AND use_yn = 'Y'
+	</select>
+
+	<select id="getAccountCountByCode" parameterType="map" resultType="int">
+		SELECT /* [Account.xml].[getAccountCountByCode].[01] 변경일자(2017047) */
+			COUNT(account_code)
+		FROM
+			accounts
+		WHERE account_code = #{accountCode}
+		  AND use_yn = 'Y'
+	</select>
+
+	<select id="getProviderAccountCountByAccount" parameterType="java.lang.Integer" resultType="int">
+		SELECT /* [Account.xml].[getProviderAccountCountByAccount].[01] 변경일자(2017047) */
+			COUNT(apm.provider_account_seq)
+		FROM
+			accounts a
+				INNER JOIN account_provider_account_mapping as apm ON apm.account_seq = a.account_seq
+                INNER JOIN provider_account pa ON pa.provider_account_seq = apm.provider_account_seq AND pa.use_yn = 'Y'
+		WHERE a.account_seq = #{accountSeq}
+		AND a.use_yn = 'Y'
+	</select>
+
+	<select id="getAccountGrade" parameterType="map" resultType="AccountGrade">
+		SELECT /* [Account.xml].[getAccountGrade].[01] 변경일자(20190211) */
+			ag.account_grade_seq AS accountGradeSeq,
+			ag.account_seq AS accountSeq,
+			ag.grade_seq AS gradeSeq,
+		    gp.grade_name AS gradeName,
+			ag.account_grade_desc AS accountGradeDesc,
+			ag.parallel_build_cnt AS parallelBuildCnt,
+			ag.total_build_cnt AS totalBuildCnt,
+			ag.workspace_cnt AS workspaceCnt,
+			ag.core_cnt AS coreCnt,
+			ag.log_enable_yn AS logEnableYn,
+			ag.apply_state AS applyState,
+			ag.use_yn AS useYn,
+			DATE_FORMAT(ag.apply_start_date, '%Y-%m-%d') AS applyStartDate,
+			DATE_FORMAT(ag.apply_end_date, '%Y-%m-%d') AS applyEndDate,
+			DATE_FORMAT(ag.created, '%Y-%m-%d %H:%i:%s') AS created,
+			ag.creator AS creator,
+			DATE_FORMAT(ag.updated, '%Y-%m-%d %H:%i:%s') AS updated,
+			ag.updater AS updater
+		FROM account_grade AS ag
+			INNER JOIN grade_plan AS gp on ag.grade_seq = gp.grade_seq
+		WHERE ag.use_yn='Y'
+		<if test="accountSeq != null">
+			AND ag.account_seq = #{accountSeq}
+		</if>
+		<if test="accountGradeSeq != null">
+			AND ag.account_grade_seq = #{accountGradeSeq}
+		</if>
+		<if test="applyState != null">
+			AND ag.apply_state = #{applyState}
+		</if>
+		LIMIT 1
+	</select>
+
+	<select id="getAccountGrades" parameterType="map" resultType="AccountGrade">
+		SELECT /* [Account.xml].[getAccountGrade].[01] 변경일자(20190211) */
+			ag.account_grade_seq AS accountGradeSeq,
+			ag.account_seq AS accountSeq,
+			ag.grade_seq AS gradeSeq,
+			gp.grade_name AS gradeName,
+			ag.account_grade_desc AS accountGradeDesc,
+			ag.parallel_build_cnt AS parallelBuildCnt,
+			ag.total_build_cnt AS totalBuildCnt,
+			ag.workspace_cnt AS workspaceCnt,
+			ag.core_cnt AS coreCnt,
+			ag.log_enable_yn AS logEnableYn,
+			ag.apply_state AS applyState,
+			ag.use_yn AS useYn,
+			DATE_FORMAT(ag.apply_start_date, '%Y-%m-%d') AS applyStartDate,
+			DATE_FORMAT(ag.apply_end_date, '%Y-%m-%d') AS applyEndDate,
+			DATE_FORMAT(ag.created, '%Y-%m-%d %H:%i:%s') AS created,
+			ag.creator AS creator,
+			DATE_FORMAT(ag.updated, '%Y-%m-%d %H:%i:%s') AS updated,
+			ag.updater AS updater
+		FROM account_grade AS ag
+			INNER JOIN grade_plan AS gp on ag.grade_seq = gp.grade_seq
+		<where>
+			<if test="useYn != null">
+				AND ag.use_yn = #{useYn}
+			</if>
+			<if test="accountSeq != null">
+				AND ag.account_seq = #{accountSeq}
+			</if>
+			<if test="applyState != null">
+				AND ag.apply_state = #{applyState}
+			</if>
+		</where>
+	</select>
+
+	<select id="getAccountGradesByAccounts" parameterType="map" resultType="AccountGrade">
+		SELECT /* [Account.xml].[getAccountGradesByAccounts].[01] 변경일자(20190530) */
+			  ag.account_grade_seq AS accountGradeSeq,
+			  ag.account_seq AS accountSeq,
+			  ag.grade_seq AS gradeSeq,
+			  gp.grade_name AS gradeName,
+			  ag.account_grade_desc AS accountGradeDesc,
+			  ag.parallel_build_cnt AS parallelBuildCnt,
+			  ag.total_build_cnt AS totalBuildCnt,
+			  ag.workspace_cnt AS workspaceCnt,
+			  ag.core_cnt AS coreCnt,
+			  ag.log_enable_yn AS logEnableYn,
+			  ag.apply_state AS applyState,
+			  ag.use_yn AS useYn,
+			  DATE_FORMAT(ag.apply_start_date, '%Y-%m-%d') AS applyStartDate,
+			  DATE_FORMAT(ag.apply_end_date, '%Y-%m-%d') AS applyEndDate,
+			  DATE_FORMAT(ag.created, '%Y-%m-%d %H:%i:%s') AS created,
+			  ag.creator AS creator,
+			  DATE_FORMAT(ag.updated, '%Y-%m-%d %H:%i:%s') AS updated,
+			  ag.updater AS updater
+		  FROM account_grade AS ag
+			INNER JOIN grade_plan AS gp on ag.grade_seq = gp.grade_seq
+		 WHERE ag.use_yn='Y'
+		   AND ag.account_seq IN (<foreach collection="accountSeqs" item="accountSeq" separator=", ">#{accountSeq}</foreach>)
+	</select>
+
+	<select id="getLastAccountGrade" parameterType="map" resultType="AccountGrade">
+		SELECT /* [Account.xml].[getAccountGrade].[01] 변경일자(20190211) */
+			ag.account_grade_seq AS accountGradeSeq,
+			ag.account_seq AS accountSeq,
+			ag.grade_seq AS gradeSeq,
+			gp.grade_name AS gradeName,
+			ag.account_grade_desc AS accountGradeDesc,
+			ag.parallel_build_cnt AS parallelBuildCnt,
+			ag.total_build_cnt AS totalBuildCnt,
+			ag.workspace_cnt AS workspaceCnt,
+			ag.core_cnt AS coreCnt,
+			ag.log_enable_yn AS logEnableYn,
+			ag.apply_state AS applyState,
+			ag.use_yn AS useYn,
+			DATE_FORMAT(ag.apply_start_date, '%Y-%m-%d') AS applyStartDate,
+			DATE_FORMAT(ag.apply_end_date, '%Y-%m-%d') AS applyEndDate,
+			DATE_FORMAT(ag.created, '%Y-%m-%d %H:%i:%s') AS created,
+			ag.creator AS creator,
+			DATE_FORMAT(ag.updated, '%Y-%m-%d %H:%i:%s') AS updated,
+			ag.updater AS updater
+		FROM account_grade AS ag
+				INNER JOIN grade_plan AS gp on ag.grade_seq = gp.grade_seq
+		WHERE ag.account_seq = #{accountSeq}
+		order by ag.account_grade_seq desc
+		LIMIT 1
+	</select>
+
+	<insert id="addAccount" parameterType="Account" useGeneratedKeys="true" keyProperty="accountSeq" keyColumn="account_seq">
+        INSERT  /* [Account.xml].[addAccount].[01] 변경일자(20181101) */
+        INTO accounts (
+			account_name,
+			account_code,
+			account_type,
+			organization_name,
+			description,
+			base_language,
+			logo_image,
+			license_key,
+			customer_name,
+			customer_email,
+			customer_address,
+			user_auth_type,
+			app_id,
+			concurrent_session_yn,
+			account_config,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+			)
+        VALUES (
+			#{accountName},
+			#{accountCode},
+			#{accountType},
+			IFNULL(#{organizationName}, ''),
+			#{description},
+			#{baseLanguage},
+			#{logoImage},
+			#{licenseKey},
+			#{customerName},
+			#{customerEmail},
+			#{customerAddress},
+			#{userAuthType},
+			#{appId},
+            IFNULL(#{concurrentSessionYn}, 'Y'),
+			#{accountConfigJson},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+			)
+	</insert>
+
+	<insert id="addProviderOfAccount" parameterType="map">
+		INSERT /* [Account.xml].[addProviderOfAccount].[01] 변경일자(20181101) */
+		INTO account_provider_account_mapping (
+			account_seq,
+			provider_account_seq,
+			created,
+			creator
+			)
+		VALUES
+		<foreach collection="providerAccountSeqs" item="providerAccountSeq" open="(" separator="), (" close=")">
+			#{accountSeq},
+			#{providerAccountSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<insert id="addSystemUserOfAccount" parameterType="map">
+		INSERT /* [Account.xml].[addSystemUserOfAccount].[01] 변경일자(20181101) */
+		INTO account_system_user_mapping (
+			account_seq,
+			user_seq,
+			created,
+			creator
+			)
+		VALUES
+		<foreach collection="accountUserSeqs" item="userSeq" open="(" separator="), (" close=")">
+			#{accountSeq},
+			#{userSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<delete id="deleteUserOfAccount" parameterType="map">
+		DELETE /* [Account.xml].[deleteUserOfAccount].[01] 변경일자(20200716) */
+		FROM
+			account_user_mapping
+		WHERE
+			user_seq = #{userSeq}
+	</delete>
+
+	<insert id="addUserOfAccount" parameterType="map">
+		INSERT /* [Account.xml].[addUserOfAccount].[01] 변경일자(20181101) */
+		INTO account_user_mapping (
+			account_seq,
+			user_seq,
+			created,
+			creator
+			)
+		VALUES
+		<foreach collection="userSeqs" item="userSeq" open="(" separator="), (" close=")">
+			#{accountSeq},
+			#{userSeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<insert id="addAccountGrade" parameterType="AccountGrade" useGeneratedKeys="true" keyProperty="accountGradeSeq" keyColumn="account_grade_seq">
+		INSERT /* [Account.xml].[addAccountGrade].[01] 변경일자(20190211) */
+		INTO account_grade (
+			account_seq,
+			grade_seq,
+			account_grade_desc,
+			parallel_build_cnt,
+			total_build_cnt,
+			workspace_cnt,
+			core_cnt,
+		<if test="logEnableYn != null">
+			log_enable_yn,
+		</if>
+			apply_state,
+			use_yn,
+			apply_start_date,
+			apply_end_date,
+			created,
+			creator,
+			updated,
+			updater
+		) VALUES (
+			#{accountSeq},
+			#{gradeSeq},
+			#{accountGradeDesc},
+			#{parallelBuildCnt},
+			#{totalBuildCnt},
+			#{workspaceCnt},
+			#{coreCnt},
+		<if test="logEnableYn != null">
+			#{logEnableYn},
+		</if>
+			#{applyState},
+			#{useYn},
+		<if test="applyStartDate == null">
+			UTC_TIMESTAMP(),
+		</if>
+		<if test="applyStartDate != null">
+			#{applyStartDate},
+		</if>
+			#{applyEndDate},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<update id="editAccount" parameterType="Account">
+		UPDATE /* [Account.xml].[editAccount].[01] 변경일자(20181101) */
+			accounts
+		SET
+			<if test="accountName != null">
+				account_name = #{accountName},
+			</if>
+			<if test="accountCode != null">
+				account_code = #{accountCode},
+			</if>
+			<if test="organizationName != null">
+				organization_name = #{organizationName},
+			</if>
+				description = #{description},
+			<if test="baseLanguage != null">
+				base_language = #{baseLanguage},
+			</if>
+				logo_image = #{logoImage},
+			<if test="licenseKey != null">
+				license_key = #{licenseKey},
+			</if>
+			<if test="customerName != null">
+				customer_name = #{customerName},
+			</if>
+			<if test="customerEmail != null">
+				customer_email = #{customerEmail},
+			</if>
+			<if test="customerAddress != null">
+				customer_address = #{customerAddress},
+			</if>
+			<if test="userAuthType != null">
+				user_auth_type = #{userAuthType},
+			</if>
+			<if test="appId != null">
+				app_id = #{appId},
+			</if>
+			<if test="concurrentSessionYn != null">
+				concurrent_session_yn = #{concurrentSessionYn},
+			</if>
+			<if test="accountType != null">
+				account_type = #{accountType},
+			</if>
+				account_config = #{accountConfigJson},
+			<!--if test="useYn != null">
+				use_yn = #{useYn},
+			</if -->
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE account_seq = #{accountSeq}
+	</update>
+
+	<update id="editAccountRegistryPullUser" parameterType="Account">
+		UPDATE /* [Account.xml].[editAccountRegistryPullUser].[01] 변경일자(20220315) */
+			accounts
+		SET
+			<if test="registryDownloadUserId != null">
+				registry_download_user_id = #{registryDownloadUserId},
+			</if>
+			<if test="registryDownloadUserPassword != null">
+				registry_download_user_password = #{registryDownloadUserPassword},
+			</if>
+			updated = UTC_TIMESTAMP(),
+			updater = IFNULL(#{updater}, 1)
+		WHERE account_seq = #{accountSeq}
+	</update>
+
+	<update id="editAccountInfoForAD" parameterType="Account">
+		UPDATE /* [Account.xml].[editAccountInfoForAD].[01] 변경일자(20230220) */
+			accounts
+		SET
+			<if test="accountCode != null">
+				account_code = #{accountCode},
+			</if>
+			<if test="userAuthType != null">
+				user_auth_type = #{userAuthType},
+			</if>
+			updated = UTC_TIMESTAMP(),
+			updater = IFNULL(#{updater}, 1)
+		WHERE account_seq = #{accountSeq}
+	</update>
+
+	<update id="removeAccount" parameterType="Account">
+		UPDATE /* [Account.xml].[removeAccount].[01] 변경일자(20181101) */
+			accounts
+		SET
+			use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE account_seq = #{accountSeq}
+	</update>
+
+	<delete id="deleteAccount" parameterType="map">
+
+		/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+        UPDATE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+            accounts
+        SET
+              account_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , account_code = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , organization_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , description = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , logo_image = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_email = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_address = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , app_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , registry_download_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , registry_download_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+        WHERE account_seq = #{accountSeq};
+
+        UPDATE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+            accounts
+        SET
+              account_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , account_code = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , organization_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , description = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , logo_image = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_email = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_address = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , app_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+        WHERE account_seq = #{accountSeq};
+
+        UPDATE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+            accounts
+        SET
+              account_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , account_code = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , organization_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , description = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , logo_image = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_email = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_address = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , app_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+        WHERE account_seq = #{accountSeq};
+
+        UPDATE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+            accounts
+        SET
+              account_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , account_code = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , organization_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , description = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , logo_image = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_email = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_address = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , app_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+        WHERE account_seq = #{accountSeq};
+
+        UPDATE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+            accounts
+        SET
+              account_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , account_code = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , organization_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , description = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , logo_image = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_email = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , customer_address = LEFT(TO_BASE64(SHA(RAND())), 30)
+            , app_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  	, registry_download_user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+        WHERE account_seq = #{accountSeq};
+
+		DELETE /* [Account.xml].[deleteAccount].[01] 변경일자(20210707) */
+		FROM accounts
+		WHERE account_seq = #{accountSeq};
+
+		/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+	</delete>
+
+	<delete id="removeAccountProvider" parameterType="int">
+		DELETE /* [Account.xml].[removeAccountProvider].[01] 변경일자(20170607) */
+		FROM
+			account_provider_account_mapping
+		WHERE
+			account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteProviderAccount" parameterType="map">
+		DELETE /* [Account.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+		FROM
+			account_provider_account_mapping
+		WHERE
+			provider_account_seq = #{providerAccountSeq}
+	</delete>
+
+	<delete id="removeProviderOfAccount" parameterType="map">
+		DELETE /* [Account.xml].[removeProviderOfAccount].[01] 변경일자(20170601) */
+		FROM
+			account_provider_account_mapping
+		WHERE
+			account_seq = #{accountSeq}
+		AND provider_account_seq IN (
+			<foreach collection="providerSeqs" item="providerSeq" separator=", ">
+				#{providerSeq}
+			</foreach>
+		)
+	</delete>
+
+	<delete id="removeAccountUser" parameterType="int">
+		DELETE /* [Account.xml].[removeAccountUser].[01] 변경일자(20170607) */
+		FROM
+			ACCOUNT_USER_MAPPING
+		WHERE
+			account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="removeUserOfAccount" parameterType="map">
+		DELETE /* [Account.xml].[removeUserOfAccount].[01] 변경일자(20170601) */
+		FROM
+			ACCOUNT_USER_MAPPING
+		WHERE
+			account_seq = #{accountSeq}
+		AND user_seq IN (
+			<foreach collection="userSeqs" item="userSeq" separator=", ">
+				#{userSeq}
+			</foreach>
+		)
+	</delete>
+
+	<delete id="removeAccountSystemUser" parameterType="int">
+		DELETE /* [Account.xml].[removeAccountSystemUser].[01] 변경일자(20170607) */
+		FROM
+			account_system_user_mapping
+		WHERE
+			account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="removeSystemUserOfAccount" parameterType="map">
+		DELETE /* [Account.xml].[removeSystemUserOfAccount].[01] 변경일자(20170601) */
+		FROM
+			account_system_user_mapping
+		WHERE
+			account_seq = #{accountSeq}
+		AND user_seq IN (
+			<foreach collection="accountUserSeqs" item="userSeq" separator=", ">
+				#{userSeq}
+			</foreach>
+		)
+	</delete>
+
+	<update id="removeAccountGrade" parameterType="AccountGrade">
+		UPDATE /* [Account.xml].[removeAccountGrade].[01] 변경일자(20190211) */
+			account_grade
+		SET
+		    use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE account_grade_seq = #{accountGradeSeq}
+	</update>
+
+	<!-- AccountHourMetering -->
+	<insert id="addAccountHourMetering" parameterType="AccountMetering" >
+		INSERT /* [Account.xml].[addAccountHourMetering].[01] 변경일자(20190211) */
+		INTO account_hour_metering (
+			account_seq,
+			grade_seq,
+			parallel_build_cnt,
+			total_build_cnt,
+			workspace_cnt,
+			core_cnt,
+		    node_cnt,
+			created,
+			creator
+		) VALUES (
+			#{accountSeq},
+			#{gradeSeq},
+			#{parallelBuildCnt},
+			#{totalBuildCnt},
+			#{workspaceCnt},
+			#{coreCnt},
+			#{nodeCnt},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<delete id="removeAccountHourMetering" parameterType="AccountMetering">
+		DELETE /* [Account.xml].[removeAccountHourMetering].[01] 변경일자(20190211) */
+		FROM
+			account_hour_metering
+		WHERE
+			account_seq = #{accountSeq}
+		AND created <![CDATA[ < ]]> DATE(#{created})
+	</delete>
+
+	<delete id="deleteAccountHourMetering" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountHourMetering].[01] 변경일자(20210707) */
+		FROM
+			account_hour_metering
+		WHERE account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteAccountBillDailyCharge" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountBillDailyCharge].[01] 변경일자(20210707) */
+		FROM
+			account_bill_daily_charge
+		WHERE account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteAccountBillPrd" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountBillPrd].[01] 변경일자(20210707) */
+			abp
+		FROM
+			account_bill ab INNER JOIN account_bill_prd abp
+		WHERE ab.account_seq = #{accountSeq}
+		  AND ab.bill_seq = abp.bill_seq
+	</delete>
+
+	<delete id="deleteAccountBillExcharge" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountBillExcharge].[01] 변경일자(20210707) */
+			abe
+		FROM
+			account_bill ab INNER JOIN account_bill_exchange abe
+		WHERE ab.account_seq = #{accountSeq}
+		  AND ab.bill_seq = abe.bill_seq
+	</delete>
+
+	<delete id="deleteAccountBill" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountBill].[01] 변경일자(20210707) */
+		FROM
+			account_bill
+		WHERE account_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteAccountGrade" parameterType="map">
+		DELETE /* [Account.xml].[deleteAccountGrade].[01] 변경일자(20210707) */
+		FROM
+			account_grade
+		WHERE account_seq = #{accountSeq}
+	</delete>
+
+	<select id="getAccountHourMeterings" parameterType="map" resultType="AccountMetering">
+		SELECT /* [Account.xml].[getAccountHourMeterings].[01] 변경일자(20190211) */
+			ahm.account_seq AS accountSeq,
+			ahm.grade_seq AS gradeSeq,
+			ahm.parallel_build_cnt AS parallelBuildCnt,
+			ahm.total_build_cnt AS totalBuildCnt,
+			ahm.workspace_cnt AS workspaceCnt,
+			ahm.core_cnt AS coreCnt,
+			ahm.node_cnt AS nodeCnt,
+			DATE_FORMAT(CONVERT_TZ(ahm.created,'GMT',#{regionTimeZone}), '%Y-%m-%d %H:%i:%s') AS created,
+			ahm.creator AS creator
+		FROM account_hour_metering AS ahm
+		WHERE ahm.account_seq > 0
+		<if test="accountSeq != null">
+			AND ahm.account_seq = #{accountSeq}
+		</if>
+		<if test="searchStartDt != null and searchEndDt != null">
+			AND ahm.created >= CONVERT_TZ(#{searchStartDt},#{regionTimeZone},'GMT') AND ahm.created <![CDATA[ < ]]> CONVERT_TZ(#{searchEndDt}, #{regionTimeZone},'GMT')
+		</if>
+		<if test="baseDate != null">
+			AND ahm.created >= CONVERT_TZ(#{baseDate},#{regionTimeZone},'GMT') AND ahm.created <![CDATA[ < ]]> CONVERT_TZ(DATE_ADD(#{baseDate}, INTERVAL 1 DAY), #{regionTimeZone},'GMT')
+		</if>
+		<if test="startCount != null and pageCount != null">
+			LIMIT #{startCount}, #{pageCount}
+		</if>
+	</select>
+
+	<select id="getAccountSeqListInHourMeteringByBaseDate" parameterType="map" resultType="Integer">
+		SELECT /* [Account.xml].[getAccountSeqsByHourMeterings].[01] 변경일자(20190627) */ account_seq as accountSeq
+		  FROM account_hour_metering
+		 WHERE created >= CONVERT_TZ(#{baseDate},#{regionTimeZone},'GMT')
+		   AND created <![CDATA[ < ]]> CONVERT_TZ(DATE_ADD(#{baseDate}, INTERVAL 1 DAY), #{regionTimeZone},'GMT')
+		 GROUP BY account_seq
+	</select>
+
+	<select id="getAccountService" resultMap="AccountServiceMap">
+		SELECT /* [Account.xml].[getAccountService].[01] 생성일자(20190624) */
+			acc.account_seq as accountSeq
+			 , acc.account_type as accountType
+			 , acc.account_name as accountName
+			 , sv.service_seq as s_serviceSeq
+			 , sv.service_name as s_serviceName
+			 , sv.registry_user_id as s_registryUserId
+			 , sv.registry_user_password as s_registryUserPassword
+			 , sr.service_seq    as sr_serviceSeq
+			 , sr.project_id    as sr_projectId
+			 , sr.project_type    as sr_projectType
+			 , sr.project_name    as sr_projectName
+		FROM accounts acc
+				 JOIN account_service_mapping asm on asm.account_seq = acc.account_seq
+				 JOIN services sv ON sv.service_seq = asm.service_seq AND sv.use_yn = 'Y'
+				 JOIN service_registry sr ON  sr.service_seq = sv.service_seq
+		WHERE acc.use_yn = 'Y'
+	</select>
+
+	<select id="getAccessibleResourcesCountWithoutWorkspace" parameterType="map" resultType="int">
+		SELECT /* [Account.xml].[getAccessibleResourcesCountWithoutWorkspace].[01]변경일자(20190729) */
+			   Count(acc.account_seq)
+		FROM   accounts acc
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			   INNER JOIN account_system_user_mapping asum
+					   ON asum.account_seq = acc.account_seq
+						  AND asum.user_seq = #{loginUserSeq}
+		</if>
+		<if test='"DEVOPS".equals(loginUserRole)'>
+			   INNER JOIN account_user_mapping aum
+					   ON aum.account_seq = acc.account_seq
+					  	  AND aum.user_seq = #{loginUserSeq}
+		</if>
+		<if test="clusterSeq != null">
+			   INNER JOIN account_provider_account_mapping apam
+					   ON apam.account_seq = acc.account_seq
+			   INNER JOIN provider_account pa
+					   ON pa.provider_account_seq = apam.provider_account_seq
+			   INNER JOIN clusters cl
+					   ON cl.provider_account_seq = pa.provider_account_seq
+						  AND cl.cluster_seq = #{clusterSeq}
+		</if>
+		<if test="clusterId != null">
+			   INNER JOIN account_provider_account_mapping id_apam
+					   ON id_apam.account_seq = acc.account_seq
+			   INNER JOIN provider_account id_pa
+					   ON id_pa.provider_account_seq = id_apam.provider_account_seq
+			   INNER JOIN clusters id_cl
+					   ON id_cl.provider_account_seq = id_pa.provider_account_seq
+						  AND id_cl.cluster_id = #{clusterId}
+		</if>
+		<if test="buildSeq != null">
+			   INNER JOIN build bu_bu
+					   ON bu_bu.account_seq = acc.account_seq
+					  AND bu_bu.build_seq = #{buildSeq}
+		</if>
+		<if test="buildRunSeq != null">
+			   INNER JOIN build br_bu
+					   ON br_bu.account_seq = acc.account_seq
+			   INNER JOIN build_run br_br
+					   ON br_br.build_seq = br_bu.build_seq
+					  AND br_br.build_run_seq = #{buildRunSeq}
+		</if>
+		<if test="buildStepRunSeq != null">
+			   INNER JOIN build bsr_bu
+					   ON bsr_bu.account_seq = acc.account_seq
+			   INNER JOIN build_run bsr_br
+					   ON bsr_br.build_seq = bsr_bu.build_seq
+			   INNER JOIN build_step_run bsr_bsr
+					   ON bsr_bsr.build_run_seq = bsr_br.build_run_seq
+					  AND bsr_bsr.build_step_run_seq = #{buildStepRunSeq}
+		</if>
+		<if test="volumeSeq != null">
+			   INNER JOIN account_provider_account_mapping v_apam
+					   ON v_apam.account_seq = acc.account_seq
+			   INNER JOIN provider_account v_pa
+					   ON v_pa.provider_account_seq = v_apam.provider_account_seq
+			   INNER JOIN clusters v_cl
+					   ON v_cl.provider_account_seq = v_pa.provider_account_seq
+			   INNER JOIN cluster_volumes v_cv
+					   ON v_cv.cluster_seq = v_cl.cluster_seq
+					   AND v_cv.volume_seq = #{volumeSeq}
+		</if>
+		<where>
+			<if test="accountSeq != null">
+				acc.account_seq = #{accountSeq}
+			</if>
+		</where>
+	</select>
+
+	<select id="getAccessibleUserCountWithoutWorkspace" parameterType="map" resultType="int">
+		SELECT Sum(users.count) /* [Account.xml].[getAccessibleUserCountWithoutWorkspace].[01]변경일자(20190729) */
+		FROM	(
+				/* System User가 System User에 접근하는 경우 */
+				(SELECT Count(*) AS count
+				 FROM   accounts acc
+						INNER JOIN account_system_user_mapping asum
+								ON asum.account_seq = acc.account_seq
+								   AND asum.user_seq = #{loginUserSeq}
+						INNER JOIN account_system_user_mapping asum2
+								ON asum2.account_seq = acc.account_seq
+								   AND asum2.user_seq = #{userSeq})
+				UNION
+				/* System User가 DevOps User에 접근하는 경우 */
+				(SELECT Count(*) AS count
+				 FROM   accounts acc
+						INNER JOIN account_system_user_mapping asum
+								ON asum.account_seq = acc.account_seq
+								   AND asum.user_seq = #{loginUserSeq}
+						INNER JOIN account_user_mapping aum
+								ON aum.account_seq = acc.account_seq
+								   AND aum.user_seq = #{userSeq})
+				UNION
+				/* DevOps User가 DevOps User에 (스스로에게) 접근하는 경우 */
+				(SELECT Count(*) AS count
+				 FROM   accounts acc
+						INNER JOIN account_user_mapping aum
+								ON aum.account_seq = acc.account_seq
+								   AND aum.user_seq = #{loginUserSeq}
+								   AND aum.user_seq = #{userSeq})
+				UNION
+				/* DevOps User중 MANAGER 권한 User가 DevOps User에 접근하는 경우 */
+				(SELECT	Count(*) AS count
+				 FROM	service_user su
+						INNER JOIN service_user su2
+								ON su2.service_seq = su.service_seq
+								   AND su2.user_seq = #{loginUserSeq}
+								   AND su2.user_grant = 'MANAGER'
+				 WHERE su.user_seq = #{userSeq})
+				)
+				users
+	</select>
+
+	<!--
+
+	-->
+	<select id="getAccountSimple" parameterType="map" resultType="Account">
+		SELECT /* [Account.xml].[getAccountSimple].[01] 변경일자(20190830) */
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+		FROM
+			accounts AS ac
+		WHERE ac.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getAccountSimpleByCode" parameterType="map" resultType="Account">
+		SELECT /* [Account.xml].[getAccountSimple].[01] 변경일자(20190830) */
+			ac.account_seq AS accountSeq
+			,ac.account_type AS accountType
+			,ac.account_name AS accountName
+			,ac.account_code AS accountCode
+		FROM
+			accounts AS ac
+		WHERE ac.use_yn = #{useYn}
+		AND	  ac.account_code = #{accountCode}
+	</select>
+
+	<select id="getAccountByUser" parameterType="map" resultType="Account">
+		SELECT /* [Account.xml].[getAccountByUserSeq].[01]변경일자(20190729) */
+			acc.account_seq AS accountSeq
+			,acc.account_type AS accountType
+			,acc.account_name AS accountName
+			,acc.account_code AS accountCode
+			,acc.customer_name AS customerName
+			,acc.customer_email AS customerEmail
+			,acc.customer_address AS customerAddress
+			,acc.user_auth_type AS userAuthType
+			,acc.app_id AS appId
+			,acc.concurrent_session_yn AS concurrentSessionYn
+			,acc.registry_download_user_id AS registryDownloadUserId
+			,acc.registry_download_user_password AS registryDownloadUserPassword
+			,acc.license_key AS licenseKey
+			,acc.account_config AS accountConfigJson
+		FROM   accounts acc
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			INNER JOIN account_system_user_mapping asum
+				ON asum.account_seq = acc.account_seq
+				AND asum.user_seq = #{loginUserSeq}
+			INNER JOIN account_service_mapping asm
+				ON asm.account_seq = acc.account_seq
+		</if>
+		<if test='"DEVOPS".equals(loginUserRole)'>
+			INNER JOIN account_user_mapping aum
+				ON aum.account_seq = acc.account_seq
+				AND aum.user_seq = #{loginUserSeq}
+			INNER JOIN service_user asm
+				ON asm.user_seq = aum.user_seq
+		</if>
+		WHERE acc.use_yn = 'Y'
+		LIMIT 1
+	</select>
+
+	<select id="getClustersProviderOfAccount" parameterType="map" resultType="ClusterProvider">
+		SELECT /* [Account.xml].[getClusterOfAccount].[01] 변경일자(20200313) */
+			apam.account_seq AS accountSeq
+			,cl.cluster_seq AS clusterSeq
+			,cl.cloud_provider_account_seq AS providerAccountSeq
+		FROM
+			accounts acc
+			INNER JOIN account_provider_account_mapping apam
+					ON apam.account_seq=acc.account_seq
+				   AND acc.account_seq=#{accountSeq}
+			INNER JOIN provider_account pa
+					ON pa.provider_account_seq=apam.provider_account_seq
+				<if test="accountUseType != null">
+				   AND pa.account_use_type = #{accountUseType}
+				</if>
+			INNER JOIN clusters cl
+					ON cl.cloud_provider_account_seq=pa.provider_account_seq
+	</select>
+
+	<select id="getLinkedClustersOfAccount" parameterType="map" resultType="Cluster">
+		SELECT /* [Account.xml].[getClusterOfAccount].[01] 변경일자(20200313) */
+			cl.cluster_seq					clusterSeq
+			,cl.cluster_type				clusterType
+			,cl.cluster_name				clusterName
+			,cl.description					description
+			,cl.cluster_id					clusterId
+			,cl.cube_type					cubeType
+			,cl.region_code					regionCode
+			,cl.cluster_state				clusterState
+			,cl.use_yn						useYn
+			,cl.provider_account_seq		providerAccountSeq
+			,cl.k8s_version					k8sVersion
+			,cl.cloud_provider_account_seq  cloudProviderAccountSeq
+		FROM
+			accounts acc
+			INNER JOIN account_provider_account_mapping apam
+					ON apam.account_seq=acc.account_seq
+				   AND acc.account_seq=#{accountSeq}
+			INNER JOIN provider_account pa
+					ON pa.provider_account_seq=apam.provider_account_seq
+				<if test="accountUseType != null">
+				   AND pa.account_use_type = #{accountUseType}
+				</if>
+			INNER JOIN clusters cl
+					ON cl.cloud_provider_account_seq=pa.provider_account_seq
+				   AND cl.use_yn='Y'
+	</select>
+
+
+	<update id="updateClustersCloudProviderAccount" parameterType="map">
+		UPDATE /* [Account.xml].[updateClustersCloudProviderAccount].[01] 변경일자(20200313) */
+			clusters
+		SET
+			cloud_provider_account_seq = #{providerAccountSeq},
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE
+			cluster_seq IN (
+		<foreach collection="clusterSeqs" item="clusterSeq" separator=", ">
+			#{clusterSeq}
+		</foreach>
+			)
+	</update>
+
+	<select id="getClusterSummary" parameterType="map" resultType="Cluster">
+		SELECT /* [Cluster.xml].[getClusterSummary].[01] 변경일자(20181126) */
+			cl.cluster_seq					clusterSeq,
+			cl.cluster_type					clusterType,
+			cl.cluster_name					clusterName,
+			cl.region_code					regionCode,
+			cl.cluster_state				clusterState,
+			cl.cluster_id					clusterId,
+			cl.cube_type					cubeType,
+			cl.auth_type					authType,
+			cl.k8s_version					k8sVersion,
+			cl.use_yn						useYn,
+			cl.provider_account_seq			providerAccountSeq,
+			pa.provider_account_seq			pa_providerAccountSeq,
+			pa.account_use_type 			pa_accountUseType,
+			pa.provider_code				pa_providerCode,
+# 			(SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = pa.provider_code AND x.use_yn = 'Y') AS pa_providerCodeName,
+			pa.provider_name				pa_providerName
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+		WHERE cl.cluster_seq = #{clusterSeq}
+	</select>
+
+</mapper>

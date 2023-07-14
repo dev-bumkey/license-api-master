@@ -1,0 +1,1544 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IClusterMapper">
+	<resultMap type="Cluster" id="ClusterMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+		<association property="providerAccount" columnPrefix="pa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="cloudProviderAccount" columnPrefix="cpa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+	</resultMap>
+
+	<resultMap type="ClusterDetail" id="ClusterDetailMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+		<association property="providerAccount" columnPrefix="pa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="cloudProviderAccount" columnPrefix="cpa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+		<collection property="servicemaps" column="clusterSeq" select="run.acloud.api.cserver.dao.IServicemapMapper.getServicemapByClusterForRef" javaType="list" ofType="Servicemap" />
+	</resultMap>
+
+	<resultMap type="ClusterDetailNamespace" id="ClusterDetailNamespaceMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+		<association property="providerAccount" columnPrefix="pa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="cloudProviderAccount" columnPrefix="cpa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+		<collection property="servicemaps" columnPrefix="sm_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapMap" />
+	</resultMap>
+
+	<resultMap type="ClusterDetailCondition" id="ClusterDetailConditionMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+		<association property="providerAccount" columnPrefix="pa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="cloudProviderAccount" columnPrefix="cpa_" resultMap="run.acloud.api.configuration.dao.IProviderAccountMapper.ProviderAccountMap" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+		<association property="condition" columnPrefix="cc_" resultMap="ClusterConditionMap" />
+		<collection property="servicemaps" column="clusterSeq" select="run.acloud.api.cserver.dao.IServicemapMapper.getServicemapDetailByClusterForRef" javaType="list" ofType="Servicemap" />
+	</resultMap>
+
+	<resultMap type="ClusterCondition" id="ClusterConditionMap" autoMapping="true">
+		<id property="clusterSeq" column="clusterSeq"/>
+	</resultMap>
+
+	<sql id="selectClusterColumnSql">
+		cl.cluster_seq					clusterSeq,
+			cl.cluster_type					clusterType,
+			cl.cluster_name					clusterName,
+			cl.description					description,
+			cl.region_code					regionCode,
+			cl.cluster_state				clusterState,
+			cl.cluster_id					clusterId,
+			cl.cube_type					cubeType,
+			cl.provider_account_seq			providerAccountSeq,
+			cl.node_port_supported			nodePortSupported,
+			cl.ingress_supported			ingressSupported,
+			cl.loadbalancer_supported   	loadbalancerSupported,
+			cl.persistent_volume_supported	persistentVolumeSupported,
+			cl.k8s_version                  k8sVersion,
+			cl.api_url						apiUrl,
+			cl.api_key				    	apiKey,
+			cl.api_secret			    	apiSecret,
+			cl.client_auth_data		    	clientAuthData,
+			cl.client_key_data              clientKeyData,
+			cl.server_auth_data		    	serverAuthData,
+			cl.use_yn						useYn,
+			cl.auth_type					authType,
+			cl.billing_provider_account_seq billingProviderAccountSeq,
+			cl.cloud_provider_account_seq 	cloudProviderAccountSeq,
+		    cl.ingress_host					ingressHost,
+			cl.node_port_url				nodePortUrl,
+			cl.node_port_range				nodePortRange,
+			cl.billing_group_id             billingGroupId,
+			cl.created						created,
+			cl.creator						creator,
+			cl.updated						updated,
+			cl.updater						updater,
+			(SELECT svc.cluster_tenancy FROM services svc INNER JOIN service_cluster sc ON sc.service_seq=svc.service_seq AND svc.service_type != 'PLATFORM' WHERE sc.cluster_seq=cl.cluster_seq LIMIT 1) AS clusterTenancy,
+			<include refid="run.acloud.api.auth.dao.IUserMapper.accountColumnSql" />
+			pa.provider_account_seq			pa_providerAccountSeq,
+			pa.account_use_type 			pa_accountUseType,
+			pa.provider_code				pa_providerCode,
+			pa.provider_name				pa_providerName,
+			pa.description					pa_description,
+			pa.provider_account_config		pa_providerAccountConfig,
+			cpa.provider_account_seq		cpa_providerAccountSeq,
+			cpa.account_use_type 			cpa_accountUseType,
+			cpa.provider_code				cpa_providerCode,
+			cpa.provider_name				cpa_providerName,
+			cpa.description					cpa_description,
+			cpa.api_account_password		cpa_apiAccountPassword,
+			cpa.provider_account_config		cpa_providerAccountConfig
+	</sql>
+
+	<sql id="selectClusterWithoutAuthColumnSql">
+		cl.cluster_seq					clusterSeq,
+			cl.cluster_type					clusterType,
+			cl.cluster_name					clusterName,
+			cl.description					description,
+			cl.region_code					regionCode,
+			cl.cluster_state				clusterState,
+			cl.cluster_id					clusterId,
+			cl.cube_type					cubeType,
+			cl.provider_account_seq			providerAccountSeq,
+			cl.node_port_supported			nodePortSupported,
+			cl.ingress_supported			ingressSupported,
+			cl.loadbalancer_supported   	loadbalancerSupported,
+			cl.persistent_volume_supported	persistentVolumeSupported,
+			cl.k8s_version                  k8sVersion,
+			cl.api_url						apiUrl,
+			cl.use_yn						useYn,
+			cl.auth_type					authType,
+			cl.billing_provider_account_seq billingProviderAccountSeq,
+			cl.cloud_provider_account_seq 	cloudProviderAccountSeq,
+		    cl.ingress_host					ingressHost,
+			cl.node_port_url				nodePortUrl,
+			cl.node_port_range				nodePortRange,
+			cl.billing_group_id             billingGroupId,
+			cl.created						created,
+			cl.creator						creator,
+			cl.updated						updated,
+			cl.updater						updater,
+			(SELECT svc.cluster_tenancy FROM services svc INNER JOIN service_cluster sc ON sc.service_seq=svc.service_seq AND svc.service_type != 'PLATFORM' WHERE sc.cluster_seq=cl.cluster_seq LIMIT 1) AS clusterTenancy,
+			<include refid="run.acloud.api.auth.dao.IUserMapper.accountColumnSql" />
+			pa.provider_account_seq			pa_providerAccountSeq,
+			pa.account_use_type 			pa_accountUseType,
+			pa.provider_code				pa_providerCode,
+			pa.provider_name				pa_providerName,
+			pa.description					pa_description,
+			pa.provider_account_config		pa_providerAccountConfig,
+			cpa.provider_account_seq		cpa_providerAccountSeq,
+			cpa.account_use_type 			cpa_accountUseType,
+			cpa.provider_code				cpa_providerCode,
+			cpa.provider_name				cpa_providerName,
+			cpa.description					cpa_description
+	</sql>
+
+	<insert id="addCluster" parameterType="ClusterAdd" useGeneratedKeys="true" keyProperty="clusterSeq">
+    <![CDATA[
+		INSERT /* [Cluster.xml].[addCluster].[01] 변경일자(20170529) */
+		INTO clusters (
+			provider_account_seq,
+			cluster_type,
+			cluster_name,
+			description,
+			region_code,
+			cluster_state,
+			cluster_id,
+			billing_group_id,
+			cube_type,
+			auth_type,
+			api_url,
+			api_key,
+			api_secret,
+			client_auth_data,
+			client_key_data,
+			server_auth_data,
+			node_port_supported,
+			ingress_supported,
+			loadbalancer_supported,
+			persistent_volume_supported,
+			ingress_host,
+			node_port_url,
+			node_port_range,
+			k8s_version,
+			billing_provider_account_seq,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) VALUES (
+			#{providerAccountSeq},
+			#{clusterType},
+			#{clusterName},
+			#{description},
+			#{regionCode},
+			#{clusterState},
+			TRIM(#{clusterId}),
+			#{billingGroupId},
+			#{cubeType},
+			#{authType},
+			#{apiUrl},
+			#{apiKey},
+			#{apiSecret},
+			#{clientAuthData},
+			#{clientKeyData},
+			#{serverAuthData},
+			#{nodePortSupported},
+			#{ingressSupported},
+			#{loadbalancerSupported},
+			#{persistentVolumeSupported},
+			#{ingressHost},
+			#{nodePortUrl},
+			#{nodePortRange},
+			#{k8sVersion},
+			#{billingProviderAccountSeq},
+			#{useYn},
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+    ]]>
+    </insert>
+
+	<update id="updateCluster" parameterType="ClusterAdd">
+    	UPDATE /* [Cluster.xml].[updateCluster].[01] 변경일자(20170531) */
+    		clusters
+    	SET
+    		<if test="providerAccountSeq != null">
+    			provider_account_seq = #{providerAccountSeq},
+    		</if>
+    		<if test="clusterType != null">
+				cluster_type = #{clusterType},
+			</if>
+			<if test="clusterName != null">
+				cluster_name = #{clusterName},
+			</if>
+			<if test="description != null">
+				description = #{description},
+			</if>
+			<if test="regionCode != null">
+				region_code = #{regionCode},
+			</if>
+			<if test="clusterId != null">
+				cluster_id = #{clusterId},
+			</if>
+			<if test="billingGroupId != null">
+				billing_group_id = #{billingGroupId},
+			</if>
+			<if test="cubeType != null">
+				cube_type = #{cubeType},
+			</if>
+			<if test="authType != null">
+				auth_type = #{authType},
+			</if>
+			<if test="apiUrl != null">
+				api_url = #{apiUrl},
+			</if>
+			<if test="apiKey != null">
+				api_key = #{apiKey},
+			</if>
+			<if test="apiSecret != null">
+				api_secret = #{apiSecret},
+			</if>
+			<if test="clientAuthData != null">
+				client_auth_data = #{clientAuthData},
+			</if>
+            <if test="clientKeyData != null">
+                client_key_data = #{clientKeyData},
+            </if>
+			<if test="serverAuthData != null">
+				server_auth_data = #{serverAuthData},
+			</if>
+			<if test="nodePortSupported != null">
+				node_port_supported = #{nodePortSupported},
+			</if>
+			<if test="ingressSupported != null">
+				ingress_supported = #{ingressSupported},
+			</if>
+			<if test="loadbalancerSupported != null">
+				loadbalancer_supported = #{loadbalancerSupported},
+			</if>
+			<if test="persistentVolumeSupported != null">
+				persistent_volume_supported = #{persistentVolumeSupported},
+			</if>
+			<if test="ingressHost != null">
+				ingress_host = #{ingressHost},
+			</if>
+			<if test="nodePortUrl != null">
+				node_port_url = #{nodePortUrl},
+			</if>
+			<if test="nodePortRange != null">
+				node_port_range = #{nodePortRange},
+			</if>
+			<if test='useYn == "Y"'>
+				use_yn = #{useYn},
+			</if>
+			<if test="k8sVersion != null">
+				k8s_version = #{k8sVersion},
+			</if>
+			billing_provider_account_seq = #{billingProviderAccountSeq},
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq}
+    </update>
+
+	<update id="updateClusterForSecurity" parameterType="ClusterAdd">
+    	UPDATE /* [Cluster.xml].[updateClusterForSecurity].[01] 변경일자(20180625) */
+    		clusters
+    	SET
+			<if test="apiSecret != null">
+				api_secret = #{apiSecret},
+			</if>
+			<if test="clientAuthData != null">
+				client_auth_data = #{clientAuthData},
+			</if>
+            <if test="clientKeyData != null">
+                client_key_data = #{clientKeyData},
+            </if>
+			<if test="serverAuthData != null">
+				server_auth_data = #{serverAuthData},
+			</if>
+			<if test="updater != null">
+				updater = #{updater},
+			</if>
+			updated = UTC_TIMESTAMP()
+    	WHERE
+    		cluster_seq = #{clusterSeq}
+    </update>
+
+	<update id="updateClusterState" parameterType="ClusterAdd">
+		UPDATE /* [Cluster.xml].[updateClusterState].[01] 변경일자(20181018) */
+			clusters
+		SET
+			cluster_state = #{clusterState},
+			updated = UTC_TIMESTAMP(),
+			updater = IFNULL(#{updater}, 1)
+		<where>
+			<choose>
+				<when test="clusterSeq != null">
+					cluster_seq = #{clusterSeq}
+				</when>
+				<when test="clusterId != null">
+					cluster_id = #{clusterId} AND use_yn = 'Y'
+				</when>
+				<otherwise>
+					1 = 2
+				</otherwise>
+			</choose>
+		</where>
+	</update>
+
+	<update id="updateClusterVersion" parameterType="map">
+		UPDATE /* [Cluster.xml].[updateClusterVersion].[01] 변경일자(20210826) */
+			clusters
+		SET
+			k8s_version = #{k8sVersion},
+			updated = UTC_TIMESTAMP(),
+			updater = IFNULL(#{updater}, 1)
+		WHERE cluster_seq = #{clusterSeq}
+	</update>
+
+	<select id="hasComponents" parameterType="map" resultType="int">
+		SELECT /* [Cluster.xml].[hasComponents].[01] 변경일자(20220413) */
+			EXISTS(
+				SELECT cl.cluster_seq
+				FROM clusters cl
+						INNER JOIN components cp	ON	cp.cluster_seq = cl.cluster_seq AND cp.use_yn = 'Y'
+				WHERE cl.cluster_seq = #{clusterSeq}
+					AND cp.state_code != 'DELETED'
+			    )
+    </select>
+
+	<update id="removeClusterEmpty" parameterType="map">
+    	UPDATE /* [Cluster.xml].[removeClusterEmpty].[01] 변경일자(20210705) */
+    		clusters
+    	SET
+			cluster_state = ifnull(#{clusterState}, 'DELETED'),
+    	    cluster_id = LEFT(TO_BASE64(SHA(RAND())), 50),
+			cube_type = null,
+			auth_type = null,
+			api_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_key = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_secret = LEFT(TO_BASE64(SHA(RAND())), 50),
+			billing_group_id = null,
+			server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_key_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_supported = 'N',
+			ingress_supported = 'N',
+			loadbalancer_supported = 'N',
+			persistent_volume_supported = 'N',
+			ingress_host = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_range = null,
+			k8s_version = null,
+			billing_provider_account_seq = null,
+			cloud_provider_account_seq = null,
+			use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq};
+
+    	UPDATE /* [Cluster.xml].[removeClusterEmpty].[01] 변경일자(20210705) */
+    		clusters
+    	SET
+			cluster_state = ifnull(#{clusterState}, 'DELETED'),
+    	    cluster_id = LEFT(TO_BASE64(SHA(RAND())), 50),
+			cube_type = null,
+			auth_type = null,
+			api_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_key = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_secret = LEFT(TO_BASE64(SHA(RAND())), 50),
+			billing_group_id = null,
+			server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_key_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_supported = 'N',
+			ingress_supported = 'N',
+			loadbalancer_supported = 'N',
+			persistent_volume_supported = 'N',
+			ingress_host = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_range = null,
+			k8s_version = null,
+			billing_provider_account_seq = null,
+			cloud_provider_account_seq = null,
+			use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq};
+
+    	UPDATE /* [Cluster.xml].[removeClusterEmpty].[01] 변경일자(20210705) */
+    		clusters
+    	SET
+			cluster_state = ifnull(#{clusterState}, 'DELETED'),
+    	    cluster_id = LEFT(TO_BASE64(SHA(RAND())), 50),
+			cube_type = null,
+			auth_type = null,
+			api_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_key = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_secret = LEFT(TO_BASE64(SHA(RAND())), 50),
+			billing_group_id = null,
+			server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_key_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_supported = 'N',
+			ingress_supported = 'N',
+			loadbalancer_supported = 'N',
+			persistent_volume_supported = 'N',
+			ingress_host = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_range = null,
+			k8s_version = null,
+			billing_provider_account_seq = null,
+			cloud_provider_account_seq = null,
+			use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq};
+
+    	UPDATE /* [Cluster.xml].[removeClusterEmpty].[01] 변경일자(20210705) */
+    		clusters
+    	SET
+			cluster_state = ifnull(#{clusterState}, 'DELETED'),
+    	    cluster_id = LEFT(TO_BASE64(SHA(RAND())), 50),
+			cube_type = null,
+			auth_type = null,
+			api_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_key = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_secret = LEFT(TO_BASE64(SHA(RAND())), 50),
+			billing_group_id = null,
+			server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_key_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_supported = 'N',
+			ingress_supported = 'N',
+			loadbalancer_supported = 'N',
+			persistent_volume_supported = 'N',
+			ingress_host = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_range = null,
+			k8s_version = null,
+			billing_provider_account_seq = null,
+			cloud_provider_account_seq = null,
+			use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq};
+
+    	UPDATE /* [Cluster.xml].[removeClusterEmpty].[01] 변경일자(20210705) */
+    		clusters
+    	SET
+			cluster_state = ifnull(#{clusterState}, 'DELETED'),
+    	    cluster_id = LEFT(TO_BASE64(SHA(RAND())), 50),
+			cube_type = null,
+			auth_type = null,
+			api_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_key = LEFT(TO_BASE64(SHA(RAND())), 50),
+			api_secret = LEFT(TO_BASE64(SHA(RAND())), 50),
+			billing_group_id = null,
+			server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			client_key_data = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_supported = 'N',
+			ingress_supported = 'N',
+			loadbalancer_supported = 'N',
+			persistent_volume_supported = 'N',
+			ingress_host = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_url = LEFT(TO_BASE64(SHA(RAND())), 50),
+			node_port_range = null,
+			k8s_version = null,
+			billing_provider_account_seq = null,
+			cloud_provider_account_seq = null,
+			use_yn = 'N',
+    		updated = UTC_TIMESTAMP(),
+    		updater = #{updater}
+    	WHERE
+    		cluster_seq = #{clusterSeq};
+    </update>
+
+	<delete id="deleteCluster" parameterType="map">
+
+		/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+		DELETE /* [Cluster.xml].[deleteCluster].[01] 변경일자(20210702) */
+		FROM clusters
+		WHERE cluster_seq = #{clusterSeq} AND cluster_state = 'DELETED' AND use_yn = 'N';
+
+		/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+
+	</delete>
+
+	<sql id="getClustersSql">
+		FROM clusters cl
+		<if test="serviceSeq != null or serviceSeqs != null">
+			LEFT OUTER JOIN service_cluster sc on sc.cluster_seq = cl.cluster_seq
+			LEFT OUTER JOIN services s ON s.service_seq = sc.service_seq AND s.use_yn = 'Y'
+		</if>
+		INNER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+		INNER JOIN account_provider_account_mapping apam	ON apam.provider_account_seq = pa.provider_account_seq
+		INNER JOIN accounts a	ON a.account_seq = apam.account_seq	AND a.use_yn = 'Y'
+		LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+		<where>
+			<choose>
+				<when test="accountSeq != null or serviceSeq != null or clusterSeq != null or serviceSeqs != null or clusterSeqs != null or useYn != null">
+					<if test="accountSeq != null">
+						AND a.account_seq = #{accountSeq}
+					</if>
+					<if test="serviceSeq != null">
+						AND sc.service_seq = #{serviceSeq}
+					</if>
+					<if test="clusterSeq != null">
+						AND cl.cluster_seq = #{clusterSeq}
+					</if>
+					<if test="serviceSeqs != null">
+						AND sc.service_seq IN <foreach collection="serviceSeqs" item="item" index="index" separator="," open="(" close=")">#{item.value}</foreach>
+					</if>
+					<if test="clusterSeqs != null">
+						AND cl.cluster_seq IN <foreach collection="clusterSeqs" item="item" index="index" separator="," open="(" close=")">#{item.value}</foreach>
+					</if>
+					<if test="useYn != null">
+						AND cl.use_yn = #{useYn}
+					</if>
+				</when>
+				<otherwise>
+					1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		ORDER BY cl.cluster_seq DESC
+	</sql>
+
+	<select id="getClusters" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusters].[01] 변경일자(20181126) */
+			<include refid="selectClusterColumnSql" />
+		<include refid="getClustersSql" />
+	</select>
+
+	<select id="getClustersWithoutAuth" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusters].[01] 변경일자(20181126) */
+			<include refid="selectClusterWithoutAuthColumnSql" />
+		<include refid="getClustersSql" />
+	</select>
+
+	<select id="getAssignableClustersOfAccountForTenancy" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getAssignableClustersOfAccountForTenancy].[01] 변경일자(20200623) */
+			<include refid="selectClusterColumnSql" />
+        FROM
+            clusters cl
+                INNER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+                INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+                INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+                LEFT OUTER JOIN provider_account cpa ON	cpa.provider_account_seq = cl.cloud_provider_account_seq
+        WHERE cl.use_yn = 'Y'
+        AND a.account_seq = #{accountSeq}
+	<if test="clusterTenancy != null">
+		AND NOT EXISTS (
+			SELECT
+			  1
+			FROM
+				account_service_mapping asm
+					INNER JOIN service_cluster sc ON sc.service_seq = asm.service_seq
+					INNER JOIN services sv ON sv.service_seq = sc.service_seq AND sv.service_type <![CDATA[<>]]> 'PLATFORM' AND sv.use_yn = 'Y'
+										<if test='@org.apache.commons.lang3.StringUtils@equals(clusterTenancy, "SOFT")'>
+											AND sv.cluster_tenancy = 'HARD'
+										</if>
+										<if test='@org.apache.commons.lang3.StringUtils@equals(clusterTenancy, "HARD") and serviceSeq != null'>
+											AND sv.service_seq != #{serviceSeq}
+										</if>
+		WHERE asm.account_seq = a.account_seq
+			AND sc.cluster_seq = cl.cluster_seq
+		)
+	</if>
+	</select>
+
+	<select id="getCluster" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getCluster].[01] 변경일자(20181126) */
+			<include refid="selectClusterColumnSql" />
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				LEFT OUTER JOIN accounts a ON a.account_seq = apam.account_seq
+		WHERE cl.cluster_seq = #{clusterSeq}
+	</select>
+
+	<select id="getClusterWithoutAuth" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusterWithoutAuth].[01] 변경일자(20181126) */
+			<include refid="selectClusterWithoutAuthColumnSql" />
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				LEFT OUTER JOIN accounts a ON a.account_seq = apam.account_seq
+		WHERE cl.cluster_seq = #{clusterSeq}
+	</select>
+
+	<select id="getClusterDetail" parameterType="map" resultMap="ClusterDetailMap">
+		SELECT /* [Cluster.xml].[getClusterDetail].[01] 변경일자(20220418) */
+			<include refid="selectClusterColumnSql" />
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				LEFT OUTER JOIN accounts a ON a.account_seq = apam.account_seq
+		WHERE cl.cluster_seq = #{clusterSeq}
+	</select>
+
+	<select id="getClusterByUseYn" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [NOT_SQL_LOG][Cluster.xml].[getClusterByUseYn].[01] 변경일자(20181126) */
+			<include refid="selectClusterColumnSql" />
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				LEFT OUTER JOIN accounts a ON a.account_seq = apam.account_seq
+		WHERE cl.cluster_seq = #{clusterSeq}
+		  AND cl.use_yn = #{useYn}
+	</select>
+
+	<select id="getClusterByClusterId" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusterByClusterId].[01] 변경일자(20190131) */
+			<include refid="selectClusterColumnSql" />
+		FROM clusters cl
+				LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+				LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				LEFT OUTER JOIN accounts a ON a.account_seq = apam.account_seq
+		WHERE cl.cluster_id = #{clusterId}
+		<if test="useYn != null">
+			AND cl.use_yn = #{useYn}
+		</if>
+	</select>
+
+	<select id="getClusterByServicemap" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusterByServicemap].[01] 변경일자(20220418) */
+				sm.namespace_name				namespaceName,
+		       <include refid="selectClusterColumnSql" />
+		FROM servicemaps sm
+				INNER JOIN clusters cl				ON	cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+				INNER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a ON a.account_seq = apam.account_seq
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+		WHERE sm.use_yn = 'Y'
+		AND sm.servicemap_seq = #{servicemapSeq}
+	</select>
+
+	<select id="getClusterByNamespace" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getClusterByNamespace].[01] 변경일자(20220418) */
+			sm.namespace_name				namespaceName,
+			<include refid="selectClusterColumnSql" />
+		FROM servicemaps sm
+				INNER JOIN clusters cl				ON	cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+				INNER JOIN provider_account pa		ON	pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a ON a.account_seq = apam.account_seq
+				LEFT OUTER JOIN provider_account cpa		ON	cpa.provider_account_seq = cl.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+		WHERE sm.use_yn = 'Y'
+		AND sm.cluster_seq = #{clusterSeq}
+		AND sm.namespace_name = #{namespaceName}
+	</select>
+
+	<select id="getClusterCondition" parameterType="map" resultMap="ClusterDetailConditionMap">
+		SELECT /* [Cluster.xml].[getClusterCondition].[01] 변경일자(20180306) */
+		       	t.*
+		FROM (
+				SELECT
+					cl.cluster_seq					cc_clusterSeq,
+					count(DISTINCT s.service_seq) 		AS cc_serviceCount,
+					count(DISTINCT sm.servicemap_seq) 	AS cc_servicemapCount,
+					<include refid="selectClusterColumnSql" />
+				FROM
+					clusters cl
+						LEFT OUTER JOIN provider_account pa
+							ON pa.provider_account_seq = cl.provider_account_seq
+							AND pa.use_yn = 'Y'
+						LEFT OUTER JOIN provider_account cpa
+						    ON	cpa.provider_account_seq = cl.cloud_provider_account_seq
+						    AND cpa.use_yn = 'Y'
+						LEFT OUTER JOIN account_provider_account_mapping apam
+							ON apam.provider_account_seq = pa.provider_account_seq
+						LEFT OUTER JOIN accounts a
+							ON a.account_seq = apam.account_seq
+							AND a.use_yn = 'Y'
+						LEFT OUTER JOIN service_cluster sc
+							ON sc.cluster_seq = cl.cluster_seq
+						LEFT OUTER JOIN services s
+							ON s.service_seq = sc.service_seq
+							AND s.use_yn = 'Y'
+						LEFT OUTER JOIN servicemaps sm
+							ON sm.cluster_seq = cl.cluster_seq
+							AND sm.use_yn = 'Y'
+				WHERE cl.use_yn = 'Y'
+			<if test="clusterSeq != null">
+				AND cl.cluster_seq = #{clusterSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND sc.service_seq = #{serviceSeq}
+			</if>
+			<if test="accountSeq != null">
+				AND a.account_seq = #{accountSeq}
+			</if>
+				GROUP BY cl.cluster_seq
+				ORDER BY cl.cluster_name
+		) t
+	</select>
+	
+	<select id="getDuplicationCluster" parameterType="map" resultMap="ClusterMap">
+		SELECT /* [Cluster.xml].[getDuplicationCluster].[01] 변경일자(20180306) */
+			cluster_seq				clusterSeq,
+			cluster_type			clusterType,
+			cluster_name			clusterName,
+			k8s_version				k8sVersion,
+			cube_type				cubeType,
+			auth_type				authType,
+			api_url					apiUrl,
+			api_key				    apiKey,
+			api_secret			    apiSecret,
+			region_code				regionCode,
+			cluster_state			clusterState,
+			cluster_id				clusterId
+		FROM
+			clusters
+		WHERE cluster_type = 'CUBE'
+		AND (api_url = (
+						CASE WHEN substring(reverse(api_url), 1, 1) = '/' THEN CONCAT(TRIM(IFNULL(#{apiUrl}, '')), '/')
+						ELSE TRIM(IFNULL(#{apiUrl}, '')) END
+						)
+			OR cluster_id = TRIM(#{clusterId}))
+	<if test="clusterSeq != null">
+		AND cluster_seq <![CDATA[<>]]> #{clusterSeq}
+	</if>
+		AND use_yn = 'Y'
+	</select>
+
+	<update id="removeComponentsByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removeComponentsByCluster].[01] 변경일자(20200226) */
+			components cp
+		SET
+			cp.use_yn                = 'N',
+			cp.updated               = UTC_TIMESTAMP(),
+			cp.updater               = #{updater}
+		WHERE cp.use_yn = 'Y'
+		  AND cp.cluster_seq = #{clusterSeq}
+	</update>
+
+	<delete id="deleteComponentsByCluster" parameterType="map">
+
+		SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
+		UPDATE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		  components
+		SET
+			  namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, component_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, workload_manifest = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, error_message = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		  components
+		SET
+			  namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, component_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, workload_manifest = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, error_message = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		  components
+		SET
+			  namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, component_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, workload_manifest = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, error_message = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		  components
+		SET
+			  namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, component_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, workload_manifest = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, error_message = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		  components
+		SET
+			  namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, component_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, description = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, workload_manifest = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, error_message = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE cluster_seq = #{clusterSeq};
+
+		DELETE /* [Cluster.xml].[deleteComponentsByCluster].[01] 변경일자(20210702) */
+		FROM components WHERE cluster_seq = #{clusterSeq};
+
+		SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS);
+
+	</delete>
+
+	<update id="removeWorkloadGroupsByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removeWorkloadGroupsByCluster].[01] 변경일자(20220414) */
+			workload_groups wg
+				INNER JOIN servicemaps sm ON sm.servicemap_seq = wg.servicemap_seq AND sm.cluster_seq = #{clusterSeq}
+		SET
+			wg.use_yn                = 'N',
+			wg.updated               = UTC_TIMESTAMP(),
+			wg.updater               = #{updater}
+		WHERE wg.use_yn = 'Y'
+	</update>
+
+	<delete id="deleteWorkloadGroupsByCluster" parameterType="map">
+
+		SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
+		DELETE /* [Cluster.xml].[deleteWorkloadGroupsByCluster].[01] 변경일자(20220414) */
+		FROM workload_groups
+		WHERE servicemap_seq IN (
+		    	SELECT sm.servicemap_seq
+		    	FROM servicemaps sm
+		    	WHERE sm.cluster_seq = #{clusterSeq}
+			);
+
+		SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS);
+
+	</delete>
+
+	<delete id="deletePlRunBuildDeployMappingByCluster" parameterType="map">
+		DELETE /* [Cluster.xml].[deletePlRunBuildDeployMappingByCluster].[01] 변경일자(20210706) */
+		FROM pl_run_build_deploy_mapping
+		WHERE pl_run_deploy_seq IN (
+			SELECT prd.pl_run_deploy_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+					INNER JOIN pl_run_deploy prd ON pr.pl_run_seq = prd.pl_run_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		)
+	</delete>
+
+	<delete id="deletePlRunDeployByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+			pl_run_deploy
+		SET
+			  res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+			pl_run_deploy
+		SET
+			  res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+			pl_run_deploy
+		SET
+			  res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+			pl_run_deploy
+		SET
+			  res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+			pl_run_deploy
+		SET
+			  res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		DELETE /* [Cluster.xml].[deletePlRunDeployByCluster].[01] 변경일자(20210706) */
+		FROM pl_run_deploy
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+	</delete>
+
+	<delete id="deletePlRunBuildByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+			pl_run_build
+		SET
+			  img_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, run_log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+			pl_run_build
+		SET
+			  img_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, run_log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+			pl_run_build
+		SET
+			  img_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, run_log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+			pl_run_build
+		SET
+			  img_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, run_log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+			pl_run_build
+		SET
+			  img_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, build_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, run_log = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		DELETE /* [Cluster.xml].[deletePlRunBuildByCluster].[01] 변경일자(20210706) */
+		FROM pl_run_build
+		WHERE pl_run_seq IN (
+			SELECT pr.pl_run_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_run pr ON pm.pl_seq = pr.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+	</delete>
+
+	<update id="removePlRunByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removePlRunByCluster].[01] 변경일자(20210706) */
+			pl_run pr
+		SET
+			pr.use_yn                = 'N',
+			pr.updated               = UTC_TIMESTAMP(),
+			pr.updater               = #{updater}
+		WHERE pr.pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		)
+	</update>
+
+	<delete id="deletePlRunByCluster" parameterType="map">
+		DELETE /* [Cluster.xml].[deletePlRunByCluster].[01] 변경일자(20210706) */
+		FROM pl_run
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		)
+	</delete>
+
+	<delete id="deletePlResBuildDeployMappingByCluster" parameterType="map">
+		DELETE /* [Cluster.xml].[deletePlResBuildDeployMappingByCluster].[01] 변경일자(20210706) */
+		FROM pl_res_build_deploy_mapping
+		WHERE pl_res_deploy_seq IN (
+			SELECT prd.pl_res_deploy_seq
+			FROM
+				pl_master pm
+					INNER JOIN pl_res_deploy prd ON pm.pl_seq = prd.pl_seq
+			WHERE pm.cluster_seq = #{clusterSeq}
+		)
+	</delete>
+
+	<delete id="deletePlResDeployByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+			pl_res_deploy
+		SET
+			res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+			pl_res_deploy
+		SET
+			res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+			pl_res_deploy
+		SET
+			res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+			pl_res_deploy
+		SET
+			res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+			pl_res_deploy
+		SET
+			res_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , res_cont = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+
+		DELETE /* [Cluster.xml].[deletePlResDeployByCluster].[01] 변경일자(20210706) */
+		FROM pl_res_deploy
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		);
+	</delete>
+
+	<delete id="deletePlResBuildByCluster" parameterType="map">
+		DELETE /* [Cluster.xml].[deletePlResBuildByCluster].[01] 변경일자(20210706) */
+		FROM pl_res_build
+		WHERE pl_seq IN (
+			SELECT pm.pl_seq
+			FROM
+				pl_master pm
+			WHERE pm.cluster_seq = #{clusterSeq}
+		)
+	</delete>
+
+	<update id="removePlMasterByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removePlMasterByCluster].[01] 변경일자(20210706) */
+			pl_master pm
+		SET
+			pm.use_yn                = 'N',
+			pm.updated               = UTC_TIMESTAMP(),
+			pm.updater               = #{updater}
+		WHERE pm.cluster_seq = #{clusterSeq}
+	</update>
+
+	<delete id="deletePlMasterByCluster" parameterType="map">
+		DELETE /* [Cluster.xml].[deletePlMasterByCluster].[01] 변경일자(20210706) */
+		FROM pl_master
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+
+	<update id="removeServicemapsByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removeServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+			use_yn                = 'N',
+			updated               = UTC_TIMESTAMP(),
+			updater               = #{updater}
+		WHERE use_yn = 'Y'
+		  AND cluster_seq = #{clusterSeq}
+	</update>
+
+	<delete id="deleteServicemapsByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+		    servicemap_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , namespace_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+		    servicemap_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , namespace_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+		    servicemap_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , namespace_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+		    servicemap_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , namespace_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		WHERE cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+			servicemaps
+		SET
+		    servicemap_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		    , namespace_name = LEFT(TO_BASE64(SHA(RAND())), 50)
+		WHERE cluster_seq = #{clusterSeq};
+
+		DELETE /* [Cluster.xml].[deleteServicemapsByCluster].[01] 변경일자(20220414) */
+		FROM servicemaps WHERE cluster_seq = #{clusterSeq};
+
+	</delete>
+
+	<update id="removePipelineRunByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removePipelineRunByCluster].[01] 변경일자(20200226) */
+			pipeline_run pr
+		SET
+			pr.use_yn                = 'N',
+			pr.updated               = UTC_TIMESTAMP(),
+			pr.updater               = #{updater}
+		WHERE pr.use_yn = 'Y'
+		  AND pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		)
+	</update>
+
+	<delete id="deletePipelineRunByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+			pipeline_run pr
+		SET
+			  pr.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.deploy_content = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+			pipeline_run pr
+		SET
+			  pr.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.deploy_content = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+			pipeline_run pr
+		SET
+			  pr.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.deploy_content = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+			pipeline_run pr
+		SET
+			  pr.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.deploy_content = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+			pipeline_run pr
+		SET
+			  pr.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pr.deploy_content = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		DELETE pr /* [Cluster.xml].[deletePipelineRunByCluster].[01] 변경일자(20210702) */
+		FROM pipeline_run pr INNER JOIN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+			WHERE pw.cluster_seq = #{clusterSeq}
+		) pw ON pr.pipeline_container_seq = pw.pipeline_container_seq
+		WHERE pr.pipeline_container_seq = pw.pipeline_container_seq;
+	</delete>
+
+	<update id="removePipelineContainerByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removePipelineContainerByCluster].[01] 변경일자(20200226) */
+			pipeline_container pc
+		SET
+			pc.use_yn                = 'N',
+			pc.updated               = UTC_TIMESTAMP(),
+			pc.updater               = #{updater}
+		WHERE pc.use_yn = 'Y'
+		  AND pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		)
+	</update>
+
+	<delete id="deletePipelineContainerByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+			pipeline_container pc
+		SET
+			pc.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+			pipeline_container pc
+		SET
+			pc.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+			pipeline_container pc
+		SET
+			pc.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+			pipeline_container pc
+		SET
+			pc.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		UPDATE /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+			pipeline_container pc
+		SET
+			pc.build_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.build_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_registry_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_tag = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , pc.deploy_image_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		);
+
+		DELETE pc /* [Cluster.xml].[deletePipelineContainerByCluster].[01] 변경일자(20210702) */
+		FROM pipeline_container pc INNER JOIN (
+			SELECT pw.pipeline_workload_seq
+			FROM
+				pipeline_workload pw
+			WHERE pw.cluster_seq = #{clusterSeq}
+		) pw ON pc.pipeline_workload_seq = pw.pipeline_workload_seq
+		WHERE pc.pipeline_workload_seq = pw.pipeline_workload_seq;
+	</delete>
+
+	<update id="removePipelineWorkloadByCluster" parameterType="map">
+		UPDATE /* [Cluster.xml].[removePipelineWorkloadByCluster].[01] 변경일자(20200226) */
+			pipeline_workload pw
+		SET
+			pw.use_yn                = 'N',
+			pw.updated               = UTC_TIMESTAMP(),
+			pw.updater               = #{updater}
+		WHERE pw.use_yn = 'Y'
+		  AND pw.cluster_seq = #{clusterSeq}
+	</update>
+
+	<delete id="deletePipelineWorkloadByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+			pipeline_workload pw
+		SET
+			  pw.namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pw.workload_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pw.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+			pipeline_workload pw
+		SET
+			  pw.namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pw.workload_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pw.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+			pipeline_workload pw
+		SET
+			  pw.namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pw.workload_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pw.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+			pipeline_workload pw
+		SET
+			  pw.namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pw.workload_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pw.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+			pipeline_workload pw
+		SET
+			  pw.namespace_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, pw.workload_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE pw.cluster_seq = #{clusterSeq};
+
+		DELETE pw /* [Cluster.xml].[deletePipelineWorkloadByCluster].[01] 변경일자(20210702) */
+		FROM pipeline_workload pw
+		WHERE pw.cluster_seq = #{clusterSeq};
+	</delete>
+
+	<delete id="deleteBuildServerByCluster" parameterType="map">
+
+		UPDATE /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+			build_server bs
+		SET
+			  bs.controller_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, bs.deploy_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE bs.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+			build_server bs
+		SET
+			  bs.controller_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, bs.deploy_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE bs.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+			build_server bs
+		SET
+			  bs.controller_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, bs.deploy_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE bs.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+			build_server bs
+		SET
+			  bs.controller_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, bs.deploy_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE bs.cluster_seq = #{clusterSeq};
+
+		UPDATE /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+			build_server bs
+		SET
+			  bs.controller_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, bs.deploy_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE bs.cluster_seq = #{clusterSeq};
+
+		DELETE bs /* [Cluster.xml].[deleteBuildServerByCluster].[01] 변경일자(20230630) */
+		FROM build_server bs
+		WHERE bs.cluster_seq = #{clusterSeq};
+	</delete>
+
+</mapper>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Cocktail Cloud</title>
+    <style>
+        p {
+            padding-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <p>플랫폼 구축이 완료되었습니다. 아래 정보를 이용하여 Cocktail Cloud에 접속하시기 바랍니다.</p>
+    <h2>Cocktail Cloud 접속 정보</h2>
+    <table border="0" cellpadding="0" cellspacing="1" style="background-color: rgb(199, 199, 199);">
+        <tbody>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196;; color: #ffffff; text-align: left; font-weight: normal; width: 250px; height: 20px;">
+                <p>Cocktail Cloud <br/>플랫폼 관리자 접속 URL</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; width: 650px; height: 20px;">
+                <p><a href="#{cocktailCloudPlatformAdminURL}" target="_blank" title="Open Cocktail Cloud">Cocktail Cloud 플랫폼 관리자 사이트 이동</a></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal; height: 20px;">
+                <p>플랫폼ID</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{accountCode}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal;  height: 20px;">
+                <p>플랫폼 관리자 ID</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{platformAdminUserName}</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 3px 4px 2px; background-color: #354196; color: #ffffff; text-align: left; font-weight: normal; height: 20px;">
+                <p>플랫폼 관라지 초기 비밀번호</p>
+            </td>
+            <td style="padding: 3px 4px 2px; background-color: #ffffff; color: #666666; height: 20px;">
+                <p>#{platformAdminUserInitPassword}</p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</body>
+</html>

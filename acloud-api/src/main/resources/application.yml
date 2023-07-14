@@ -1,0 +1,243 @@
+spring:
+  config:
+    activate:
+      on-profile: default
+  jackson:
+    default-property-inclusion: non_null
+#  velocity:
+#    resource-loader-path: "classpath:/static/"
+  mvc:
+#    servlet:
+#      path: "/"
+    dispatch-options-request: true
+    throw-exception-if-no-handler-found: true
+    async:
+      request-timeout: 3600000
+  batch:
+    job:
+      enabled: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      location: "/tmp"
+      enabled: true
+      file-size-threshold: 0KB
+  main:
+    allow-circular-references: true
+  lifecycle:
+    timeout-per-shutdown-phase: "30s"
+  cache:
+    jcache:
+      config: classpath:ehcache.xml
+
+# Springdoc-openapi
+# https://springdoc.org/v2/#properties
+springdoc:
+  # API 문서 버전
+  version: "v${cocktail.service.release-version}"
+  enable-spring-security: false
+  model-and-view-allowed: true
+  packagesToScan: run.acloud
+  # /v3/api-docs endpoint
+  api-docs:
+    enabled: true
+    groups:
+      enabled: true
+  # swagger-ui
+  swagger-ui:
+    enabled: true
+    disable-swagger-default-url: true
+    displayRequestDuration: true
+    groups-order: DESC
+    tagsSorter: alpha
+    operationsSorter: method
+    docExpansion: none
+#    use-root-path: true
+    syntaxHighlight:
+      theme: nord
+#    enable-native-support: true
+    queryConfigEnabled: false
+    urls:
+      - name: "default"
+        url: "/v3/api-docs"
+#    urls[1]:
+#      name: "audit"
+#      url: "/v3/api-docs/audit"
+    config-url: "/v3/api-docs/swagger-config"
+
+
+jakarta-servlet:
+  version: '5.0'
+
+
+
+logging:
+  config: classpath:profiles/${LOG_CONFIG:logback-server.xml}
+  level:
+    run.acloud: ${LOG_LEVEL:INFO}
+    server.state.logger: ${APPMAP_LOG_LEVEL:INFO}
+    terminal.logger: ${TERMINAL_LOG_LEVEL:ERROR}
+    run.acloud.api.auth.dao.IUserMapper: ${USER_SQL_LOG_LEVEL:ERROR}
+    run.acloud.api.monitoring.dao.IAlertRuleMapper: ${USER_SQL_LOG_LEVEL:ERROR}
+    audit.logger: ${AUDIT_LOG_LEVEL:ERROR}
+    resource.access.checker.logger: ${RESOURCE_ACCESS_CHECKER_LOG_LEVEL:ERROR}
+    inquire.audit.logger: ${INQUIRE_AUDIT_LOG_LEVEL:ERROR}
+    org.yaml.snakeyaml.introspector: ERROR
+  file:
+    path: ${LOG_BASE_PATH:/var/log/cocktail}
+
+security:
+  ignored: /**
+
+server:
+  compression:
+    enabled: ${SERVER_COMPRESSION_ENABLED:false}
+  session:
+    persistent: true
+    cookie:
+      http-only: true
+      path: "/"
+  port: 8080
+#  servlet:
+#    context-path: "/"
+  shutdown: graceful
+
+datasource:
+  cmdb:
+    driver-class-name: "${CMDB_DRIVER:org.mariadb.jdbc.Driver}"
+    url: "${CMDB_URL:}"
+    user-name: "${CMDB_USER:}"
+    password: "${CMDB_PASSWORD:}"
+    initial-size: 10
+    max-active: 20
+    max-idle: 20
+    min-idle: 10
+    max-wait: 0
+
+cocktail:
+  registry:
+    url: "${REGISTRY_URL:https://regi.acloud.run}"
+    id: "${REGISTRY_USER:}"
+    password: "${REGISTRY_PASSWORD:}"
+    insecure-yn: "${REGISTRY_INSECURE_YN:Y}"
+    private-certificate-use-yn: "${PRIVATE_CERTIFICATE_USE_YN:N}"
+    private-certificate: "${PRIVATE_CERTIFICATE:}"
+  event:
+    event-type: "${EVENT_TYPE:URL}"
+    client-host: "${CLIENT_HOST:http://dashboard:3000}"
+    callback-url: "${cocktail.event.client-host}${CLIENT_CALLBACK_PATH:/callback/api/topic}"
+    callback-builder-url: "${cocktail.event.client-host}/callback/builder/build"
+  monitoring:
+    monitoring-host: "${MONITORING_HOST:http://monitoring:9000/monitoring-api}"
+  builder:
+    need-register: ${BUILD_USE_REGISTER:1}
+    build-api-url: "${BUILDER_BUILD_API_URL:build-api}"
+    build-api-port: "${BUILDER_BUILD_API_PORT:8091}"
+    build-queue-url: "${BUILD_QUEUE_URL:nats://nats.cocktail-system:4222}"
+    build-queue-external-url: "${BUILD_QUEUE_EXTERNAL_URL:}"
+    build-queue-cid: "${BUILD_QUEUE_CID:build-queue-cluster}"
+    build-queue-user: "${NATS_USERNAME:}"
+    build-queue-passwd: "${NATS_PASSWORD:}"
+    build-queue-client-cert-dir: "${NATS_CERT_DIR:/etc/certs/nats}"
+    build-log-db-save-enabled: "${BUILD_LOG_DB_SAVE_ENABLED:true}"
+    default-parallel-build-cnt: "${DEFAULT_PARALLEL_BUILD_CNT:2}"
+    build-server-chart-repo: "${BUILD_SERVER_CHART_REPO:cocktail-app}"
+    build-server-chart-name: "${BUILD_SERVER_CHART_NAME:pipeline-server}"
+    build-server-chart-version: "${BUILD_SERVER_CHART_VERSION:1.1.0}"
+  cluster:
+    cluster-api-host: "${CLUSTER_API_HOST:http://cluster-api:9083/cluster-api}"
+    collector-api-host: "${COLLECTOR_API_HOST:http://audit-collector:9308/collector-api}"
+  terminal:
+    terminal-max-connection: "${TERMINAL_MAX_CONNECTION:100}"
+    terminal-connection-timeout: "${TERMINAL_CONNECTION_TIMEOUT:1800}"
+  crypto:
+    aes-key: "${CRYPTO_AES_KEY:QzBja3RAaWxQQHNza2V5IUBjMHJuczBmdFNlY3VyaXQ=}"
+    default-aes-key: "${CRYPTO_DEFAULT_AES_KEY:Y29ja3RhaWwyMDIwYWNvcm5DcnlwdG8wMzMx}"
+    rsa-public-key: "${CRYPTO_RSA_PUBLIC_KEY:Nv+vmeLYMov/w9wRsDCPp5x54hEner6wo4WcIyXE4yLV+Vj0OXCqnfsYqkVTAA89Qnt+gfIFRcGvm3Xa/CsY9VbEByqt9s7UJbIbxQ4kQussZpPs1rIf/Twr/6eSsMvJfioP1mnZ1EONIt7/vD5zYbC6jnMCCLNnJXhS+7b3yk80UitBzp7hUWTUHuIbKpQYIROTMQSumbCiNKIoF0Q/UGZd7nrUlRz58BNnUh1RuE4RHwCGQaiWBOHUaQVSzPfnYplOYmpuWMVKdyq/LdiEuSC2DnejCH/+1TUppBPdmDycbNaPEfWHqU8sRm/nIF2jUo6XoJwDgQRk9/oIWT300ftK/B8JujG3mmLcq06qv5K5t0RzyDwpwIhSTMxpuA5YsDvDHZTijn07YSE5BdGfpVZJ1Nx2UrVFuhaOhLTyIfC1pGPldX72VfIr0b5bzPA5cJgdZXHdKQfOsMUhrWw3uKPfklNd2FCwTxgQMrrmPaDCBKQOeTkEcb/Xy2e28eopRVncw8jTbn5t6mmGs8giFKSejnh3x5Lqj8IGtJ7UBpAD//FCy0VQA65XjtN1VQoc1u/qwA==}"
+    rsa-private-key: "${CRYPTO_RSA_PRIVATE_KEY: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}"
+  service:
+    mode: "${SERVICE_MODE:PRD}"
+    type: "${SERVICE_TYPE:CCO}"
+    release-version: "${API_VERSION:4.7.4}"
+    log-base-path: "${LOG_BASE_PATH:/var/log/cocktail}"
+    log-max-history: ${LOG_MAX_HISTORY:30}
+    inquire-audit-log-max-history: ${INQUIRE_AUDIT_LOG_MAX_HISTORY:30}
+    log-prudent-enabled: ${LOG_PRUDENT_ENABLED:false}
+    log-clean-history-on-start-enabled: ${LOG_CLEAN_HISTORY_ON_START_ENABLED:true}
+    k8sclient-connect-timeout: ${K8SCLIENT_CONNECT_TIMEOUT:10000}
+    k8sclient-debugging: "${K8SCLIENT_DEBUGGING:false}"
+    default-language: "${DEFAULT_LANGUAGE:en}"
+    gke-client-id: "${GKE_CLIENT_ID:}"
+    gke-client-secret: "${GKE_CLIENT_SECRET:}"
+    aks-client-id: "${AKS_CLIENT_ID:}"
+    aks-client-secret: "${AKS_CLIENT_SECRET:}"
+    k8s-retry-max-count: ${K8S_RETRY_MAX_COUNT:2}
+    region-time-zone: "${REGION_TIME_ZONE:GMT}"
+    auth-server-host: "${AUTH_SERVER_HOST:http://auth-server:9080}"
+    auth-check-url: "${AUTH_CHECK_URL:/api/v1/auth/authCheck}"
+    audit-log-period-month: ${AUDIT_LOG_PERIOD_MONTH:12}
+    user-sleep-enabled: ${USER_SLEEP_ENABLED:false}
+    ncloud-api-gw: "${NCLOUD_API_GW:https://ncloud.apigw.ntruss.com}"
+  signature:
+    sig-secret: "${SIG_SECRET:C@ckt@ilSigSecret}"
+    sig-hmac-alg: "HmacSHA256"
+  chart:
+    chart-api-url: "${CHART_API_URL:package}"
+    chart-grpc-port: "${CHART_GRPC_PORT:9091}"
+    chart-http-port: "${CHART_HTTP_PORT:9092}"
+  addon:
+    acloud-registry-url: "${ACLOUD_REGISTRY_URL:regi.acloud.run}"
+    monitoring-collector-url-proxy: "${MONITORING_COLLECTOR_URL_PROXY:https://dev.acloud.run}"
+    monitoring-api-url-proxy: "${MONITORING_API_URL_PROXY:https://dev.acloud.run}"
+    controller-shake-url-proxy: "${CONTROLLER_SHAKE_URL_PROXY:}"
+    controller-shake-grpc-port-proxy: "${CONTROLLER_SHAKE_GRPC_PORT_PROXY:}"
+    addon-namespace: "${ADDON_NAMESPACE:cocktail-addon}"
+    monitoring-agent-configmap-prefix: "${MONITORING_AGENT_CONFIGMAP_PREFIX:agent}"
+    controller-configmap-prefix: "${CONTROLLER_CONFIGMAP_PREFIX:controller}"
+    #start R4.2.1 : Addon Auto Installation. ------------------------------#
+    addon-chart-repo-url: "${ADDON_CHART_REPO_URL:https://regi.acloud.run/chartrepo/addon-charts-beta}"
+    addon-chart-repo-project-name: "${ADDON_CHART_REPO_PROJECT_NAME:addon-charts-beta}"
+    addon-chart-repo-user: "${ADDON_CHART_REPO_USER:}"
+    addon-chart-repo-password: "${ADDON_CHART_REPO_PASSWORD:}"
+    addon-manager-configmap-prefix: "${ADDON_MANAGER_CONFIGMAP_PREFIX:addon-manager}"
+    addon-manager-chart-name: "${ADDON_MANAGER_CHART_NAME:addon-manager}"
+    addon-manager-chart-version: "${ADDON_MANAGER_CHART_VERSION:1.3.0}"
+    addon-image-base-url: "${ADDON_IMAGE_BASE_URL:regi.acloud.run}"
+    kiali-url: "${KIALI_URL:https://kiali.istio-system}"
+    #end   R4.2.1 : Addon Auto Installation. ------------------------------#
+  efk:
+    kibana-url: "${KIBANA_URL:http://kibana:5601}"
+  email:
+    mail-smtp-starttls-enable: "${MAIL_SMTP_STARTTLS_ENABLE:true}"
+    mail-smtp-host: "${MAIL_SMTP_HOST:smtp.gmail.com}"
+    mail-smtp-auth: "${MAIL_SMTP_AUTH:true}"
+    mail-smtp-port: "${MAIL_SMTP_PORT:587}"
+    mail-smtp-connect-timeout: ${MAIL_SMTP_CONNECT_TIMEOUT:10000}
+    mail-smtp-localhost: "${MAIL_SMTP_LOCALHOST:localhost}"
+    mail-transport-protocol: "${MAIL_TRANSPORT_PROTOCOL:smtp}"
+    mail-debug: "${MAIL_DEBUG:true}"
+    mail-smtp-id: "${MAIL_SMTP_ID:}"
+    mail-smtp-pw: "${MAIL_SMTP_PW:}"
+    mail-smtp-from-name: "${MAIL_SMTP_FROM_NAME:Cocktail Cloud}"
+  online:
+    ds:
+      system-email: "${DSONLINE_SYSTEM_EMAIL:online.cocktailcloud@acornsoft.io}"
+      sales-email: "${DSONLINE_SALES_EMAIL:online.sales@acornsoft.io}"
+      mail-form-path: "${DSONLINE_MAIL_FORM_PATH:/home/acloud/mail}"
+      platform-admin-url: "${DSONLINE_PLATFORM_ADMIN_URL:https://cco-admin.cocktailcloud.io/platform/admin/login}"
+      platform-user-url: "${DSONLINE_PLATFORM_USER_URL:https://cco-admin.cocktailcloud.io/platform/login}"
+  gateway:
+    gateway-host: "${GATEWAY_HOST:http://gateway-krakend:8080}"
+  log-agent:
+    log-agent-chart-repo: "${LOG_AGENT_CHART_REPO:cocktail-app}"
+    log-agent-chart-name: "${LOG_AGENT_CHART_NAME:fluent-bit}"
+    log-agent-chart-version: "${LOG_AGENT_CHART_VERSION:0.31.0}"
+    log-agent-log-push-url: "${LOG_AGENT_LOG_PUSH_URL:cocktail-logs-gateway.cocktail-logs}"
+    log-agent-log-push-port: "${LOG_AGENT_LOG_PUSH_PORT:8980}"
+  license:
+    license-enable: "${LICENSE_ENABLE:true}"
+    init-expire-period-days: ${INIT_EXPIRE_PERIOD_DAYS:30}
+    license-key: "${LICENSE_KEY:}"
+
+

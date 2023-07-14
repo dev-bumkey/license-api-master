@@ -1,0 +1,160 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IAccountRegistryMapper">
+	<resultMap type="AccountRegistry" id="AccountRegistryMap" autoMapping="true">
+		<id property="accountRegistrySeq" column="AccountRegistrySeq"/>
+	</resultMap>
+
+	<insert id="insertAccountRegistry" parameterType="AccountRegistry" useGeneratedKeys="true" keyProperty="accountRegistrySeq" keyColumn="account_registry_seq">
+		INSERT /* [AccountRegistry.xml].[insertAccountRegistry].[01] 변경일자(20211115) */
+		INTO account_registry(
+			account_seq,
+			provider,
+			name,
+			description,
+			registry_url,
+			access_id,
+			access_secret,
+			private_certificate_use_yn,
+			private_certificate,
+			insecure_yn,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		) VALUES (
+			#{accountSeq},
+			#{provider},
+			#{name},
+			IFNULL(#{description}, ''),
+			#{registryUrl},
+			#{accessId},
+			#{accessSecret},
+			#{privateCertificateUseYn},
+			#{privateCertificate},
+			#{insecureYn},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+	</insert>
+
+	<update id="updateAccountRegistry" parameterType="AccountRegistry">
+		UPDATE /* [AccountRegistry.xml].[updateAccountRegistry].[01] 변경일자(20211115) */
+		account_registry
+		SET
+			name = #{name}
+		  , description = #{description}
+		  <if test="accessId != null">
+			  , access_id = #{accessId}
+		  </if>
+		  <if test="accessSecret != null">
+			  , access_secret = #{accessSecret}
+		  </if>
+		  <if test="privateCertificate != null">
+			  , private_certificate = #{privateCertificate}
+		  </if>
+		  <if test="insecureYn != null">
+		  	  , insecure_yn = #{insecureYn}
+		  </if>
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		AND account_registry_seq = #{accountRegistrySeq}
+	</update>
+
+	<update id="removeAccountRegistry" parameterType="map">
+		UPDATE /* [AccountRegistry.xml].[removeAccountRegistry].[01] 변경일자(20211115) */
+			account_registry
+		SET
+			use_yn = 'N'
+		  , access_id = null
+		  , access_secret = null
+		  , private_certificate = null
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		AND account_registry_seq = #{accountRegistrySeq}
+	</update>
+
+	<delete id="deleteAccountRegistry" parameterType="map">
+		DELETE /* [AccountRegistry.xml].[deleteAccountRegistry].[01] 변경일자(20210706) */
+		FROM account_registry
+		<where>
+			<choose>
+				<when test="accountSeq != null">
+					AND account_seq = #{accountSeq}
+				</when>
+				<when test="accountRegistrySeq != null">
+					AND account_registry_seq = #{accountRegistrySeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+
+		</where>
+	</delete>
+
+	<select id="getAccountRegistries" parameterType="map" resultMap="AccountRegistryMap">
+		SELECT /* [AccountRegistry.xml].[getAccountRegistries].[01] 변경일자(20211115) */
+			  ar.account_registry_seq as accountRegistrySeq
+			, ar.account_seq as accountSeq
+			, ar.provider as provider
+			, ar.name as name
+			, ar.description as description
+			, ar.registry_url as registryUrl
+			, ar.access_id as accessId
+			, ar.access_secret as accessSecret
+			, ar.private_certificate_use_yn as privateCertificateUseYn
+			, ar.private_certificate as privateCertificate
+			, ar.insecure_yn as insecureYn
+			, ar.use_yn as useYn
+			, ar.created as created
+			, ar.creator as creator
+			, ar.updated as updated
+			, ar.updater as updater
+		FROM account_registry ar
+		WHERE ar.use_yn = 'Y'
+		<if test="accountSeq != null">
+			AND ar.account_seq = #{accountSeq}
+		</if>
+		<if test="registryUrl != null and name != null">
+			AND (ar.registry_url, ar.name) = (#{registryUrl}, #{name})
+		</if>
+	</select>
+
+	<select id="getAccountRegistry" parameterType="map" resultMap="AccountRegistryMap" flushCache="true">
+		SELECT /* [AccountRegistry.xml].[getAccountRegistry].[01] 변경일자(20211115) */
+			  ar.account_registry_seq as accountRegistrySeq
+			, ar.account_seq as accountSeq
+			, ar.provider as provider
+			, ar.name as name
+			, ar.description as description
+			, ar.registry_url as registryUrl
+			, ar.access_id as accessId
+			, ar.access_secret as accessSecret
+			, ar.private_certificate_use_yn as privateCertificateUseYn
+			, ar.private_certificate as privateCertificate
+			, ar.insecure_yn as insecureYn
+			, ar.use_yn as useYn
+			, ar.created as created
+			, ar.creator as creator
+			, ar.updated as updated
+			, ar.updater as updater
+		FROM account_registry ar
+		WHERE ar.use_yn = 'Y'
+		<if test="accountSeq == null and accountRegistrySeq == null">
+		  	AND 1=2
+		</if>
+		<if test="accountSeq != null">
+			AND ar.account_seq = #{accountSeq}
+		</if>
+		<if test="accountRegistrySeq != null">
+			AND ar.account_registry_seq = #{accountRegistrySeq}
+		</if>
+	</select>
+
+</mapper>

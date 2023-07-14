@@ -1,0 +1,252 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.external.dao.IKeycloakUserMapper">
+	<resultMap type="KeycloakUser" id="KeycloakUserMap" autoMapping="true">
+		<id property="userSeq" column="userSeq"/>
+	</resultMap>
+	<select id="getUsers" parameterType="map" resultMap="KeycloakUserMap">
+		SELECT	/* [KeycloakUser.xml].[getUsers].[01] 변경일자(20200813) */
+				u.user_seq AS userSeq
+				,u.user_id AS userId
+				,u.user_name AS userName
+				,u.user_job AS userJob
+				,u.phone_number AS phoneNumber
+				,u.kakao_id AS kakaoId
+				,u.email AS email
+				,u.user_language AS userLanguage
+				,u.user_timezone AS userTimezone
+				,u.use_yn AS useYn
+				,u.description AS description
+				,u.created
+				,u.updated
+			<if test='!"ADMIN".equals(roleCode)'>
+ 				,a.account_code AS accountCode
+			</if>
+		FROM	users u
+		INNER JOIN	user_role r
+				ON	u.user_seq = r.user_seq
+			<if test='"ADMIN".equals(roleCode)'>
+				AND	r.role_code = #{roleCode}
+			</if>
+		<if test='!"ADMIN".equals(roleCode)'>
+		INNER JOIN (
+			SELECT DISTINCT
+				x_a.user_seq,
+				x_a.account_seq AS account_seq,
+				x_a.account_type AS account_type,
+				x_a.account_name AS account_name,
+				x_a.account_code AS account_code,
+				x_a.organization_name AS organization_name,
+				x_a.description AS description,
+				x_a.base_language AS base_language,
+				x_a.user_auth_type AS user_auth_type,
+				x_a.app_id AS app_id
+			FROM (
+				SELECT
+					aum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_user_mapping aum
+						INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																AND a.use_yn = 'Y'
+				UNION ALL
+				SELECT
+					asum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_system_user_mapping asum
+						INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																AND a.use_yn = 'Y'
+			) x_a
+		) a ON a.user_seq = u.user_seq
+		</if>
+		WHERE	u.use_yn = 'Y'
+			<if test="maxId != null">
+				AND u.user_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+		ORDER  BY
+		      <choose>
+				  <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "created")'>
+					  created
+				  </when>
+				  <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(orderColumn, "user_name")'>
+					  user_name
+				  </when>
+		          <otherwise>
+					  user_name
+				  </otherwise>
+			  </choose>
+		      <choose>
+				  <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "DESC")'>
+					  DESC
+				  </when>
+				  <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(order, "ASC")'>
+					  ASC
+				  </when>
+		          <otherwise>
+					  ASC
+				  </otherwise>
+			  </choose>
+		LIMIT  #{nextPage}, #{itemPerPage}
+	</select>
+
+	<select id="getUser" parameterType="map" resultMap="KeycloakUserMap">
+		SELECT	/* [KeycloakUser.xml].[getUser].[01] 변경일자(20200813) */
+				u.user_seq AS userSeq
+				,u.user_id AS userId
+				,u.user_password AS password
+				,u.hash_salt AS hashSalt
+				,u.user_name AS userName
+				,u.user_job AS userJob
+				,u.phone_number AS phoneNumber
+				,u.kakao_id AS kakaoId
+				,u.email AS email
+				,u.user_language AS userLanguage
+				,u.user_timezone AS userTimezone
+				,u.use_yn AS useYn
+				,u.description AS description
+				,u.created
+				,u.updated
+			<if test='!"ADMIN".equals(roleCode)'>
+				,a.account_code AS accountCode
+			</if>
+		FROM	users u
+		INNER JOIN	user_role r
+				ON	u.user_seq = r.user_seq
+			<if test='"ADMIN".equals(roleCode)'>
+				AND	r.role_code = #{roleCode}
+			</if>
+		<if test='!"ADMIN".equals(roleCode)'>
+		INNER JOIN (
+			SELECT DISTINCT
+				x_a.user_seq,
+				x_a.account_seq AS account_seq,
+				x_a.account_type AS account_type,
+				x_a.account_name AS account_name,
+				x_a.account_code AS account_code,
+				x_a.organization_name AS organization_name,
+				x_a.description AS description,
+				x_a.base_language AS base_language,
+				x_a.user_auth_type AS user_auth_type,
+				x_a.app_id AS app_id
+			FROM (
+				SELECT
+					aum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_user_mapping aum
+						INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																<if test="accountCode != null">
+																AND a.account_code = #{accountCode}
+																</if>
+																AND a.use_yn = 'Y'
+				UNION ALL
+				SELECT
+					asum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_system_user_mapping asum
+						INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																<if test="accountCode != null">
+																AND a.account_code = #{accountCode}
+																</if>
+																AND a.use_yn = 'Y'
+			) x_a
+		) a ON a.user_seq = u.user_seq
+		</if>
+		WHERE 	u.user_id = #{userId}
+		  AND	u.use_yn = 'Y'
+		LIMIT 1
+	</select>
+
+
+	<select id="getUserCountAndMaxId" parameterType="map" resultType="ListCount">
+		SELECT	/* [KeycloakUser.xml].[getUserCountAndMaxId].[01] 변경일자(20200813) */
+				count(*) as cnt
+				,max(u.user_seq) as maxId
+		FROM  users u
+		INNER JOIN	user_role r
+				ON	u.user_seq = r.user_seq
+			<if test='"ADMIN".equals(roleCode)'>
+				AND	r.role_code = #{roleCode}
+			</if>
+		<if test='!"ADMIN".equals(roleCode)'>
+		INNER JOIN (
+			SELECT DISTINCT
+				x_a.user_seq,
+				x_a.account_seq AS account_seq,
+				x_a.account_type AS account_type,
+				x_a.account_name AS account_name,
+				x_a.account_code AS account_code,
+				x_a.organization_name AS organization_name,
+				x_a.description AS description,
+				x_a.base_language AS base_language,
+				x_a.user_auth_type AS user_auth_type,
+				x_a.app_id AS app_id
+			FROM (
+				SELECT
+					aum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_user_mapping aum
+						INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																AND a.use_yn = 'Y'
+				UNION ALL
+				SELECT
+					asum.user_seq AS user_seq,
+					a.account_seq AS account_seq,
+					a.account_type AS account_type,
+					a.account_name AS account_name,
+					a.account_code AS account_code,
+					a.organization_name AS organization_name,
+					a.description AS description,
+					a.base_language AS base_language,
+					a.user_auth_type AS user_auth_type,
+					a.app_id AS app_id
+				FROM account_system_user_mapping asum
+						INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																AND a.use_yn = 'Y'
+			) x_a
+		) a ON a.user_seq = u.user_seq
+		</if>
+		WHERE u.use_yn = 'Y'
+			<if test="maxId != null">
+				AND u.user_seq <![CDATA[<=]]>  #{maxId}
+			</if>
+	</select>
+
+</mapper>

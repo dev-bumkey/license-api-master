@@ -1,0 +1,3438 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.auth.dao.IUserMapper">
+	
+	<resultMap id="UserMap" type="User" autoMapping="true">
+        <id property="userSeq" column="userSeq" />
+	</resultMap>
+
+	<resultMap id="UserOtpMap" type="UserOtp" autoMapping="true">
+		<id property="userSeq" column="userSeq" />
+	</resultMap>
+
+	<resultMap id="UserExternalMap" type="UserExternal" autoMapping="true">
+		<id property="userSeq" column="userSeq" />
+		<id property="userId" column="userId" />
+	</resultMap>
+
+	<resultMap id="UserHaveRolesMap" type="User" autoMapping="true">
+        <id property="userSeq" column="userSeq" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+        <collection property="roles" ofType="java.lang.String" javaType="java.util.ArrayList" columnPrefix="r_">
+            <result column="role" />
+        </collection>
+	</resultMap>
+
+	<resultMap id="UserDetailHaveRolesMap" type="User" autoMapping="true">
+        <id property="userSeq" column="userSeq" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+        <collection property="roles" ofType="java.lang.String" javaType="java.util.ArrayList" columnPrefix="r_">
+            <result column="role" />
+        </collection>
+		<collection property="shellRoles" column="{userSeq=userSeq,issueType=issueTypeShell,userTimezone=userTimezone}" select="getUserClusterRoleIssues" ofType="UserClusterRoleIssue" />
+		<collection property="kubeconfigRoles" column="{userSeq=userSeq,issueType=issueTypeKubeconfig,userTimezone=userTimezone}" select="getUserClusterRoleIssues" ofType="UserClusterRoleIssue" />
+        <collection property="userRelations" ofType="ServiceRelation" resultMap="ServiceRelationMap" columnPrefix="usr_" />
+	</resultMap>
+
+	<resultMap id="UserDetailHaveRolesClusterMap" type="User" autoMapping="true">
+        <id property="userSeq" column="userSeq" />
+		<association property="account" columnPrefix="a_" javaType="Account" autoMapping="true" />
+        <collection property="roles" ofType="java.lang.String" javaType="java.util.ArrayList" columnPrefix="r_">
+            <result column="role" />
+        </collection>
+		<collection property="shellRoles" column="{userSeq=userSeq,issueType=issueTypeShell,userTimezone=userTimezone}" select="getUserClusterRoleIssues" ofType="UserClusterRoleIssue" />
+		<collection property="kubeconfigRoles" column="{userSeq=userSeq,issueType=issueTypeKubeconfig,userTimezone=userTimezone}" select="getUserClusterRoleIssues" ofType="UserClusterRoleIssue" />
+        <collection property="clusters" ofType="Cluster" columnPrefix="cl_" resultMap="run.acloud.api.configuration.dao.IClusterMapper.ClusterDetailNamespaceMap" />
+	</resultMap>
+
+	<resultMap id="UserClusterRoleIssueMap" type="UserClusterRoleIssue" autoMapping="true">
+		<id property="userSeq" column="user_seq" />
+		<id property="clusterSeq" column="cluster_seq" />
+		<id property="issueType" column="issue_type" />
+		<id property="bindingType" column="binding_type" />
+		<id property="bindingConfig" column="binding_config" />
+		<id property="issueAccountName" column="issue_account_name" />
+		<id property="expirationDatetime" column="expiration_datetime" />
+		<id property="bindingNamespace" column="binding_namespace" />
+		<id property="bindingIssueRole" column="binding_issue_role" />
+		<association property="cluster" javaType="Cluster" column="cluster_seq" select="run.acloud.api.configuration.dao.IClusterMapper.getClusterWithoutAuth" />
+		<collection property="bindings" ofType="UserClusterRoleIssueBinding" resultMap="UserClusterRoleIssueBindingMap" columnPrefix="b_" />
+	</resultMap>
+
+	<resultMap id="UserClusterRoleIssueMapExcel" type="UserClusterRoleIssue" autoMapping="true">
+		<id property="userSeq" column="user_seq" />
+		<id property="clusterSeq" column="cluster_seq" />
+		<id property="issueType" column="issue_type" />
+		<id property="bindingType" column="binding_type" />
+		<id property="bindingConfig" column="binding_config" />
+		<id property="issueAccountName" column="issue_account_name" />
+		<id property="expirationDatetime" column="expiration_datetime" />
+		<id property="bindingNamespace" column="binding_namespace" />
+		<id property="bindingIssueRole" column="binding_issue_role" />
+		<association property="cluster" javaType="Cluster" column="cluster_seq" select="run.acloud.api.configuration.dao.IClusterMapper.getClusterWithoutAuth" />
+	</resultMap>
+
+	<resultMap id="ServiceRelationMap" type="ServiceRelation" autoMapping="true">
+		<id property="userSeq" column="userSeq" />
+		<id property="clusterSeq" column="clusterSeq" />
+		<id property="accountSeq" column="accountSeq" />
+		<id property="serviceSeq" column="serviceSeq" />
+	</resultMap>
+
+	<resultMap id="UserClusterRoleIssueBindingMap" type="UserClusterRoleIssueBinding" autoMapping="true">
+		<id property="userSeq" column="user_seq" />
+		<id property="clusterSeq" column="cluster_seq" />
+		<id property="issueType" column="issue_type" />
+		<id property="issueAccountName" column="issue_account_name" />
+		<id property="namespace" column="namespace" />
+		<id property="issueRole" column="issue_role" />
+	</resultMap>
+
+	<resultMap id="UserClusterRoleIssueHistoryMap" type="UserClusterRoleIssueHistory" autoMapping="true">
+		<id property="historySeq" column="history_seq" />
+		<collection property="bindings" resultMap="UserClusterRoleIssueBindingHistoryMap" columnPrefix="b_" />
+	</resultMap>
+
+	<resultMap id="UserClusterRoleIssueBindingHistoryMap" type="UserClusterRoleIssueBinding" autoMapping="true">
+		<id property="bindingHistorySeq" column="bindingHistorySeq" />
+		<id property="historySeq" column="bindingHistorySeq" />
+	</resultMap>
+
+	<sql id="accountColumnSql">
+		a.account_seq AS a_accountSeq,
+		a.account_type AS a_accountType,
+		a.account_name AS a_accountName,
+		a.account_code AS a_accountCode,
+		a.organization_name AS a_organizationName,
+		a.description AS a_description,
+		a.base_language AS a_baseLanguage,
+		a.user_auth_type AS a_userAuthType,
+		a.app_id AS a_appId,
+		a.concurrent_session_yn AS a_concurrentSessionYn,
+		a.registry_download_user_id AS a_registryDownloadUserId,
+		a.registry_download_user_password AS a_registryDownloadUserPassword,
+		a.account_config AS a_accountConfigJson,
+	</sql>
+
+	<sql id="userListColumnSql">
+		u.user_seq AS userSeq,
+		u.user_id AS userId,
+		u.user_name AS userName,
+		u.user_job AS userJob,
+		u.user_department AS userDepartment,
+		u.phone_number AS phoneNumber,
+		u.kakao_id AS kakaoId,
+		u.email AS email,
+		u.description AS description,
+		u.user_language AS userLanguage,
+		u.user_timezone AS userTimezone,
+		u.last_service_seq AS lastServiceSeq,
+		DATE_FORMAT(u.last_login, '%Y-%m-%d %H:%i:%s') AS lastLogin,
+		DATE_FORMAT(u.active_datetime, '%Y-%m-%d %H:%i:%s') AS activeDatetime,
+		DATEDIFF(UTC_TIMESTAMP(), IFNULL(u.active_datetime, UTC_TIMESTAMP())) AS sleepPeriod,
+		u.password_expiration_begin_time AS passwordExpirationBeginTime,
+        u.password_expiration_end_time AS passwordExpirationEndTime,
+		u.reset_password_yn AS resetPasswordYn,
+		u.login_fail_count AS loginFailCount,
+		u.inactive_yn AS inactiveYn,
+		u.otp_use_yn AS otpUseYn,
+		u.additional_column1 AS additionalColumn1,
+		u.additional_column2 AS additionalColumn2,
+		u.additional_column3 AS additionalColumn3,
+		r.role_code AS r_role,
+		u.use_yn AS useYn,
+		'SHELL'	AS issueTypeShell,
+		'KUBECONFIG' AS issueTypeKubeconfig
+	</sql>
+
+	<sql id="userDetailColumnSql">
+		u.user_seq AS userSeq,
+		u.user_id AS userId,
+		u.user_password AS password,
+		u.hash_salt AS hashSalt,
+		u.user_name AS userName,
+		u.user_job AS userJob,
+		u.user_department AS userDepartment,
+		u.phone_number AS phoneNumber,
+		u.kakao_id AS kakaoId,
+		u.email AS email,
+		u.user_language AS userLanguage,
+		u.user_timezone AS userTimezone,
+		u.use_yn AS useYn,
+		u.last_service_seq AS lastServiceSeq,
+		DATE_FORMAT(u.last_login, '%Y-%m-%d %H:%i:%s') AS lastLogin,
+		DATE_FORMAT(u.active_datetime, '%Y-%m-%d %H:%i:%s') AS activeDatetime,
+		DATEDIFF(UTC_TIMESTAMP(), IFNULL(u.active_datetime, UTC_TIMESTAMP())) AS sleepPeriod,
+		u.password_expiration_begin_time AS passwordExpirationBeginTime,
+		u.password_expiration_end_time AS passwordExpirationEndTime,
+		u.reset_password_yn AS resetPasswordYn,
+		u.login_fail_count AS loginFailCount,
+		u.inactive_yn AS inactiveYn,
+		u.otp_use_yn AS otpUseYn,
+		u.description AS description,
+		u.additional_column1 AS additionalColumn1,
+		u.additional_column2 AS additionalColumn2,
+		u.additional_column3 AS additionalColumn3,
+		u.created,
+		u.updated,
+		'SHELL'	AS issueTypeShell,
+		'KUBECONFIG' AS issueTypeKubeconfig,
+	</sql>
+
+	<sql id="accountColumnInlineXSql">
+		x_a.account_seq AS account_seq,
+		x_a.account_type AS account_type,
+		x_a.account_name AS account_name,
+		x_a.account_code AS account_code,
+		x_a.organization_name AS organization_name,
+		x_a.description AS description,
+		x_a.base_language AS base_language,
+		x_a.user_auth_type AS user_auth_type,
+		x_a.app_id AS app_id,
+		x_a.concurrent_session_yn AS concurrent_session_yn,
+		x_a.registry_download_user_id AS registry_download_user_id,
+		x_a.registry_download_user_password AS registry_download_user_password,
+		x_a.account_config AS account_config
+	</sql>
+
+	<sql id="accountColumnInlineViewSql">
+		a.account_seq AS account_seq,
+		a.account_type AS account_type,
+		a.account_name AS account_name,
+		a.account_code AS account_code,
+		a.organization_name AS organization_name,
+		a.description AS description,
+		a.base_language AS base_language,
+		a.user_auth_type AS user_auth_type,
+		a.app_id AS app_id,
+		a.concurrent_session_yn AS concurrent_session_yn,
+		a.registry_download_user_id AS registry_download_user_id,
+		a.registry_download_user_password AS registry_download_user_password,
+		a.account_config AS account_config
+	</sql>
+
+    <select id="selectByUserSeq" parameterType="map" resultMap="UserDetailHaveRolesMap">
+        SELECT /* [NOT_SQL_LOG].[User.xml].[selectByUserSeq].[01] 변경일자(2017047) */
+		    <include refid="userDetailColumnSql" />
+			<include refid="accountColumnSql" />
+			usr.account_seq AS usr_accountSeq,
+			usr.user_seq    AS usr_userSeq,
+			usr.user_grant  AS usr_userGrant,
+			usr.service_seq AS usr_serviceSeq,
+			usr.cluster_seq AS usr_clusterSeq,
+            r.role_code AS userRole,
+            r.role_code AS r_role
+        FROM users AS u
+        		LEFT OUTER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+				LEFT OUTER JOIN (
+						SELECT DISTINCT
+							x_a.user_seq,
+							<include refid="accountColumnInlineXSql" />
+						FROM (
+								SELECT
+									aum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								FROM account_user_mapping aum
+									INNER JOIN accounts a	ON 	a.account_seq = aum.account_seq AND a.use_yn = 'Y'
+								WHERE aum.user_seq = #{userSeq}
+								UNION ALL
+								SELECT
+									asum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								FROM account_system_user_mapping asum
+									INNER JOIN accounts a	ON 	a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+						  		WHERE asum.user_seq = #{userSeq}
+						) x_a
+				) a ON a.user_seq = u.user_seq
+				LEFT OUTER JOIN (
+						SELECT
+							DISTINCT
+							aum.account_seq,
+							aum.user_seq,
+							su.user_grant,
+							s.service_seq,
+							c.cluster_seq
+						FROM account_user_mapping aum
+								INNER JOIN users u ON u.user_seq = aum.user_seq AND u.use_yn = 'Y'
+								INNER JOIN service_user su ON su.user_seq = u.user_seq
+								INNER JOIN services s ON s.service_seq = su.service_seq AND s.use_yn = 'Y'
+								INNER JOIN account_service_mapping asm ON asm.account_seq = aum.account_seq AND asm.service_seq = s.service_seq
+								INNER JOIN accounts a ON a.account_seq = asm.account_seq AND a.use_yn = 'Y'
+								LEFT OUTER JOIN service_cluster sc ON sc.service_seq = asm.service_seq
+								LEFT OUTER JOIN clusters c ON c.cluster_seq = sc.cluster_seq AND c.use_yn = 'Y'
+								LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+								LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+						WHERE aum.user_seq = #{userSeq}
+						UNION ALL
+						SELECT
+							asum.account_seq,
+							asum.user_seq,
+						    null,
+							0,
+							c.cluster_seq
+						FROM account_system_user_mapping asum
+								INNER JOIN users u ON u.user_seq = asum.user_seq AND u.use_yn = 'Y'
+								INNER JOIN accounts a ON a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+								LEFT OUTER JOIN account_provider_account_mapping apam ON apam.account_seq = asum.account_seq
+								LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+								LEFT OUTER JOIN clusters c ON c.provider_account_seq = apam.provider_account_seq AND c.use_yn = 'Y'
+						WHERE asum.user_seq = #{userSeq}
+				) usr ON usr.user_seq = u.user_seq
+        WHERE u.user_seq = #{userSeq}
+		<if test="useYn != null">
+		AND u.use_yn = #{useYn}
+		</if>
+    </select>
+
+    <select id="selectByUserSeqs" parameterType="map" resultMap="UserDetailHaveRolesMap">
+        SELECT /* [NOT_SQL_LOG].[User.xml].[selectByUserSeqs].[01] 변경일자(2017047) */
+		    <include refid="userDetailColumnSql" />
+			<include refid="accountColumnSql" />
+            usr.account_seq AS usr_accountSeq,
+            usr.user_seq    AS usr_userSeq,
+			usr.user_grant  AS usr_userGrant,
+			usr.service_seq AS usr_serviceSeq,
+            usr.cluster_seq AS usr_clusterSeq,
+            r.role_code AS userRole,
+            r.role_code AS r_role
+        FROM users AS u
+        		INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+				INNER JOIN (
+						SELECT DISTINCT
+							x_a.user_seq,
+							<include refid="accountColumnInlineXSql" />
+						FROM (
+								SELECT
+									aum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								FROM account_user_mapping aum
+									INNER JOIN accounts a	ON 	a.account_seq = aum.account_seq AND a.use_yn = 'Y'
+								WHERE aum.user_seq IN
+								      	<foreach collection="userSeqs" item="userSeq" open=" (" separator=", " close=")">
+											#{userSeq}
+										</foreach>
+								UNION ALL
+								SELECT
+									asum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								FROM account_system_user_mapping asum
+									INNER JOIN accounts a	ON 	a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+						  		WHERE asum.user_seq IN
+										<foreach collection="userSeqs" item="userSeq" open=" (" separator=", " close=")">
+											#{userSeq}
+										</foreach>
+						) x_a
+				) a ON a.user_seq = u.user_seq
+				LEFT OUTER JOIN (
+                    SELECT
+                        DISTINCT
+                        aum.account_seq,
+                        aum.user_seq,
+						su.user_grant,
+                        s.service_seq,
+                        c.cluster_seq
+                    FROM account_user_mapping aum
+							INNER JOIN users u ON u.user_seq = aum.user_seq AND u.use_yn = 'Y'
+							INNER JOIN service_user su ON su.user_seq = u.user_seq
+							INNER JOIN services s ON s.service_seq = su.service_seq AND s.use_yn = 'Y'
+							INNER JOIN account_service_mapping asm ON asm.account_seq = aum.account_seq AND asm.service_seq = s.service_seq
+							INNER JOIN accounts a ON a.account_seq = asm.account_seq AND a.use_yn = 'Y'
+							LEFT OUTER JOIN service_cluster sc ON sc.service_seq = asm.service_seq
+							LEFT OUTER JOIN clusters c ON c.cluster_seq = sc.cluster_seq AND c.use_yn = 'Y'
+							LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+							LEFT OUTER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+                    WHERE aum.user_seq IN
+                    <foreach collection="userSeqs" item="userSeq" open=" (" separator=", " close=")">
+                        #{userSeq}
+                    </foreach>
+                    UNION ALL
+                    SELECT
+                        asum.account_seq,
+                        asum.user_seq,
+                        null,
+                        0,
+                        c.cluster_seq
+                    FROM account_system_user_mapping asum
+							INNER JOIN users u ON u.user_seq = asum.user_seq AND u.use_yn = 'Y'
+							INNER JOIN accounts a ON a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+							LEFT OUTER JOIN account_provider_account_mapping apam ON apam.account_seq = asum.account_seq
+							LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+							LEFT OUTER JOIN clusters c ON c.provider_account_seq = apam.provider_account_seq AND c.use_yn = 'Y'
+                    WHERE asum.user_seq IN
+                    <foreach collection="userSeqs" item="userSeq" open=" (" separator=", " close=")">
+                        #{userSeq}
+                    </foreach>
+				) usr ON usr.user_seq = u.user_seq
+        WHERE u.user_seq IN
+						<foreach collection="userSeqs" item="userSeq" open=" (" separator=", " close=")">
+							#{userSeq}
+						</foreach>
+		AND u.use_yn = 'Y'
+    </select>
+
+	<select id="selectByUserId" parameterType="map" resultMap="UserDetailHaveRolesMap">
+		SELECT /* [User.xml].[selectByUserId].[01] 변경일자(2017047) */
+		    <include refid="userDetailColumnSql" />
+			<if test='userRole != null and !"ADMIN".equalsIgnoreCase(userRole)'>
+				<include refid="accountColumnSql" />
+				a.logo_image AS a_logoImage,
+				a.license_key AS a_licenseKey,
+			</if>
+            r.role_code AS r_role
+        FROM users AS u
+				INNER JOIN user_role r 						ON 	u.user_seq = r.user_seq
+			<if test='userRole != null and ("SYSUSER".equalsIgnoreCase(userRole) or "SYSTEM".equalsIgnoreCase(userRole) or "SYSDEMO".equalsIgnoreCase(userRole))'>
+				INNER JOIN account_system_user_mapping asum 	ON 	asum.user_seq = u.user_seq
+				INNER JOIN accounts a 							ON 	a.account_seq = asum.account_seq
+															<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(accountId)">
+																AND a.account_code = #{accountId}
+															</if>
+																AND a.use_yn = 'Y'
+			</if>
+			<if test='userRole != null and "DEVOPS".equalsIgnoreCase(userRole)'>
+				INNER JOIN account_user_mapping aum 	ON 	aum.user_seq = u.user_seq
+				INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+													<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(accountId)">
+														AND a.account_code = #{accountId}
+													</if>
+														AND a.use_yn = 'Y'
+			</if>
+		WHERE u.use_yn = 'Y'
+		AND u.user_id = #{userId}
+		AND r.role_code = #{userRole}
+	</select>
+
+	<select id="getUser" parameterType="map" resultMap="UserDetailHaveRolesMap">
+		SELECT /* [User.xml].[getUser].[01] 변경일자(20210615) */
+		    <include refid="userDetailColumnSql" />
+            r.role_code AS r_role
+        FROM users AS u
+				INNER JOIN user_role r 						ON 	u.user_seq = r.user_seq
+		WHERE u.user_seq = #{userSeq}
+	</select>
+
+	<select id="getUserByIdAuth" resultType="run.acloud.api.auth.vo.AuthVO">
+		SELECT /* [User.xml].[getUserByIdAuth].[01] 변경일자(2017047) */
+			user_id AS username,
+			user_password AS password,
+			hash_salt AS hashSalt,
+			user_language AS userLanguage,
+			user_timezone AS userTimezone,
+			use_yn AS isEnabled
+		FROM users
+		WHERE users.user_id = #{userId}
+	</select>
+
+	<select id="readRoles" resultType="java.lang.String">
+		SELECT /* [User.xml].[readRoles].[01] 변경일자(2017047) */
+			R.role_code
+		FROM user_role AS R
+		LEFT OUTER JOIN users AS U ON R.user_seq = U.user_seq
+		WHERE U.user_id = #{userId}
+	</select>
+
+	<update id="updateLoginTimestamp">
+		UPDATE /* [User.xml].[updateLoginTimestamp].[01] 변경일자(2017047) */
+			users
+		SET
+		    last_login = UTC_TIMESTAMP()
+		    , active_datetime = UTC_TIMESTAMP()
+		WHERE user_id = #{userId}
+	</update>
+
+	<update id="updateLoginTimestampBySeq" parameterType="map">
+		UPDATE /* [User.xml].[updateLoginTimestampBySeq].[01] 변경일자(20210607) */
+			users
+		SET
+		    last_login = UTC_TIMESTAMP()
+		    , active_datetime = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="updateActiveTimestampBySeq" parameterType="map">
+		UPDATE /* [User.xml].[updateActiveTimestampBySeq].[01] 변경일자(20210930) */
+			users
+		SET
+		    active_datetime = UTC_TIMESTAMP(),
+		<if test="updater != null">
+			updater = #{updater},
+		</if>
+			updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="updateLoginFailCountBySeq">
+		UPDATE /* [User.xml].[updateLoginFailCountBySeq].[01] 변경일자(20210607) */
+			users
+		SET login_fail_count = #{loginFailCount}
+			,inactive_yn = (case when #{loginFailCount} <![CDATA[>=]]> 5 or #{loginFailCount} <![CDATA[<=]]> -1 then 'Y' else 'N' end)
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<select id="selectSeqByUserRole" resultType="java.lang.Integer">
+		SELECT /* [User.xml].[selectSeqByUserRole].[01] 변경일자(20181102) */
+			us.user_seq AS userSeq
+		FROM users us
+	    INNER JOIN user_role ur ON us.user_seq=ur.user_seq
+		WHERE ur.role_code = #{roleCode}
+	</select>
+
+	<select id="selectUsersByAccount" parameterType="map" resultMap="UserMap">
+		SELECT /* [User.xml].[selectUsersByAccount].[01] 변경일자(20181106) */
+			us.user_seq AS userSeq,
+            us.use_yn AS useYn,
+            ur.role_code AS userRole
+		FROM users us
+		INNER JOIN account_user_mapping AS aum ON aum.user_seq=us.user_seq
+	    INNER JOIN user_role ur ON us.user_seq=ur.user_seq
+		WHERE aum.account_seq = #{accountSeq}
+	<if test="useYn != null">
+		AND us.use_yn = #{useYn}
+	</if>
+	</select>
+
+	<select id="selectSystemUsersByAccount" parameterType="map" resultMap="UserMap">
+		SELECT /* [User.xml].[selectSystemUsersByAccount].[01] 변경일자(20181106) */
+			us.user_seq AS userSeq,
+            us.use_yn AS useYn,
+            ur.role_code AS userRole
+		FROM users us
+		INNER JOIN account_system_user_mapping AS asum ON asum.user_seq=us.user_seq
+	    INNER JOIN user_role ur ON us.user_seq=ur.user_seq
+		WHERE asum.account_seq = #{accountSeq}
+	<if test="useYn != null">
+		AND us.use_yn = #{useYn}
+	</if>
+	</select>
+
+
+	<update id="rebirthUser" parameterType="User">
+		UPDATE /* [User.xml].[rebirthUser].[01] 변경일자(2017047) */
+			users
+		SET
+			use_yn = 'Y',
+			updater = #{updater},
+			updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<select id="getUsers" parameterType="User" resultMap="UserHaveRolesMap">
+        SELECT /* [User.xml].[getUsers].[01] 변경일자(2017047) */
+		<if test='userRole != null and !"ADMIN".equalsIgnoreCase(userRole)'>
+			<include refid="accountColumnSql" />
+		</if>
+			<include refid="userListColumnSql" />
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+		<if test='userRole != null and "DEVOPS".equalsIgnoreCase(userRole)'>
+			INNER JOIN account_user_mapping aum 	ON 	aum.user_seq = u.user_seq
+			INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+													<if test="account != null and account.accountSeq != null">
+														AND a.account_seq = #{account.accountSeq}
+													</if>
+														AND a.use_yn = 'Y'
+		</if>
+		<if test='userRole != null and ("SYSUSER".equalsIgnoreCase(userRole) or "SYSTEM".equalsIgnoreCase(userRole) or "SYSDEMO".equalsIgnoreCase(userRole))'>
+			INNER JOIN account_system_user_mapping asum 	ON 	asum.user_seq = u.user_seq
+			INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+													<if test="account != null and account.accountSeq != null">
+														AND a.account_seq = #{account.accountSeq}
+													</if>
+														AND a.use_yn = 'Y'
+		</if>
+		<where>
+			<if test="userSeq != null">
+				AND u.user_seq = #{userSeq}
+			</if>
+			<if test="userId != null">
+				AND u.user_id = #{userId}
+			</if>
+			<if test="userRole != null">
+				AND r.role_code = #{userRole}
+			</if>
+		</where>
+	</select>
+
+	<select id="getUsersForCheck" parameterType="User" resultMap="UserHaveRolesMap">
+        SELECT /* [User.xml].[getUsersForCheck].[01] 변경일자(2017047) */
+		<if test='userRole != null and !"ADMIN".equalsIgnoreCase(userRole)'>
+			<include refid="accountColumnSql" />
+		</if>
+			<include refid="userListColumnSql" />
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+		<if test='userRole != null and ("DEVOPS".equalsIgnoreCase(userRole) or "SYSTEM".equalsIgnoreCase(userRole) or "SYSUSER".equalsIgnoreCase(userRole) or "SYSDEMO".equalsIgnoreCase(userRole))'>
+			INNER JOIN (
+				SELECT DISTINCT
+					x_a.user_seq,
+					<include refid="accountColumnInlineXSql" />
+				FROM (
+					SELECT
+						aum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_user_mapping aum
+							INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																<if test="account != null and account.accountSeq != null">
+																	AND a.account_seq = #{account.accountSeq}
+																</if>
+																<if test="account != null and account.accountCode != null">
+																	AND a.account_code = #{account.accountCode}
+																</if>
+																	AND a.use_yn = 'Y'
+					UNION ALL
+					SELECT
+						asum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_system_user_mapping asum
+							INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																<if test="account != null and account.accountSeq != null">
+																	AND a.account_seq = #{account.accountSeq}
+																</if>
+																<if test="account != null and account.accountCode != null">
+																	AND a.account_code = #{account.accountCode}
+																</if>
+																	AND a.use_yn = 'Y'
+				) x_a
+			) a ON a.user_seq = u.user_seq
+		</if>
+		<where>
+			AND u.use_yn = 'Y'
+			<if test="userSeq != null">
+				AND u.user_seq = #{userSeq}
+			</if>
+			<if test="userId != null">
+				AND u.user_id = #{userId}
+			</if>
+			<if test='userRole != null and "ADMIN".equalsIgnoreCase(userRole)'>
+				AND r.role_code = #{userRole}
+			</if>
+			<if test='userRole != null and !"ADMIN".equalsIgnoreCase(userRole)'>
+				AND r.role_code IN ('ACCOUNT', 'SYSUSER', 'SYSTEM', 'DEVOPS', 'SYSDEMO')
+			</if>
+		</where>
+	</select>
+
+	<select id="getUsersForExternal" parameterType="map" resultMap="UserExternalMap">
+        SELECT /* [User.xml].[getUsersForExternal].[01] 변경일자(20221024) */
+			u.user_seq AS userSeq,
+			u.user_id AS userId,
+			u.user_name AS userName,
+			u.use_yn AS useYn,
+			DATE_FORMAT(u.created, '%Y-%m-%d %H:%i:%s') AS created,
+			DATE_FORMAT(u.updated, '%Y-%m-%d %H:%i:%s') AS updated
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+		<if test='userRole != null and ("DEVOPS".equalsIgnoreCase(userRole) or "SYSTEM".equalsIgnoreCase(userRole) or "SYSUSER".equalsIgnoreCase(userRole) or "SYSDEMO".equalsIgnoreCase(userRole))'>
+			INNER JOIN (
+				SELECT DISTINCT
+					x_a.user_seq,
+					<include refid="accountColumnInlineXSql" />
+				FROM (
+					SELECT
+						aum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_user_mapping aum
+							INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																<if test="accountSeq != null">
+																	AND a.account_seq = #{accountSeq}
+																</if>
+																<if test="accountCode != null">
+																	AND a.account_code = #{accountCode}
+																</if>
+																	AND a.use_yn = 'Y'
+					UNION ALL
+					SELECT
+						asum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_system_user_mapping asum
+							INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																<if test="accountSeq != null">
+																	AND a.account_seq = #{accountSeq}
+																</if>
+																<if test="accountCode != null">
+																	AND a.account_code = #{accountCode}
+																</if>
+																	AND a.use_yn = 'Y'
+				) x_a
+			) a ON a.user_seq = u.user_seq
+		</if>
+		<where>
+			AND u.use_yn = 'Y'
+			<if test="userSeq != null">
+				AND u.user_seq = #{userSeq}
+			</if>
+			<if test="userId != null">
+				AND u.user_id = #{userId}
+			</if>
+			<if test='userRole != null and "ADMIN".equalsIgnoreCase(userRole)'>
+				AND r.role_code = #{userRole}
+			</if>
+			<if test='userRole != null and !"ADMIN".equalsIgnoreCase(userRole)'>
+				AND r.role_code IN ('ACCOUNT', 'SYSUSER', 'SYSTEM', 'DEVOPS', 'SYSDEMO')
+			</if>
+		</where>
+	</select>
+
+	<select id="getUsersOfAccount" parameterType="map" resultMap="UserHaveRolesMap">
+        SELECT /* [User.xml].[getUsersOfAccount].[01] 변경일자(20190902) */
+			<include refid="userListColumnSql" />
+			,a.user_grant AS userGrant
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+			INNER JOIN (
+				SELECT DISTINCT
+					x_a.user_seq,
+					x_a.user_grant,
+					<include refid="accountColumnInlineXSql" />
+				FROM (
+					SELECT
+						aum.user_seq AS user_seq,
+						su.user_grant AS user_grant,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_user_mapping aum
+							INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+							LEFT OUTER JOIN service_user su 		ON su.user_seq = aum.user_seq
+					UNION ALL
+					SELECT
+						asum.user_seq AS user_seq,
+						"" AS user_grant,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_system_user_mapping asum
+							INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+				) x_a
+			) a ON a.user_seq = u.user_seq
+		<where>
+			AND u.use_yn = 'Y'
+		</where>
+	</select>
+
+	<select id="getUserOfAccount" parameterType="map" resultMap="UserDetailHaveRolesClusterMap">
+        SELECT /* [User.xml].[getUserOfAccount].[01] 변경일자(20190902) */
+                cl.cluster_seq					cl_clusterSeq,
+                cl.cluster_type					cl_clusterType,
+                cl.cluster_name					cl_clusterName,
+                cl.region_code					cl_regionCode,
+                cl.cluster_state				cl_clusterState,
+                cl.cluster_id					cl_clusterId,
+                cl.cube_type					cl_cubeType,
+                cl.auth_type					cl_authType,
+                cl.k8s_version					cl_k8sVersion,
+                cl.use_yn						cl_useYn,
+                cl.provider_account_seq			cl_providerAccountSeq,
+				cl.cloud_provider_account_seq	cl_cloudProviderAccountSeq,
+# 				cl.cluster_tenancy				cl_clusterTenancy,
+                cl.provider_account_seq			cl_pa_providerAccountSeq,
+                cl.account_use_type 			cl_pa_accountUseType,
+                cl.provider_code				cl_pa_providerCode,
+#                 (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = cl.provider_code AND x.use_yn = 'Y') AS cl_pa_providerCodeName,
+                cl.provider_name				cl_pa_providerName,
+                cl.c_provider_account_seq		cl_cpa_providerAccountSeq,
+                cl.c_account_use_type 			cl_cpa_accountUseType,
+                cl.c_provider_code				cl_cpa_providerCode,
+#                 (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = cl.c_provider_code AND x.use_yn = 'Y') AS cl_cpa_providerCodeName,
+                cl.c_provider_name				cl_cpa_providerName,
+                cl.c_api_account_password		cl_cpa_apiAccountPassword,
+				cl.servicemap_seq				cl_sm_servicemapSeq,
+				cl.servicemap_name				cl_am_servicemapName,
+				cl.cluster_seq					cl_am_clusterSeq,
+				cl.namespace_name				cl_am_namespaceName,
+				<include refid="accountColumnSql" />
+				<include refid="userListColumnSql" />
+				,a.user_grant AS userGrant
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+			INNER JOIN (
+				SELECT DISTINCT
+					x_a.user_seq,
+					x_a.user_grant,
+					<include refid="accountColumnInlineXSql" />
+				FROM (
+					SELECT
+						aum.user_seq AS user_seq,
+						su.user_grant AS user_grant,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_user_mapping aum
+							INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+							LEFT OUTER JOIN service_user su 		ON su.user_seq = aum.user_seq
+					UNION ALL
+					SELECT
+						asum.user_seq AS user_seq,
+						"" AS user_grant,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_system_user_mapping asum
+							INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+				) x_a
+			) a ON a.user_seq = u.user_seq
+            LEFT OUTER JOIN (
+                SELECT
+                    c.cluster_seq			,
+                    c.cluster_type			,
+                    c.cluster_name			,
+                    c.region_code			,
+                    c.cluster_state		    ,
+                    c.cluster_id			,
+                    c.cube_type			    ,
+					c.cloud_provider_account_seq,
+                    c.auth_type				,
+                    c.k8s_version			,
+                    c.use_yn				,
+                    pa.provider_account_seq	,
+                    pa.account_use_type 	,
+                    pa.provider_code		,
+                    pa.provider_name		,
+                    cpa.provider_account_seq	as c_provider_account_seq,
+                    cpa.account_use_type 		as c_account_use_type,
+                    cpa.provider_code			as c_provider_code,
+                    cpa.provider_name			as c_provider_name,
+                    cpa.api_account_password	as c_api_account_password,
+# 					al.cluster_tenancy 		,
+					al.servicemap_seq		,
+					al.servicemap_name		,
+					al.namespace_name		,
+                    al.user_seq
+                FROM
+                    clusters c
+                        INNER JOIN  (
+                            SELECT
+                                DISTINCT
+# 								s.cluster_tenancy,
+                                aum.account_seq,
+                                aum.user_seq,
+								sm.servicemap_seq ,
+								sm.servicemap_name ,
+								sm.namespace_name ,
+                                c.cluster_seq
+                            FROM account_user_mapping aum
+                                INNER JOIN users u ON u.user_seq = aum.user_seq AND u.use_yn = 'Y'
+                                INNER JOIN service_user su ON su.user_seq = u.user_seq
+                                INNER JOIN services s ON s.service_seq = su.service_seq AND s.use_yn = 'Y'
+                                INNER JOIN account_service_mapping asm ON asm.account_seq = aum.account_seq AND asm.service_seq = s.service_seq
+                                INNER JOIN service_cluster sc ON sc.service_seq = asm.service_seq
+                                INNER JOIN clusters c ON c.cluster_seq = sc.cluster_seq AND c.use_yn = 'Y'
+                                INNER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+                                INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+                                INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+                                LEFT OUTER JOIN service_servicemap_mapping ssm ON s.service_seq = ssm.service_seq
+								LEFT OUTER JOIN servicemaps sm ON sm.servicemap_seq = ssm.servicemap_seq AND sm.cluster_seq = c.cluster_seq AND sm.use_yn = 'Y'
+							WHERE aum.user_seq = #{userSeq}
+                            UNION ALL
+                            SELECT
+# 								'HARD' AS cluster_tenancy,
+                                asum.account_seq,
+                                asum.user_seq,
+								sm.servicemap_seq ,
+								sm.servicemap_name ,
+								sm.namespace_name ,
+                                c.cluster_seq
+                            FROM account_system_user_mapping asum
+								INNER JOIN users u ON u.user_seq = asum.user_seq AND u.use_yn = 'Y'
+								INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asum.account_seq
+								INNER JOIN provider_account pa ON pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+								INNER JOIN clusters c ON c.provider_account_seq = apam.provider_account_seq AND c.use_yn = 'Y'
+								INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+								LEFT OUTER JOIN servicemaps sm ON sm.cluster_seq = c.cluster_seq AND sm.use_yn = 'Y'
+                            WHERE asum.user_seq = #{userSeq}
+                        ) al ON al.cluster_seq = c.cluster_seq
+                    LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+                    LEFT OUTER JOIN provider_account cpa	ON	cpa.provider_account_seq = c.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+                WHERE c.use_yn = 'Y'
+            ) cl ON cl.user_seq = a.user_seq
+		<where>
+			AND u.use_yn = 'Y'
+			<if test="userSeq != null">
+				AND u.user_seq = #{userSeq}
+			</if>
+		</where>
+	</select>
+
+	<select id="getUserOfAccountById" parameterType="map" resultMap="UserDetailHaveRolesClusterMap">
+        SELECT /* [User.xml].[getUserOfAccountById].[01] 변경일자(20200811) */ /* 본 API는 해시된 패스워드도 응답함에 유의 할 것 */
+                cl.cluster_seq					cl_clusterSeq,
+                cl.cluster_type					cl_clusterType,
+                cl.cluster_name					cl_clusterName,
+                cl.region_code					cl_regionCode,
+                cl.cluster_state				cl_clusterState,
+                cl.cluster_id					cl_clusterId,
+                cl.cube_type					cl_cubeType,
+                cl.auth_type					cl_authType,
+                cl.k8s_version					cl_k8sVersion,
+                cl.use_yn						cl_useYn,
+                cl.provider_account_seq			cl_providerAccountSeq,
+				cl.cloud_provider_account_seq	cl_cloudProviderAccountSeq,
+# 				cl.cluster_tenancy				cl_clusterTenancy,
+                cl.provider_account_seq			cl_pa_providerAccountSeq,
+                cl.account_use_type 			cl_pa_accountUseType,
+                cl.provider_code				cl_pa_providerCode,
+#                 (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = cl.provider_code AND x.use_yn = 'Y') AS cl_pa_providerCodeName,
+                cl.provider_name				cl_pa_providerName,
+                cl.c_provider_account_seq		cl_cpa_providerAccountSeq,
+                cl.c_account_use_type 			cl_cpa_accountUseType,
+                cl.c_provider_code				cl_cpa_providerCode,
+#                 (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = cl.c_provider_code AND x.use_yn = 'Y') AS cl_cpa_providerCodeName,
+                cl.c_provider_name				cl_cpa_providerName,
+                cl.c_api_account_password		cl_cpa_apiAccountPassword,
+				cl.servicemap_seq				cl_sm_servicemapSeq,
+				cl.servicemap_name				cl_am_servicemapName,
+				cl.cluster_seq					cl_am_clusterSeq,
+				cl.namespace_name				cl_am_namespaceName,
+				<include refid="accountColumnSql" />
+				u.user_password AS password,
+				u.hash_salt AS hashSalt,
+			<include refid="userListColumnSql" />
+        FROM users AS u
+        	INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+			INNER JOIN (
+				SELECT DISTINCT
+					x_a.user_seq,
+					<include refid="accountColumnInlineXSql" />
+				FROM (
+					SELECT
+						aum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_user_mapping aum
+							INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+					UNION ALL
+					SELECT
+						asum.user_seq AS user_seq,
+						<include refid="accountColumnInlineViewSql" />
+					FROM account_system_user_mapping asum
+							INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+				) x_a
+			) a ON a.user_seq = u.user_seq
+            LEFT OUTER JOIN (
+                SELECT
+                    c.cluster_seq			,
+                    c.cluster_type			,
+                    c.cluster_name			,
+                    c.region_code			,
+                    c.cluster_state		    ,
+                    c.cluster_id			,
+                    c.cube_type			    ,
+					c.cloud_provider_account_seq,
+                    c.auth_type				,
+                    c.k8s_version			,
+                    c.use_yn				,
+                    pa.provider_account_seq	,
+                    pa.account_use_type 	,
+                    pa.provider_code		,
+                    pa.provider_name		,
+                    cpa.provider_account_seq	as c_provider_account_seq,
+                    cpa.account_use_type 		as c_account_use_type,
+                    cpa.provider_code			as c_provider_code,
+                    cpa.provider_name			as c_provider_name,
+                    cpa.api_account_password	as c_api_account_password,
+# 					al.cluster_tenancy 		,
+					al.servicemap_seq		,
+					al.servicemap_name		,
+					al.namespace_name		,
+					al.user_seq
+                FROM
+                    clusters c
+                        INNER JOIN  (
+                            SELECT
+                                DISTINCT
+# 								s.cluster_tenancy,
+                                aum.account_seq,
+                                aum.user_seq,
+								sm.servicemap_seq ,
+								sm.servicemap_name ,
+								sm.namespace_name ,
+                                c.cluster_seq
+                            FROM account_user_mapping aum
+                                INNER JOIN users u ON u.user_seq = aum.user_seq AND u.use_yn = 'Y' AND u.user_id = #{userId}
+                                INNER JOIN service_user su ON su.user_seq = u.user_seq
+                                INNER JOIN services s ON s.service_seq = su.service_seq AND s.use_yn = 'Y'
+                                INNER JOIN account_service_mapping asm ON asm.account_seq = aum.account_seq AND asm.service_seq = s.service_seq
+                                INNER JOIN service_cluster sc ON sc.service_seq = asm.service_seq
+                                INNER JOIN clusters c ON c.cluster_seq = sc.cluster_seq AND c.use_yn = 'Y'
+                                INNER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+                                INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+                                INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+								LEFT OUTER JOIN service_servicemap_mapping ssm ON s.service_seq = ssm.service_seq
+								LEFT OUTER JOIN servicemaps sm ON sm.servicemap_seq = ssm.servicemap_seq AND sm.cluster_seq = c.cluster_seq AND sm.use_yn = 'Y'
+                            UNION ALL
+                            SELECT
+# 								'HARD' AS cluster_tenancy,
+                                asum.account_seq,
+                                asum.user_seq,
+								sm.servicemap_seq ,
+								sm.servicemap_name ,
+								sm.namespace_name ,
+                                c.cluster_seq
+                            FROM account_system_user_mapping asum
+								INNER JOIN users u ON u.user_seq = asum.user_seq AND u.use_yn = 'Y' AND u.user_id = #{userId}
+								INNER JOIN account_provider_account_mapping apam ON apam.account_seq = asum.account_seq
+								INNER JOIN provider_account pa ON pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+								INNER JOIN clusters c ON c.provider_account_seq = apam.provider_account_seq AND c.use_yn = 'Y'
+								INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+								LEFT OUTER JOIN servicemaps sm ON sm.cluster_seq = c.cluster_seq AND sm.use_yn = 'Y'
+                        ) al ON al.cluster_seq = c.cluster_seq
+                    LEFT OUTER JOIN provider_account pa		ON	pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+                    LEFT OUTER JOIN provider_account cpa	ON	cpa.provider_account_seq = c.cloud_provider_account_seq AND cpa.use_yn = 'Y'
+                WHERE c.use_yn = 'Y'
+            ) cl ON cl.user_seq = a.user_seq
+		<where>
+			AND u.use_yn = 'Y'
+			AND u.user_id = #{userId}
+		</where>
+	</select>
+
+
+	<select id="getAccountUsersForAccount" parameterType="map" resultMap="UserHaveRolesMap">
+		SELECT /* [User.xml].[getAccountUsersForAccount].[01] 변경일자(20181101) */
+			<include refid="accountColumnSql" />
+			<include refid="userListColumnSql" />
+		FROM users AS u
+				LEFT OUTER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+				LEFT OUTER JOIN account_system_user_mapping asum 	ON asum.account_seq = a.account_seq
+				LEFT OUTER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+															AND a.account_seq = #{accountSeq}
+															AND a.use_yn = 'Y'
+		WHERE r.role_code = 'SYSTEM'
+		  AND u.use_yn = 'Y'
+		  AND NOT EXISTS (
+				SELECT 1
+				FROM account_user_mapping x
+						INNER JOIN accounts xa 	ON 	xa.account_seq = x.account_seq
+												AND xa.use_yn = 'Y'
+				WHERE x.user_seq = u.user_seq
+			<if test="accountSeq != null">
+				AND xa.account_seq <![CDATA[<>]]> #{accountSeq}
+			</if>
+		)
+	</select>
+
+	<select id="getUsersForAccount" parameterType="map" resultMap="UserHaveRolesMap">
+		SELECT /* [User.xml].[getUsersForAccount].[01] 변경일자(20181101) */
+			<include refid="accountColumnSql" />
+			<include refid="userListColumnSql" />
+		FROM users AS u
+				LEFT OUTER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+				LEFT OUTER JOIN account_user_mapping aum 	ON 	aum.user_seq = u.user_seq
+				LEFT OUTER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+															AND a.use_yn = 'Y'
+		WHERE r.role_code = 'DEVOPS'
+		  AND u.use_yn = 'Y'
+		  AND NOT EXISTS (
+				SELECT 1
+				FROM account_user_mapping x
+						INNER JOIN accounts xa 	ON 	xa.account_seq = x.account_seq
+												AND xa.use_yn = 'Y'
+				WHERE x.user_seq = u.user_seq
+			<if test="accountSeq != null">
+				AND xa.account_seq <![CDATA[<>]]> #{accountSeq}
+			</if>
+		)
+	</select>
+
+	<select id="getUsersForWorkspace" parameterType="map" resultMap="UserHaveRolesMap">
+		SELECT /* [User.xml].[getUsersForWorkspace].[01] 변경일자(20181101) */
+			<include refid="accountColumnSql" />
+			<include refid="userListColumnSql" />
+		FROM users AS u
+			LEFT OUTER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+			LEFT OUTER JOIN account_user_mapping aum 	ON 	aum.user_seq = u.user_seq
+			LEFT OUTER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+														AND a.account_seq = #{accountSeq}
+														AND a.use_yn = 'Y'
+		<where>
+			<choose>
+				<when test='userRole != null and ("ADMIN".equalsIgnoreCase(userRole) or "SYSUSER".equalsIgnoreCase(userRole) or "SYSTEM".equalsIgnoreCase(userRole) or "SYSDEMO".equalsIgnoreCase(userRole) or ("DEVOPS".equalsIgnoreCase(userRole) and "MANAGER".equalsIgnoreCase(userGrant)))'>
+					r.role_code = 'DEVOPS'
+				</when>
+				<otherwise>
+					1 = 2
+				</otherwise>
+			</choose>
+			AND u.use_yn = 'Y'
+			AND a.account_seq IS NOT NULL
+			<!--AND NOT EXISTS (
+				SELECT 1
+				FROM account_user_mapping x
+						INNER JOIN accounts xa 		ON 	xa.account_seq = x.account_seq
+													AND xa.account_seq = #{accountSeq}
+													AND xa.use_yn = 'Y'
+						INNER JOIN service_user xsu ON	xsu.user_seq = x.user_seq
+						INNER JOIN services xs 		ON xs.service_seq = xsu.service_seq
+												<if test="serviceSeq != null">
+													AND xs.service_seq <![CDATA[<>]]> #{serviceSeq}
+												</if>
+													AND xs.use_yn = 'Y'
+				WHERE x.user_seq = u.user_seq
+			)-->
+		</where>
+	</select>
+
+	<insert id="addUser" parameterType="User" useGeneratedKeys="true" keyProperty="userSeq" keyColumn="user_seq">
+		INSERT /* [User.xml].[addUser].[01] 변경일자(2017047) */
+		INTO users (
+		    user_id,
+		    user_password,
+		    hash_salt,
+		    user_name,
+			user_job,
+			user_department,
+			phone_number,
+			kakao_id,
+			email,
+			description,
+		    user_language,
+			user_timezone,
+			password_expiration_begin_time,
+			password_expiration_end_time,
+			reset_password_yn,
+		    otp_use_yn,
+		    created,
+		    creator,
+		    updated,
+		    updater,
+		    use_yn)
+		VALUES (
+		    #{userId},
+		    #{password},
+			#{hashSalt},
+		    #{userName},
+		    #{userJob},
+			#{userDepartment},
+			#{phoneNumber},
+			#{kakaoId},
+		    #{email},
+		    #{description},
+		    #{userLanguage},
+			#{userTimezone},
+			UTC_TIMESTAMP(),
+			date_add(UTC_TIMESTAMP(), INTERVAL #{passwordInterval} DAY),
+			IFNULL(#{resetPasswordYn}, 'N'),
+			IFNULL(#{otpUseYn}, 'N'),
+			UTC_TIMESTAMP(),
+			IFNULL(#{creator}, 1),
+			UTC_TIMESTAMP(),
+			IFNULL(#{updater}, 1),
+		    'Y')
+	</insert>
+
+	<update id="editUser" parameterType="User">
+		UPDATE /* [User.xml].[editUser].[01] 변경일자(2017047) */
+			users
+		SET
+		<if test="userName != null">
+		    user_name = #{userName},
+		</if>
+			user_job = #{userJob},
+			user_department = #{userDepartment},
+			phone_number = #{phoneNumber},
+			kakao_id = #{kakaoId},
+			email = #{email},
+			description = #{description},
+		    updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="editUserLanguage" parameterType="User">
+		UPDATE /* [User.xml].[editUser].[01] 변경일자(2017047) */
+			users
+		SET
+		    user_language = #{userLanguage},
+		    updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="editUserTimezone" parameterType="User">
+		UPDATE /* [User.xml].[editUser].[01] 변경일자(2017047) */
+			users
+		SET
+		    user_timezone = #{userTimezone},
+		    updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="removeUser" parameterType="User">
+		UPDATE /* [User.xml].[removeUser].[01] 변경일자(2017047) */
+			users
+		SET
+		    use_yn = 'N',
+		    updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<delete id="deleteUser" parameterType="User">
+
+		/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
+		UPDATE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+			users
+		SET
+			  user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_qr = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_secret = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE user_seq = #{userSeq};
+
+		UPDATE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+			users
+		SET
+			  user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_qr = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_secret = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE user_seq = #{userSeq};
+
+		UPDATE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+			users
+		SET
+			  user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_qr = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_secret = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE user_seq = #{userSeq};
+
+		UPDATE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+			users
+		SET
+			  user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_qr = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_secret = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE user_seq = #{userSeq};
+
+		UPDATE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+			users
+		SET
+			  user_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, user_name = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_qr = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_secret = LEFT(TO_BASE64(SHA(RAND())), 30)
+			, otp_url = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE user_seq = #{userSeq};
+
+		DELETE /* [User.xml].[deleteUser].[01] 변경일자(20210629) */
+		FROM users
+		WHERE user_seq = #{userSeq};
+
+		/*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;
+	</delete>
+
+	<update id="removeUsers" parameterType="map">
+		UPDATE /* [User.xml].[removeUsers].[01] 변경일자(20181105) */
+			users
+		SET
+			use_yn = 'N',
+			updater = #{updater},
+			updated = UTC_TIMESTAMP()
+		<where>
+			<choose>
+				<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(userSeqs)">
+					<foreach collection="userSeqs" item="userSeq" open="and user_seq in (" separator=", " close=")">
+						#{userSeq}
+					</foreach>
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+	</update>
+
+	<select id="checkPassword" parameterType="User" resultType="java.lang.Boolean">
+		SELECT /* [User.xml].[checkPassword].[01] 변경일자(2017047) */
+		    (#{password} = user_password)
+			<if test="newPassword != null">
+				 <![CDATA[&]]> (#{newPassword} <![CDATA[<>]]> user_password)
+			</if>
+		FROM users
+		WHERE user_seq = #{userSeq}
+	</select>
+
+	<update id="changeOnlyPassword" parameterType="User">
+		UPDATE /* [User.xml].[changeOnlyPassword].[01] 변경일자(20210915) */
+			users
+		SET
+			user_password = #{password},
+			hash_salt = #{hashSalt},
+			updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="changePassword" parameterType="User">
+		UPDATE /* [User.xml].[changePassword].[01] 변경일자(2017047) */
+			users
+		SET
+		    user_password = #{password},
+			hash_salt = #{hashSalt},
+			reset_password_yn = 'N',
+		    password_expiration_begin_time = UTC_TIMESTAMP(),
+		    password_expiration_end_time = date_add(UTC_TIMESTAMP(), INTERVAL #{passwordInterval} DAY),
+            login_fail_count = 0,
+            updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="resetPassword" parameterType="User">
+		UPDATE /* [User.xml].[resetPassword].[01] 변경일자(2017047) */
+			users
+		SET
+		    user_password = #{password},
+			hash_salt = #{hashSalt},
+			reset_password_yn = 'Y',
+		    password_expiration_begin_time = UTC_TIMESTAMP(),
+		    password_expiration_end_time = date_add(UTC_TIMESTAMP(), INTERVAL #{passwordInterval} DAY),
+            login_fail_count = 0,
+            updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<update id="extendPassword" parameterType="User">
+		UPDATE /* [User.xml].[extendPassword].[01] 변경일자(20170626) */
+			users
+		SET
+		    password_expiration_begin_time = UTC_TIMESTAMP(),
+		    password_expiration_end_time = date_add(UTC_TIMESTAMP(), INTERVAL #{passwordInterval} DAY),
+		    updater = #{updater},
+		    updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<select id="getUserRoles" parameterType="User" resultType="java.lang.String">
+		SELECT /* [User.xml].[getUserRoles].[01] 변경일자(2017047) */
+			role_code
+		FROM
+		    user_role
+		WHERE user_seq = #{userSeq}
+	</select>
+
+	<insert id="addUserRoles" parameterType="User">
+		INSERT /* [User.xml].[addUserRoles].[01] 변경일자(2017047) */
+		INTO user_role (
+		    user_seq,
+		    role_code
+		) VALUES
+		<foreach collection="roles" item="item" index="index" open="(" separator="), (" close=")">
+            #{userSeq},
+            #{item}
+        </foreach>
+	</insert>
+
+	<insert id="addUserRole" parameterType="map">
+		INSERT /* [User.xml].[addUserRole].[01] 변경일자(20221007) */
+		INTO user_role (
+		    user_seq,
+		    role_code
+		) VALUES
+		(
+            #{userSeq},
+            #{roleCode}
+        )
+	</insert>
+
+	<delete id="removeUserRole" parameterType="User">
+		DELETE /* [User.xml].[removeUserRole].[01] 변경일자(2017047) */
+		FROM user_role
+		WHERE user_seq = #{userSeq}
+	</delete>
+
+	<delete id="deleteUserRole" parameterType="User">
+		DELETE /* [User.xml].[deleteUserRole].[01] 변경일자(20210629) */
+		FROM user_role
+		WHERE user_seq = #{userSeq}
+	</delete>
+
+	<select id="getUserSeqByRole" parameterType="map" resultMap="UserMap">
+        SELECT /* [User.xml].[getUserSeqByRole].[01] 변경일자(2017047) */
+			ur.user_seq AS userSeq,
+			ur.role_code AS userRole
+		FROM
+			user_role ur
+				INNER JOIN codes cd
+					ON cd.code = ur.role_code
+					AND cd.code_group_id = 'USER_ROLE'
+				INNER JOIN users u
+					ON u.user_seq = ur.user_seq
+					AND u.use_yn = 'Y'
+		WHERE ur.role_code = #{userRole}
+	</select>
+
+	<select id="getAuthorizedServicesBySeq" parameterType="map" resultType="ServiceList">
+		SELECT DISTINCT /* [User.xml].[getAuthorizedServicesBySeq].[01] 변경일자(20181116) */
+			al.serviceSeq,
+			al.servicename,
+			al.colorCode
+		FROM (
+				SELECT
+					s.service_seq as serviceSeq,
+					s.service_name AS servicename,
+					s.color_code AS colorCode
+				FROM services s
+					INNER JOIN account_service_mapping asm ON asm.service_seq = s.service_seq
+					INNER JOIN accounts ac ON ac.account_seq = asm.account_seq
+					INNER JOIN account_user_mapping aum ON aum.account_seq = ac.account_seq
+					INNER JOIN service_user AS su ON su.service_seq = asm.service_seq
+					INNER JOIN users u ON u.user_seq = aum.user_seq AND u.user_seq = su.user_seq
+				WHERE s.use_yn = 'Y'
+				  AND s.service_type = 'NORMAL'
+				  AND ac.use_yn = 'Y'
+				  AND u.use_yn = 'Y'
+				  AND u.user_seq = #{userSeq}
+				UNION ALL
+				SELECT
+					s.service_seq as serviceSeq,
+					s.service_name AS servicename,
+					s.color_code AS colorCode
+				FROM services s
+					INNER JOIN account_service_mapping asm ON asm.service_seq=s.service_seq
+					INNER JOIN accounts ac ON ac.account_seq = asm.account_seq
+					INNER JOIN account_system_user_mapping asum ON asum.account_seq = ac.account_seq
+					INNER JOIN users u ON u.user_seq = asum.user_seq
+				WHERE s.use_yn = 'Y'
+				  AND s.service_type = 'NORMAL'
+				  AND ac.use_yn = 'Y'
+				  AND u.use_yn = 'Y'
+				  AND u.user_seq = #{userSeq}
+			) al
+ 	</select>
+
+	<select id="getLastServiceBySeq" parameterType="java.lang.Integer" resultType="java.lang.String">
+		SELECT /* [User.xml].[getLastServiceBySeq].[01] 변경일자(20181031) */
+			service_seq as serviceSeq
+		FROM service_user AS su
+		WHERE su.user_seq = #{userSeq}
+		LIMIT 1
+	</select>
+
+	<update id="updateLastServiceSeq" parameterType="User">
+		UPDATE /* [User.xml].[updateLastServiceSeq].[01] 변경일자(20181031) */
+			users
+		SET last_service_seq = #{lastServiceSeq}
+		WHERE user_seq = #{userSeq}
+	</update>
+
+
+	<select id="getCurrentDate" resultType="java.util.Date">
+		SELECT /* [User.xml].[getCurrentDate].[01] 변경일자(20180627) */ UTC_TIMESTAMP() AS currentDate
+	</select>
+
+	<select id="getAccountOfAccountUser" parameterType="map" resultType="java.lang.Integer">
+		SELECT /* [User.xml].[getAccountOfAccountUser].[01] 변경일자(20181031) */
+			a.account_seq AS accountSeq
+		FROM users u
+				INNER JOIN account_system_user_mapping asum ON asum.user_seq = u.user_seq
+				INNER JOIN accounts a ON a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+		WHERE u.user_seq = #{accountUserSeq}
+		AND u.use_yn = 'Y'
+	</select>
+
+	<select id="getServiceOfUser" parameterType="map" resultType="java.lang.Integer">
+		SELECT /* [User.xml].[getServiceOfUser].[01] 변경일자(20181031) */
+			s.service_seq AS serviceSeq
+		FROM services s
+			INNER JOIN account_service_mapping asm ON asm.service_seq = s.service_seq
+			INNER JOIN accounts ac ON ac.account_seq = asm.account_seq
+			INNER JOIN account_user_mapping aum ON aum.account_seq = ac.account_seq
+			INNER JOIN service_user AS su ON su.service_seq = asm.service_seq
+			INNER JOIN users u ON u.user_seq = aum.user_seq AND u.user_seq = su.user_seq
+		WHERE s.use_yn = 'Y'
+			  AND ac.use_yn = 'Y'
+			  AND u.use_yn = 'Y'
+			  AND u.user_seq = #{userSeq}
+		<!--FROM users u
+			INNER JOIN service_user su 	ON su.user_seq = u.user_seq
+			INNER JOIN services s 		ON s.service_seq = su.service_seq
+										AND s.use_yn = 'Y'
+		WHERE u.user_seq = #{userSeq}
+		AND u.use_yn = 'Y'-->
+	</select>
+
+	<select id="getAccountOfUser" parameterType="map" resultType="java.lang.Integer">
+		SELECT /* [User.xml].[getAccountOfUser].[01] 변경일자(20181031) */
+			a.account_seq AS accountSeq
+		FROM users u
+			INNER JOIN account_user_mapping aum 	ON aum.user_seq = u.user_seq
+			INNER JOIN accounts a 					ON a.account_seq = aum.account_seq
+									   				AND a.use_yn = 'Y'
+		WHERE u.user_seq = #{userSeq}
+		AND u.use_yn = 'Y'
+	</select>
+
+	<update id="updateUsersLastService" parameterType="map">
+		UPDATE /* [User.xml].[updateUsersLastService].[01] 변경일자(20181105) */
+			users
+		SET
+			last_service_seq = IF(last_service_seq IS NOT NULL, #{lastServiceSeq}, last_service_seq),
+			updater = #{updater},
+			updated = UTC_TIMESTAMP()
+		WHERE last_service_seq IS NULL
+		<choose>
+			<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(userSeqs)">
+				<foreach collection="userSeqs" item="userSeq" open="and user_seq in (" separator=", " close=")">
+					#{userSeq}
+				</foreach>
+			</when>
+			<otherwise>
+				AND 1 = 2
+			</otherwise>
+		</choose>
+	</update>
+
+	<update id="updateDefaultUsersLastService" parameterType="map">
+		UPDATE /* [User.xml].[updateDefaultUsersLastService].[01] 변경일자(20210127) */
+			users
+		SET
+		<if test="lastServiceSeq != null">
+			last_service_seq = #{lastServiceSeq},
+		</if>
+			updater = #{updater},
+			updated = UTC_TIMESTAMP()
+		WHERE last_service_seq IS NULL
+		<choose>
+			<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(userSeqs)">
+				<foreach collection="userSeqs" item="userSeq" open="and user_seq in (" separator=", " close=")">
+					#{userSeq}
+				</foreach>
+			</when>
+			<otherwise>
+				AND 1 = 2
+			</otherwise>
+		</choose>
+	</update>
+
+
+	<insert id="addUserClusterRoleIssue" parameterType="UserClusterRoleIssue">
+		INSERT /* [User.xml].[addUserClusterRoleIssue].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue (
+			  user_seq
+			, cluster_seq
+			, issue_type
+			, binding_type
+			, issue_datetime
+			, expiration_datetime
+			, issue_role
+			, issue_account_name
+			, issue_shell_path
+			, issue_config
+			, user_id
+			, user_name
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		)
+		VALUES (
+		   	 #{userSeq}
+		   , #{clusterSeq}
+		   , #{issueType}
+		   , #{bindingType}
+		   , UTC_TIMESTAMP()
+		   , #{expirationDatetime}
+		<choose>
+			<when test='"CLUSTER".equals(bindingType)'>
+				, #{issueRole}
+			</when>
+			<otherwise>
+				, null
+			</otherwise>
+		</choose>
+		   , #{issueAccountName}
+		   , #{issueShellPath}
+		   , #{issueConfig}
+		   , (SELECT x.user_id FROM users x WHERE x.user_seq = #{userSeq})
+		   , (SELECT x.user_name FROM users x WHERE x.user_seq = #{userSeq})
+		   , 'Y'
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		)
+	</insert>
+
+	<insert id="addUserClusterRoleIssues" parameterType="map">
+		INSERT /* [User.xml].[addUserClusterRoleIssues].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue (
+			  user_seq
+			, cluster_seq
+			, issue_type
+			, binding_type
+			, issue_datetime
+			, expiration_datetime
+			, issue_role
+			, issue_account_name
+			, issue_shell_path
+			, issue_config
+			, user_id
+			, user_name
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		)
+		VALUES
+		<foreach collection="issues" item="issue" open="(" separator="), (" close=")">
+			#{issue.userSeq}
+			, #{issue.clusterSeq}
+			, #{issue.issueType}
+			, #{issue.bindingType}
+			, IFNULL(#{issue.issueDatetime}, UTC_TIMESTAMP())
+		<choose>
+			<when test='issue.issueType != null and "KUBECONFIG".equals(issue.issueType)'>
+				, #{issue.expirationDatetime}
+			</when>
+		     <otherwise>
+				 , null
+			 </otherwise>
+		</choose>
+		<choose>
+			<when test='"CLUSTER".equals(issue.bindingType)'>
+				, #{issue.issueRole}
+			</when>
+			<otherwise>
+				, null
+			</otherwise>
+		</choose>
+			, #{issue.issueAccountName}
+			, #{issue.issueShellPath}
+			, #{issue.issueConfig}
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = #{issue.userSeq})
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = #{issue.userSeq})
+		    , 'Y'
+			, IFNULL(#{issue.created}, UTC_TIMESTAMP())
+			, #{issue.creator}
+			, IFNULL(#{issue.created}, UTC_TIMESTAMP())
+			, #{issue.creator}
+		</foreach>
+	</insert>
+
+	<insert id="addUserClusterRoleIssueBindings" parameterType="map">
+		INSERT /* [User.xml].[addUserClusterRoleIssueBindings].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue_binding (
+			  user_seq
+			, cluster_seq
+			, issue_type
+			, issue_account_name
+			, namespace
+			, issue_role
+			, created
+			, creator
+		)
+		VALUES
+		<foreach collection="issueBindings" item="binding" open="(" separator="), (" close=")">
+			#{userSeq}
+			, #{binding.clusterSeq}
+			, #{binding.issueType}
+			, #{binding.issueAccountName}
+			, #{binding.namespace}
+			, #{binding.issueRole}
+			, IFNULL(#{binding.created}, UTC_TIMESTAMP())
+			, #{creator}
+		</foreach>
+	</insert>
+
+	<update id="moveUserClusterRoleIssueBindings" parameterType="map">
+		UPDATE /* [User.xml].[moveUserClusterRoleIssueBindings].[01] 변경일자(20200721) */
+			user_cluster_role_issue_binding
+		SET user_seq = #{targetUserSeq}
+		WHERE user_seq = #{userSeq}
+		AND cluster_seq = #{clusterSeq}
+		AND issue_type = #{issueType}
+		AND issue_account_name = #{issueAccountName}
+	</update>
+
+	<delete id="deleteUserClusterRoleIssueBinding" parameterType="map">
+		DELETE /* [User.xml].[deleteUserClusterRoleIssueBinding].[01] 변경일자(20200703) */
+		FROM user_cluster_role_issue_binding
+		WHERE user_seq = #{userSeq}
+		AND cluster_seq = #{clusterSeq}
+		AND issue_type = #{issueType}
+		AND issue_account_name = #{issueAccountName}
+	</delete>
+
+	<select id="getUserClusterRoleIssuesForAdd" parameterType="map" resultMap="UserClusterRoleIssueMap">
+		SELECT /* [User.xml].[getUserClusterRoleIssuesForAdd].[01] 변경일자(20200225) */
+			   issue.user_seq
+			 , issue.cluster_seq
+			 , issue.issue_type
+			 , issue.binding_type
+			 , UTC_TIMESTAMP() AS issue_datetime
+			 , issue.expiration_datetime
+			 , issue.issue_role
+			 , issue.issue_account_name
+			 , issue.issue_shell_path
+			 , issue.binding_config
+			 , UTC_TIMESTAMP() as created
+			 , #{creator} as creator
+			 , UTC_TIMESTAMP() as updated
+			 , #{creator} as updater
+		FROM
+			clusters c
+				INNER JOIN  (
+					SELECT
+						DISTINCT
+						aum.account_seq,
+						aum.user_seq,
+						c.cluster_seq
+					FROM users u
+							INNER JOIN (
+								SELECT aum.account_seq, aum.user_seq FROM account_user_mapping aum WHERE aum.account_seq = #{accountSeq}
+								UNION ALL
+								SELECT aum.account_seq, aum.user_seq FROM account_system_user_mapping aum WHERE aum.account_seq = #{accountSeq}
+							) aum ON u.user_seq = aum.user_seq
+							INNER JOIN accounts a ON a.account_seq = aum.account_seq AND a.use_yn = 'Y' AND a.account_seq = #{accountSeq}
+							INNER JOIN account_provider_account_mapping apam ON apam.account_seq = a.account_seq
+							INNER JOIN provider_account pa ON pa.provider_account_seq = apam.provider_account_seq AND pa.use_yn = 'Y'
+							INNER JOIN clusters c ON c.provider_account_seq = pa.provider_account_seq AND c.use_yn = 'Y'
+					WHERE u.user_seq = #{userSeq}
+					AND u.use_yn = 'Y'
+				) al ON al.cluster_seq = c.cluster_seq
+				<foreach collection="issues" item="issue" open="INNER JOIN ( " separator=" UNION ALL " close=" ) issue ON issue.cluster_seq = c.cluster_seq">
+					SELECT
+						    #{userSeq} AS user_seq
+					      , #{issue.clusterSeq} AS cluster_seq
+						  , #{issueType} AS issue_type
+						  , #{issue.bindingType} AS binding_type
+						  , #{issue.expirationDatetime} AS expiration_datetime
+						  , <choose>
+								<when test='"CLUSTER".equals(issue.bindingType)'>
+									#{issue.issueRole}
+								</when>
+								<otherwise>
+									null
+								</otherwise>
+							</choose> AS issue_role
+						  , #{issue.issueAccountName} as issue_account_name
+					      , #{issue.issueShellPath} AS issue_shell_path
+					      , #{issue.bindingConfig} AS binding_config
+				</foreach>
+		WHERE c.use_yn = 'Y'
+		AND c.cluster_seq IN
+		<foreach collection="issues" item="issue" open="(" separator=", " close=")">
+			#{issue.clusterSeq}
+		</foreach>
+	</select>
+
+	<sql id="userClusterRoleBindingInfoSql">
+		<choose> <!-- isUserBased 이 null 이거나 true 일 경우 -->
+			<when test="isUserBased == null or isUserBased">
+				, ucrib.user_seq AS b_user_seq
+				, ucrib.cluster_seq AS b_cluster_seq
+				, ucrib.issue_type AS b_issue_type
+				, ucrib.issue_account_name AS b_issue_account_name
+				, ucrib.namespace AS b_namespace
+				, ucrib.issue_role AS b_issue_role
+				, ucri.issue_role
+			</when>
+			<otherwise>
+				, ucrib.namespace AS binding_namespace
+				, (CASE WHEN ucri.binding_type = 'CLUSTER' THEN ucri.issue_role ELSE ucrib.issue_role END) AS issue_role
+			</otherwise>
+		</choose>
+	</sql>
+
+	<select id="getUserClusterRoleIssues" parameterType="map" resultMap="UserClusterRoleIssueMap">
+		SELECT /* [User.xml].[getUserClusterRoleIssues].[01] 변경일자(20200205) */
+			  ucri.user_seq
+			, ucri.user_id AS userId
+			, ucri.user_name AS userName
+		    , ur.role_code AS userRole
+			, ucri.cluster_seq
+		    , a.account_seq as accountSeq
+			, ucri.issue_type
+		    , ucri.binding_type
+		  <choose>
+			  <when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				  , DATE_FORMAT(CONVERT_TZ(ucri.issue_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as issue_datetime
+			  </when>
+		     <otherwise>
+				 , DATE_FORMAT(ucri.issue_datetime, '%Y-%m-%d %H:%i:%s') as issue_datetime
+			 </otherwise>
+		  </choose>
+			, DATE_FORMAT(ucri.expiration_datetime, '%Y-%m-%d') as expiration_datetime
+			, ucri.issue_account_name
+			, ucri.issue_shell_path
+			, ucri.issue_config
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.created, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+			, ucri.creator
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = ucri.creator limit 1) AS creatorId
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = ucri.creator limit 1) AS creatorName
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.updated, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+			, ucri.updater
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = ucri.updater limit 1) AS updaterId
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = ucri.updater limit 1) AS updaterName
+		<include refid="userClusterRoleBindingInfoSql" />
+		FROM
+			user_cluster_role_issue ucri
+				INNER JOIN clusters c ON c.cluster_seq = ucri.cluster_seq AND c.use_yn = 'Y'
+			<choose>
+				<when test="clusterSeq != null ">
+					AND c.cluster_seq = #{clusterSeq}
+				</when>
+				<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(clusterSeqs)">
+					AND c.cluster_seq IN <foreach collection="clusterSeqs" item="clusterSeq" open="(" separator=", " close=")">#{clusterSeq}</foreach>
+				</when>
+			</choose>
+				INNER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+			<if test="accountSeq != null ">
+					AND a.account_seq = #{accountSeq}
+			</if>
+				LEFT OUTER JOIN users us ON us.user_seq = ucri.user_seq
+				LEFT OUTER JOIN user_role ur ON 	us.user_seq = ur.user_seq
+                LEFT OUTER JOIN user_cluster_role_issue_binding ucrib ON ucrib.user_seq = ucri.user_seq AND ucrib.cluster_seq = ucri.cluster_seq AND ucrib.issue_type = ucri.issue_type AND ucrib.issue_account_name = ucri.issue_account_name
+		<where>
+			AND ucri.use_yn = 'Y'
+			<if test="userSeq != null">
+				AND ucri.user_seq = #{userSeq}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(issueType)">
+				AND ucri.issue_type = #{issueType}
+			</if>
+            <if test='@org.apache.commons.lang3.StringUtils@isNotBlank(expirationDatetime)'>
+                AND ucri.expiration_datetime IS NOT NULL AND ucri.expiration_datetime = #{expirationDatetime}
+            </if>
+		</where>
+	</select>
+
+	<sql id="userClusterRoleIssueCondition">
+		<if test="startDate != null and endDate != null">
+			AND ucri.created BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+		<if test="userSeq != null">
+			AND ucri.user_seq = #{userSeq}
+		</if>
+		<if test="clusterSeq != null">
+			AND ucri.cluster_seq = #{clusterSeq}
+		</if>
+		<if test="issueType != null">
+			AND ucri.issue_type = #{issueType}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ACCOUNT_NAME")'>
+					AND ucri.issue_account_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_ID")'>
+					AND ucri.user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_NAME")'>
+					AND ucri.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+					AND usisc.user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+					AND usisc.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+	</sql>
+
+	<select id="getUserClusterRoleIssueList" parameterType="UserClusterRoleIssueSearch" resultMap="UserClusterRoleIssueMap">
+		SELECT /* [User.xml].[getUserClusterRoleIssueList].[01] 변경일자(20200205) */
+			  ucri.user_seq
+			, ucri.user_id AS userId
+			, ucri.user_name AS userName
+			, ur.role_code AS userRole
+			, cl.cluster_seq
+			, cl.cluster_id					AS clusterId
+			, cl.cluster_name				AS clusterName
+			, cl.cluster_state				AS clusterState
+			, cl.region_code				AS regionCode
+# 			, IFNULL((SELECT x.value FROM codes x WHERE x.code_group_id IN (SELECT xg.value FROM codes xg WHERE xg.code_group_id = 'REGION_GROUP' AND xg.code = pa.provider_code AND xg.use_yn = 'Y') AND x.code = cl.region_code AND x.use_yn = 'Y'), cl.region_code) AS regionName
+			, pa.provider_code				AS providerCode
+# 			, (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = pa.provider_code AND x.use_yn = 'Y') AS providerCodeName
+		    , ac.account_seq as accountSeq
+			, ucri.issue_type
+		  <choose>
+			  <when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				  , DATE_FORMAT(CONVERT_TZ(ucri.issue_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as issue_datetime
+			  </when>
+		      <otherwise>
+				  , DATE_FORMAT(ucri.issue_datetime, '%Y-%m-%d %H:%i:%s') as issue_datetime
+			  </otherwise>
+		  </choose>
+			, IF(ucri.issue_type = 'KUBECONFIG', DATE_FORMAT(ucri.expiration_datetime, '%Y-%m-%d'), null) as expiration_datetime
+			, ucri.issue_account_name
+			, ucri.issue_shell_path
+			, ucri.issue_config
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.created, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+			, ucri.creator
+			, ucrih.issue_user_id AS creatorId
+			, ucrih.issue_user_name AS creatorName
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.updated, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+			, ucri.updater
+			, usisu.user_id AS updaterId
+			, usisu.user_name AS updaterName
+			, ucri.binding_type
+		<include refid="userClusterRoleBindingInfoSql" />
+		FROM
+			user_cluster_role_issue ucri
+			<if test="accountSeq != null">
+				<include refid="accountUserOfIssueRoleSql" />
+				ON a.user_seq = ucri.user_seq
+			</if>
+				INNER JOIN clusters cl ON cl.cluster_seq = ucri.cluster_seq AND cl.use_yn = 'Y'
+				INNER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts ac ON ac.account_seq = apam.account_seq AND ac.use_yn = 'Y'
+			<if test="accountSeq != null ">
+					AND ac.account_seq = #{accountSeq}
+			</if>
+				LEFT OUTER JOIN users us ON us.user_seq = ucri.user_seq
+				LEFT OUTER JOIN user_role ur ON ur.user_seq = us.user_seq
+				<!-- 2022.03.29 : 발급자 정보는 제거될 수 있으므로 발급이력에서 찾도록 수정 : ucrih OUTER JOIN으로 사용 -->
+				LEFT OUTER JOIN user_cluster_role_issue_history ucrih on ucri.user_seq = ucrih.user_seq and ucri.cluster_seq = ucrih.cluster_seq and ucri.issue_type = ucrih.issue_type
+								and ucri.issue_account_name = ucrih.issue_account_name and history_state = 'GRANT'
+								and ucri.creator = ucrih.issue_user_seq
+				LEFT OUTER JOIN users usisu ON usisu.user_seq = ucri.updater AND usisu.use_yn = 'Y'
+				LEFT OUTER JOIN user_cluster_role_issue_binding ucrib ON ucrib.user_seq = ucri.user_seq AND ucrib.cluster_seq = ucri.cluster_seq AND ucrib.issue_type = ucri.issue_type AND ucrib.issue_account_name = ucri.issue_account_name
+		<where>
+			AND ucri.use_yn = 'Y'
+			<include refid="userClusterRoleIssueCondition" />
+		</where>
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "UPDATED")'>
+					cl.updated
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "cluster_id, ucrib.namespace")'>
+					cl.cluster_id, ucrib.namespace
+				</when>
+				<otherwise>
+					cl.updated
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+		LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+	</select>
+
+	<select id="getUserClusterRoleIssueCount" parameterType="UserClusterRoleIssueSearch" resultType="ListCount">
+		SELECT /* [User.xml].[getUserClusterRoleIssueCount].[01] 변경일자(20200206) */
+			count(*) as cnt
+		FROM
+			user_cluster_role_issue ucri
+				<if test="accountSeq != null">
+					<include refid="accountUserOfIssueRoleSql" />
+					ON a.user_seq = ucri.user_seq
+				</if>
+				INNER JOIN clusters cl ON cl.cluster_seq = ucri.cluster_seq AND cl.use_yn = 'Y'
+				INNER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts ac ON ac.account_seq = apam.account_seq AND ac.use_yn = 'Y'
+			<if test="accountSeq != null ">
+					AND ac.account_seq = #{accountSeq}
+			</if>
+				LEFT OUTER JOIN users us ON us.user_seq = ucri.user_seq
+				LEFT OUTER JOIN user_role ur ON ur.user_seq = us.user_seq
+				LEFT OUTER JOIN user_cluster_role_issue_history ucrih on ucri.user_seq = ucrih.user_seq and ucri.cluster_seq = ucrih.cluster_seq and ucri.issue_type = ucrih.issue_type
+								and ucri.issue_account_name = ucrih.issue_account_name and history_state = 'GRANT'
+								and ucri.creator = ucrih.issue_user_seq
+				LEFT OUTER JOIN users usisu ON usisu.user_seq = ucri.updater AND usisu.use_yn = 'Y'
+			<!--if test="isUserBased != null and !isUserBased" --> <!-- 2020.07.24 Count시에도 List 조회와 동일하게 무조건 Join은 이루어져야 갯수가 정확하게 나옴 -->
+				LEFT OUTER JOIN user_cluster_role_issue_binding ucrib ON ucrib.user_seq = ucri.user_seq AND ucrib.cluster_seq = ucri.cluster_seq AND ucrib.issue_type = ucri.issue_type AND ucrib.issue_account_name = ucri.issue_account_name
+			<!--/if -->
+		<where>
+			AND ucri.use_yn = 'Y'
+			<include refid="userClusterRoleIssueCondition" />
+		</where>
+	</select>
+
+	<select id="getUserClusterRoleIssuesForExcel" parameterType="UserClusterRoleIssueSearch" resultMap="UserClusterRoleIssueMapExcel">
+		SELECT /* [User.xml].[getUserClusterRoleIssuesForExcel].[01] 변경일자(20200205) */
+			ucri.user_seq
+			, ucri.user_id AS userId
+			, ucri.user_name AS userName
+			, cl.cluster_seq				AS clusterSeq
+			, cl.cluster_id					AS clusterId
+			, cl.cluster_name				AS clusterName
+		    , cl.region_code				AS regionCode
+# 			, IFNULL((SELECT x.value FROM codes x WHERE x.code_group_id IN (SELECT xg.value FROM codes xg WHERE xg.code_group_id = 'REGION_GROUP' AND xg.code = pa.provider_code AND xg.use_yn = 'Y') AND x.code = cl.region_code AND x.use_yn = 'Y'), cl.region_code) AS regionName
+			, pa.provider_code				AS providerCode
+# 			, (SELECT x.value FROM codes x WHERE x.code_group_id = 'PROVIDER' AND x.code = pa.provider_code AND x.use_yn = 'Y') AS providerCodeName
+			, ac.account_seq as accountSeq
+			, ucri.issue_type
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.issue_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as issue_datetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.issue_datetime, '%Y-%m-%d %H:%i:%s') as issue_datetime
+			</otherwise>
+		</choose>
+			, IF(ucri.issue_type = 'KUBECONFIG', DATE_FORMAT(ucri.expiration_datetime, '%Y-%m-%d'), null) as expiration_datetime
+			, ucri.issue_account_name
+			, ucri.issue_shell_path
+			, ucri.issue_config
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.created, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+			, ucri.creator
+			, ucrih.issue_user_id AS creatorId
+			, ucrih.issue_user_name AS creatorName
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.updated, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+			, ucri.updater
+			, usisu.user_id AS updaterId
+			, usisu.user_name AS updaterName
+			, ucri.binding_type
+		<include refid="userClusterRoleBindingInfoSql" />
+		FROM
+			user_cluster_role_issue ucri
+				<if test="accountSeq != null">
+					<include refid="accountUserOfIssueRoleSql" />
+					ON a.user_seq = ucri.user_seq
+				</if>
+				INNER JOIN clusters cl ON cl.cluster_seq = ucri.cluster_seq AND cl.use_yn = 'Y'
+				INNER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts ac ON ac.account_seq = apam.account_seq AND ac.use_yn = 'Y'
+				<if test="accountSeq != null ">
+					AND ac.account_seq = #{accountSeq}
+				</if>
+				LEFT OUTER JOIN users us ON us.user_seq = ucri.user_seq
+				LEFT OUTER JOIN user_role ur ON ur.user_seq = us.user_seq
+				LEFT OUTER JOIN user_cluster_role_issue_history ucrih on ucri.user_seq = ucrih.user_seq and ucri.cluster_seq = ucrih.cluster_seq and ucri.issue_type = ucrih.issue_type
+								and ucri.issue_account_name = ucrih.issue_account_name and history_state = 'GRANT'
+								and ucri.creator = ucrih.issue_user_seq
+				LEFT OUTER JOIN users usisu ON usisu.user_seq = ucri.updater AND usisu.use_yn = 'Y'
+				LEFT OUTER JOIN user_cluster_role_issue_binding ucrib ON ucrib.user_seq = ucri.user_seq AND ucrib.cluster_seq = ucri.cluster_seq AND ucrib.issue_type = ucri.issue_type AND ucrib.issue_account_name = ucri.issue_account_name
+		<where>
+			AND ucri.use_yn = 'Y'
+			<include refid="userClusterRoleIssueCondition" />
+		</where>
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "UPDATED")'>
+					ucri.updated
+				</when>
+				<otherwise>
+					ucri.updated
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+	</select>
+
+	<select id="getUserClusterRoleIssue" parameterType="map" resultMap="UserClusterRoleIssueMap">
+		SELECT /* [User.xml].[getUserClusterRoleIssue].[01] 변경일자(20200205) */
+			   ucri.user_seq
+             , ucri.user_id AS userId
+             , ucri.user_name AS userName
+             , ur.role_code AS userRole
+             , ucri.cluster_seq
+			 , a.account_seq as accountSeq
+			 , ucri.issue_type
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.issue_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as issue_datetime
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.issue_datetime, '%Y-%m-%d %H:%i:%s') as issue_datetime
+			</otherwise>
+		</choose>
+			 , DATE_FORMAT(ucri.expiration_datetime, '%Y-%m-%d') as expirationDatetime
+			 , ucri.issue_role
+			 , ucri.issue_account_name
+			 , ucri.issue_shell_path
+			 , ucri.issue_config
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.created, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as created
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.created, '%Y-%m-%d %H:%i:%s') as created
+			</otherwise>
+		</choose>
+			 , ucri.creator
+			 , (SELECT x.user_id FROM users x WHERE x.user_seq = ucri.creator limit 1) AS creatorId
+             , (SELECT x.user_name FROM users x WHERE x.user_seq = ucri.creator limit 1) AS creatorName
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				, DATE_FORMAT(CONVERT_TZ(ucri.updated, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as updated
+			</when>
+			<otherwise>
+				, DATE_FORMAT(ucri.updated, '%Y-%m-%d %H:%i:%s') as updated
+			</otherwise>
+		</choose>
+			 , ucri.updater
+			 , (SELECT x.user_id FROM users x WHERE x.user_seq = ucri.updater limit 1) AS updaterId
+             , (SELECT x.user_name FROM users x WHERE x.user_seq = ucri.updater limit 1) AS updaterName
+			 , ucrib.user_seq AS b_user_seq
+			 , ucrib.cluster_seq AS b_cluster_seq
+			 , ucrib.issue_type AS b_issue_type
+			 , ucrib.issue_account_name AS b_issue_account_name
+			 , ucrib.namespace AS b_namespace
+			 , ucrib.issue_role AS b_issue_role
+		FROM
+			user_cluster_role_issue ucri
+				INNER JOIN clusters c ON c.cluster_seq = ucri.cluster_seq AND c.use_yn = 'Y'
+				INNER JOIN provider_account pa ON pa.provider_account_seq = c.provider_account_seq AND pa.use_yn = 'Y'
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a ON a.account_seq = apam.account_seq AND a.use_yn = 'Y'
+				LEFT OUTER JOIN users us ON us.user_seq = ucri.user_seq
+				LEFT OUTER JOIN user_role ur ON 	us.user_seq = ur.user_seq
+				LEFT OUTER JOIN user_cluster_role_issue_binding ucrib ON ucrib.user_seq = ucri.user_seq AND ucrib.cluster_seq = ucri.cluster_seq AND ucrib.issue_type = ucri.issue_type AND ucrib.issue_account_name = ucri.issue_account_name
+		WHERE ucri.use_yn = 'Y'
+        <if test="userSeq != null">
+		AND ucri.user_seq = #{userSeq}
+        </if>
+		AND ucri.cluster_seq = #{clusterSeq}
+		AND ucri.issue_type = #{issueType}
+		AND ucri.issue_account_name = #{issueAccountName}
+	</select>
+
+	<delete id="removeUserClusterRoleIssue" parameterType="UserClusterRoleIssue">
+		UPDATE /* [User.xml].[removeUserClusterRoleIssue].[01] 변경일자(20200205) */
+			user_cluster_role_issue
+		SET use_yn = 'N',
+		    updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE user_seq = #{userSeq}
+		  AND cluster_seq = #{clusterSeq}
+		  AND issue_type = #{issueType}
+		  AND issue_account_name = #{issueAccountName}
+		  AND use_yn = 'Y'
+	</delete>
+
+	<delete id="deleteUserClusterRoleIssue" parameterType="UserClusterRoleIssue">
+		DELETE /* [User.xml].[deleteUserClusterRoleIssue].[01] 변경일자(20210702) */
+		FROM user_cluster_role_issue
+		WHERE user_seq = #{userSeq}
+		  AND cluster_seq = #{clusterSeq}
+		  AND issue_type = #{issueType}
+		  AND issue_account_name = #{issueAccountName}
+		  AND use_yn = 'Y'
+	</delete>
+
+	<update id="updateUserClusterRoleIssue" parameterType="map">
+		UPDATE /* [User.xml].[updateUserClusterRoleIssue].[01] 변경일자(20200205) */
+			user_cluster_role_issue
+		SET binding_type = #{issue.bindingType},
+		    <choose>
+				<when test='"CLUSTER".equals(issue.bindingType)'>
+					issue_role = #{issue.issueRole},
+				</when>
+		    	<otherwise>
+					issue_role = null,
+				</otherwise>
+			</choose>
+			issue_shell_path = #{issue.issueShellPath},
+		    <if test='"KUBECONFIG".equals(issue.issueType) and @org.apache.commons.lang3.StringUtils@isNotBlank(issue.expirationDatetime)'>
+                expiration_datetime = #{issue.expirationDatetime},
+            </if>
+		    <if test="creator != null">
+                updater = #{creator},
+            </if>
+			updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{issue.userSeq}
+		  AND cluster_seq = #{issue.clusterSeq}
+		  AND issue_type = #{issue.issueType}
+		  AND issue_account_name = #{issue.issueAccountName}
+		  AND use_yn = 'Y'
+	</update>
+
+	<update id="updateUserClusterRoleIssueConfig" parameterType="map">
+		UPDATE /* [User.xml].[updateUserClusterRoleIssueConfig].[01] 변경일자(20200205) */
+			user_cluster_role_issue
+		SET issue_config = #{issueConfig}
+		WHERE user_seq = #{userSeq}
+		  AND cluster_seq = #{clusterSeq}
+		  AND issue_type = #{issueType}
+		  AND issue_account_name = #{issueAccountName}
+		  AND use_yn = 'Y'
+	</update>
+
+	<update id="updateUserClusterRoleIssueForClusterApi" parameterType="map">
+		UPDATE /* [User.xml].[updateUserClusterRoleIssueForClusterApi].[01] 변경일자(20211101) */
+			user_cluster_role_issue
+		SET
+			issue_shell_path = (case when #{issueShellPath} = "NULL" then null else #{issueShellPath} end)
+		WHERE user_seq = #{userSeq}
+		  AND cluster_seq = #{clusterSeq}
+		  AND issue_type = #{issueType}
+		  AND use_yn = 'Y'
+	</update>
+
+	<update id="moveUserClusterRoleIssue" parameterType="map">
+		UPDATE /* [User.xml].[moveUserClusterRoleIssue].[01] 변경일자(20200721) */
+			user_cluster_role_issue
+		SET user_seq = #{targetUserSeq}
+		    , user_id = (SELECT x.user_id FROM users x WHERE x.user_seq = #{targetUserSeq})
+		    , user_name = (SELECT x.user_name FROM users x WHERE x.user_seq = #{targetUserSeq})
+			<if test="updater != null">
+				, updater = #{updater}
+			</if>
+			, updated = UTC_TIMESTAMP()
+		WHERE user_seq = #{userSeq}
+		  AND cluster_seq = #{clusterSeq}
+		  AND issue_type = #{issueType}
+		  AND issue_account_name = #{issueAccountName}
+		  AND use_yn = 'Y'
+	</update>
+
+	<insert id="addUserClusterRoleIssueHistory" parameterType="UserClusterRoleIssueHistory" keyProperty="historySeq" keyColumn="history_seq">
+		INSERT /* [User.xml].[addUserClusterRoleIssueHistory].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue_history (
+			  user_seq
+			, cluster_seq
+			, issue_type
+			, binding_type
+			, expiration_datetime
+			, issue_role
+			, issue_account_name
+			, issue_user_seq
+			, history_state
+			, history_datetime
+		    , history_message
+			, user_id
+			, user_name
+			, issue_user_id
+			, issue_user_name
+		)
+		VALUES (
+		   	 #{userSeq}
+		   , #{clusterSeq}
+		   , #{issueType}
+		   , #{bindingType}
+		   , #{expirationDatetime}
+		<choose>
+			<when test='"CLUSTER".equals(bindingType)'>
+				, #{issueRole}
+			</when>
+			<otherwise>
+				, null
+			</otherwise>
+		</choose>
+		   , #{issueAccountName}
+		   , #{issueUserSeq}
+		   , #{historyState}
+		   , UTC_TIMESTAMP()
+		   , #{historyMessage}
+		   , (SELECT x.user_id FROM users x WHERE x.user_seq = #{userSeq})
+		   , (SELECT x.user_name FROM users x WHERE x.user_seq = #{userSeq})
+		   , (SELECT x.user_id FROM users x WHERE x.user_seq = #{issueUserSeq})
+		   , (SELECT x.user_name FROM users x WHERE x.user_seq = #{issueUserSeq})
+		)
+	</insert>
+
+	<insert id="addUserClusterRoleIssueHistories" parameterType="map" useGeneratedKeys="true" keyProperty="historySeq" keyColumn="history_seq">
+		INSERT /* [User.xml].[addUserClusterRoleIssueHistories].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue_history (
+			  user_seq
+			, cluster_seq
+			, issue_type
+			, binding_type
+			, expiration_datetime
+			, issue_role
+			, issue_account_name
+			, issue_user_seq
+			, history_state
+			, history_datetime
+		    , history_message
+		    , user_id
+		    , user_name
+		    , issue_user_id
+		    , issue_user_name
+		)
+		VALUES
+		<foreach collection="issues" item="issue" open="(" separator="), (" close=")">
+			  #{issue.userSeq}
+			, #{issue.clusterSeq}
+			, #{issue.issueType}
+			, #{issue.bindingType}
+			, #{issue.expirationDatetime}
+			<choose>
+				<when test='"CLUSTER".equals(issue.bindingType)'>
+					, #{issue.issueRole}
+				</when>
+				<otherwise>
+					, null
+				</otherwise>
+			</choose>
+			, #{issue.issueAccountName}
+			, #{issue.issueUserSeq}
+			, #{issue.historyState}
+			, IFNULL(#{issue.historyDatetime}, UTC_TIMESTAMP())
+			, #{issue.historyMessage}
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = #{issue.userSeq})
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = #{issue.userSeq})
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = #{issue.issueUserSeq})
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = #{issue.issueUserSeq})
+		</foreach>
+	</insert>
+
+	<insert id="addUserClusterRoleIssueBindingHistories" parameterType="map" useGeneratedKeys="true" keyColumn="binding_history_seq">
+		INSERT /* [User.xml].[addUserClusterRoleIssueBindingHistories].[01] 변경일자(20200205) */
+		INTO user_cluster_role_issue_binding_history (
+			  history_seq
+			, namespace
+			, issue_role
+			, created
+			, creator
+		)
+		VALUES
+		<foreach collection="issueBindings" item="binding" open="(" separator="), (" close=")">
+			#{historySeq}
+			, #{binding.namespace}
+			, #{binding.issueRole}
+			, IFNULL(#{binding.created}, UTC_TIMESTAMP())
+			, #{creator}
+		</foreach>
+	</insert>
+
+	<insert id="addUserShellConnectHistory" parameterType="map" useGeneratedKeys="true" keyProperty="connectSeq" keyColumn="connect_seq">
+		INSERT /* [User.xml].[addUserShellConnectHistory].[01] 변경일자(20200205) */
+		INTO user_shell_connect_history (
+			  user_seq
+			, cluster_seq
+			, issue_role
+			, connect_account_name
+			, connect_state
+			, connect_datetime
+			, connect_message
+			, user_id
+			, user_name
+		)
+		VALUES
+		<foreach collection="shellHistories" item="shellHistory" open="(" separator="), (" close=")">
+			  #{shellHistory.userSeq}
+			, #{shellHistory.clusterSeq}
+			, #{shellHistory.issueRole}
+			, #{shellHistory.connectAccountName}
+			, #{shellHistory.connectState}
+			, IFNULL(#{shellHistory.connectDatetime}, UTC_TIMESTAMP())
+			, #{shellHistory.connectMessage}
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = #{shellHistory.userSeq})
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = #{shellHistory.userSeq})
+		</foreach>
+	</insert>
+
+	<insert id="addUserConfigDownloadHistory" parameterType="map" useGeneratedKeys="true" keyProperty="downloadSeq" keyColumn="download_seq">
+		INSERT /* [User.xml].[addUserConfigDownloadHistory].[01] 변경일자(20200205) */
+		INTO user_config_download_history (
+			  user_seq
+			, cluster_seq
+			, issue_role
+			, download_account_name
+			, download_state
+			, download_datetime
+			, download_message
+			, user_id
+			, user_name
+		)
+		VALUES
+		<foreach collection="downloadHistories" item="downloadHistory" open="(" separator="), (" close=")">
+			#{downloadHistory.userSeq}
+			, #{downloadHistory.clusterSeq}
+			, #{downloadHistory.issueRole}
+			, #{downloadHistory.downloadAccountName}
+			, #{downloadHistory.downloadState}
+			, IFNULL(#{downloadHistory.downloadDatetime}, UTC_TIMESTAMP())
+			, #{downloadHistory.downloadMessage}
+			, (SELECT x.user_id FROM users x WHERE x.user_seq = #{downloadHistory.userSeq})
+			, (SELECT x.user_name FROM users x WHERE x.user_seq = #{downloadHistory.userSeq})
+		</foreach>
+	</insert>
+
+	<sql id="getAccountUserSql">
+		INNER JOIN (
+				SELECT
+					aum.user_seq AS user_seq,
+					a.account_seq AS account_seq
+				FROM
+					account_user_mapping aum
+						INNER JOIN accounts a ON a.account_seq = aum.account_seq AND a.use_yn = 'Y'
+				WHERE aum.user_seq = #{userSeq}
+				UNION ALL
+				SELECT
+					asum.user_seq AS user_seq,
+					a.account_seq AS account_seq
+				FROM
+					account_system_user_mapping asum
+						INNER JOIN accounts a ON a.account_seq = asum.account_seq AND a.use_yn = 'Y'
+				WHERE asum.user_seq = #{userSeq}
+		) asum ON asum.user_seq=uh2.user_seq
+		INNER JOIN account_system_user_mapping asum2 ON asum.account_seq=asum2.account_seq AND asum2.user_seq = #{systemUserSeq}
+	</sql>
+
+	<sql id="accountUserOfIssueRoleSql">
+		INNER JOIN (
+						SELECT DISTINCT
+							x_a.user_seq,
+							<include refid="accountColumnInlineXSql" />
+						FROM (
+								 SELECT
+									 aum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								 FROM account_user_mapping aum
+										  INNER JOIN accounts a 					ON 	a.account_seq = aum.account_seq
+																					 AND a.account_seq = #{accountSeq}
+																					 AND a.use_yn = 'Y'
+								UNION ALL
+								SELECT
+									asum.user_seq AS user_seq,
+									<include refid="accountColumnInlineViewSql" />
+								FROM account_system_user_mapping asum
+										INNER JOIN accounts a 					ON 	a.account_seq = asum.account_seq
+																				AND a.account_seq = #{accountSeq}
+																				AND a.use_yn = 'Y'
+						) x_a
+		) a
+	</sql>
+
+    <sql id="commonUserClusterRoleIssueHistoriesConditionForMax">
+        <if test="userSeq != null">
+            AND x_ucrih.user_seq = #{userSeq}
+        </if>
+        <if test="clusterSeq != null">
+            AND x_ucrih.cluster_seq = #{clusterSeq}
+        </if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ACCOUNT_NAME")'>
+					AND x_ucrih.issue_account_name LIKE CONCAT('%', #{searchKeyword}, '%')
+				</when>
+			</choose>
+		</if>
+    </sql>
+
+	<sql id="userShellConnectHistoriesCondition">
+		<if test="startDate != null and endDate != null">
+			AND uh2.connect_datetime BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+		<if test="userSeq != null">
+			AND uh2.user_seq = #{userSeq}
+		</if>
+		<if test="clusterSeq != null">
+			AND uh2.cluster_seq = #{clusterSeq}
+		</if>
+		<if test="historyState != null">
+			AND ucrih.history_state = #{historyState}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+		    <choose>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ACCOUNT_NAME")'>
+                    AND uh2.connect_account_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_ID")'>
+                    AND uh2.user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_NAME")'>
+                    AND uh2.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+                    AND ucrih.issue_user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+                    AND ucrih.issue_user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+            </choose>
+		</if>
+	</sql>
+
+	<select id="getUserShellConnectHistories" parameterType="UserClusterRoleIssueSearch" resultType="UserShellConnectHistory">
+		SELECT /* [User.xml].[getUserShellConnectHistories].[01] 변경일자(20200206) */
+			 t_uh.connect_seq					AS connectSeq
+			,t_uh.user_seq						AS userSeq
+			,t_uh.user_id						AS userId
+			,t_uh.user_name						AS userName
+			,t_uh.cluster_seq					AS clusterSeq
+			,t_uh.cluster_id					AS clusterId
+			,t_uh.cluster_name					AS clusterName
+			,t_uh.connect_account_name			AS connectAccountName
+			,t_uh.connect_state					AS connectState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(t_uh.connect_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as connectDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(t_uh.connect_datetime, '%Y-%m-%d %H:%i:%s') as connectDatetime
+			</otherwise>
+		</choose>
+			,t_uh.connect_message				AS connectMessage
+			,t_uh.issue_user_seq				AS issueUserSeq
+			,t_uh.issue_user_id					AS issueUserId
+			,t_uh.issue_user_name				AS issueUserName
+			,t_uh.history_seq					AS historySeq
+			,t_uh.history_state					AS historyState
+		FROM
+			(
+				SELECT
+					 uh.connect_seq
+					,uhup.user_seq
+					,uhup.user_id
+					,uhup.user_name
+					,cl.cluster_seq
+					,cl.cluster_id
+					,cl.cluster_name
+					,uh.connect_account_name
+					,uh.connect_state
+					,uh.connect_datetime
+					,uh.connect_message
+					,uh.issue_role
+					,uhup.issue_user_seq
+					,uhup.issue_user_id
+					,uhup.issue_user_name
+					,uhup.history_seq
+					,uhup.history_state
+				FROM   user_shell_connect_history uh
+					<if test="accountSeq != null">
+						<include refid="accountUserOfIssueRoleSql" />
+						ON a.user_seq = uh.user_seq
+					</if>
+					   INNER JOIN (	SELECT
+					   						uh2.connect_seq	AS connect_seq2
+											,uh2.user_seq						AS user_seq
+											,uh2.user_id						AS user_id
+											,uh2.user_name						AS user_name
+											,ucrih.issue_user_seq				AS issue_user_seq
+											,ucrih.issue_user_id				AS issue_user_id
+											,ucrih.issue_user_name				AS issue_user_name
+											,ucrih.history_seq					AS history_seq
+											,ucrih.history_state				AS history_state
+									FROM	user_shell_connect_history uh2
+											<if test="systemUserSeq != null and userSeq != null">
+												<include refid="getAccountUserSql" />
+											</if>
+                                            INNER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'SHELL' AND uh2.connect_account_name = ucrih.issue_account_name
+											INNER JOIN (
+												SELECT MAX(x_ucrih.history_seq) max_history_seq
+												FROM user_cluster_role_issue_history x_ucrih
+												<where>
+                                                    AND x_ucrih.issue_type = 'SHELL'
+                                                    <include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+                                                </where>
+												GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+											) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+									WHERE  uh2.connect_seq <![CDATA[<=]]>  #{paging.maxId}
+									<include refid="userShellConnectHistoriesCondition" />
+									ORDER  BY
+										<choose>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "CONNECT_SEQ")'>
+												uh2.connect_seq
+											</when>
+											<otherwise>
+												uh2.connect_seq
+											</otherwise>
+										</choose>
+										<choose>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+												DESC
+											</when>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+												ASC
+											</when>
+											<otherwise>
+												DESC
+											</otherwise>
+										</choose>
+									LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+									) uhup
+									ON uhup.connect_seq2 = uh.connect_seq
+						LEFT OUTER JOIN clusters cl ON cl.cluster_seq = uh.cluster_seq
+			) t_uh
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "CONNECT_SEQ")'>
+					t_uh.connect_seq
+				</when>
+				<otherwise>
+					t_uh.connect_seq
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+ 	</select>
+
+	<select id="getUserShellConnectHistoriesCountAndMaxId" parameterType="UserClusterRoleIssueSearch" resultType="ListCount">
+		SELECT /* [User.xml].[getUserShellConnectHistoriesCountAndMaxId].[01] 변경일자(20200206) */
+			count(*) as cnt
+			,IFNULL(max(connect_seq), 0) as maxId
+		FROM	user_shell_connect_history uh2
+				<if test="accountSeq != null">
+					<include refid="accountUserOfIssueRoleSql" />
+					ON a.user_seq = uh2.user_seq
+				</if>
+				<if test="systemUserSeq != null and userSeq != null">
+					<include refid="getAccountUserSql" />
+				</if>
+				INNER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'SHELL' AND uh2.connect_account_name = ucrih.issue_account_name
+				INNER JOIN (
+                    SELECT MAX(x_ucrih.history_seq) max_history_seq
+                    FROM user_cluster_role_issue_history x_ucrih
+                    <where>
+                        AND x_ucrih.issue_type = 'SHELL'
+                        <include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+                    </where>
+                    GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+				) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+		<where>
+			<include refid="userShellConnectHistoriesCondition" />
+		</where>
+	</select>
+
+	<select id="getUserShellConnectHistoriesForExcel" parameterType="UserClusterRoleIssueSearch" resultType="UserShellConnectHistory" fetchSize="1">
+		SELECT /* [User.xml].[getUserShellConnectHistoriesForExcel].[01] 변경일자(20200206) */
+			 t_uh.connect_seq					AS connectSeq
+			,t_uh.user_seq						AS userSeq
+			,t_uh.user_id						AS userId
+			,t_uh.user_name						AS userName
+			,t_uh.cluster_seq					AS clusterSeq
+			,t_uh.cluster_id					AS clusterId
+			,t_uh.cluster_name					AS clusterName
+			,t_uh.connect_account_name			AS connectAccountName
+			,t_uh.connect_state					AS connectState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(t_uh.connect_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as connectDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(t_uh.connect_datetime, '%Y-%m-%d %H:%i:%s') as connectDatetime
+			</otherwise>
+		</choose>
+			,t_uh.connect_message				AS connectMessage
+			,t_uh.issue_user_seq				AS issueUserSeq
+			,t_uh.issue_user_id					AS issueUserId
+			,t_uh.issue_user_name				AS issueUserName
+			,t_uh.history_seq					AS historySeq
+			,t_uh.history_state					AS historyState
+		FROM
+			(
+				SELECT
+					 uh2.connect_seq
+					,uh2.user_seq
+					,uh2.user_id
+					,uh2.user_name
+					,cl.cluster_seq
+					,cl.cluster_id
+					,cl.cluster_name
+					,uh2.connect_account_name
+					,uh2.connect_state
+					,uh2.connect_datetime
+					,uh2.connect_message
+					,uh2.issue_role
+					,ucrih.issue_user_seq
+					,ucrih.issue_user_id
+					,ucrih.issue_user_name
+					,ucrih.history_seq					AS history_seq
+					,ucrih.history_state				AS history_state
+				FROM	user_shell_connect_history uh2
+							<if test="accountSeq != null">
+								<include refid="accountUserOfIssueRoleSql" />
+								ON a.user_seq = uh2.user_seq
+							</if>
+							<if test="systemUserSeq != null and userSeq != null">
+								<include refid="getAccountUserSql" />
+							</if>
+							INNER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'SHELL' AND uh2.connect_account_name = ucrih.issue_account_name
+							INNER JOIN (
+                                SELECT MAX(x_ucrih.history_seq) max_history_seq
+                                FROM user_cluster_role_issue_history x_ucrih
+                                <where>
+                                    AND x_ucrih.issue_type = 'SHELL'
+                                    <include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+                                </where>
+                                GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+							) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+							INNER JOIN clusters cl ON cl.cluster_seq = uh2.cluster_seq
+				<where>
+					<include refid="userShellConnectHistoriesCondition" />
+				</where>
+			) t_uh
+			ORDER  BY
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "CONNECT_SEQ")'>
+						connect_seq
+					</when>
+					<otherwise>
+						connect_seq
+					</otherwise>
+				</choose>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+						DESC
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+						ASC
+					</when>
+					<otherwise>
+						DESC
+					</otherwise>
+				</choose>
+	</select>
+
+	<sql id="userConfigDownloadHistoriesCondition">
+		<if test="startDate != null and endDate != null">
+			AND uh2.download_datetime BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+		</if>
+		<if test="userSeq != null">
+			AND uh2.user_seq = #{userSeq}
+		</if>
+		<if test="clusterSeq != null">
+			AND uh2.cluster_seq = #{clusterSeq}
+		</if>
+		<if test="historyState != null">
+			AND ucrih.history_state = #{historyState}
+		</if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+            <choose>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ACCOUNT_NAME")'>
+                    AND uh2.download_account_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_ID")'>
+                    AND uh2.user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_NAME")'>
+                    AND uh2.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+                    AND ucrih.issue_user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+                    AND ucrih.issue_user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+            </choose>
+        </if>
+	</sql>
+
+	<select id="getUserConfigDownloadHistories" parameterType="UserClusterRoleIssueSearch" resultType="UserConfigDownloadHistory">
+		SELECT	/* [User.xml].[getUserConfigDownloadHistories].[01] 변경일자(20200206) */
+				 t_uh.download_seq					AS downloadSeq
+				,t_uh.user_seq						AS userSeq
+				,t_uh.user_id						AS userId
+				,t_uh.user_name						AS userName
+				,t_uh.cluster_seq					AS clusterSeq
+				,t_uh.cluster_id					AS clusterId
+				,t_uh.cluster_name					AS clusterName
+				,t_uh.download_account_name			AS downloadAccountName
+				,t_uh.download_state				AS downloadState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(t_uh.download_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as downloadDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(t_uh.download_datetime, '%Y-%m-%d %H:%i:%s') as downloadDatetime
+			</otherwise>
+		</choose>
+				,t_uh.download_message				AS downloadMessage
+				,DATE_FORMAT(t_uh.expiration_datetime, '%Y-%m-%d')			AS expirationDatetime
+				,t_uh.issue_user_seq				AS issueUserSeq
+				,t_uh.issue_user_id					AS issueUserId
+				,t_uh.issue_user_name				AS issueUserName
+				,t_uh.history_seq					AS historySeq
+				,t_uh.history_state					AS historyState
+        FROM
+			(
+				SELECT
+					 uh.download_seq
+					,uhup.user_seq
+					,uhup.user_id
+					,uhup.user_name
+					,cl.cluster_seq
+					,cl.cluster_id
+					,cl.cluster_name
+					,uh.download_account_name
+					,uh.download_state
+					,uh.download_datetime
+					,uh.download_message
+					,uh.issue_role
+					,uhup.expiration_datetime
+					,uhup.issue_user_seq
+                    ,uhup.issue_user_id
+                    ,uhup.issue_user_name
+                    ,uhup.history_seq
+                    ,uhup.history_state
+                FROM   user_config_download_history uh
+					<if test="accountSeq != null">
+						<include refid="accountUserOfIssueRoleSql" />
+						ON a.user_seq = uh.user_seq
+					</if>
+					   INNER JOIN (	SELECT
+					   						uh2.download_seq	AS download_seq2
+											,uh2.user_seq						AS user_seq
+											,uh2.user_id						    AS user_id
+											,uh2.user_name						AS user_name
+											,ucrih.expiration_datetime
+											,ucrih.issue_user_seq
+											,ucrih.issue_user_id
+											,ucrih.issue_user_name
+											,ucrih.history_seq					AS history_seq
+											,ucrih.history_state				AS history_state
+									FROM	user_config_download_history uh2
+											<if test="systemUserSeq != null and userSeq != null">
+												<include refid="getAccountUserSql" />
+											</if>
+												INNER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'KUBECONFIG' AND uh2.download_account_name = ucrih.issue_account_name
+												INNER JOIN (
+													SELECT MAX(x_ucrih.history_seq) max_history_seq
+													FROM user_cluster_role_issue_history x_ucrih
+													<where>
+														AND x_ucrih.issue_type = 'KUBECONFIG'
+														<include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+													</where>
+													GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+												) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+									WHERE  uh2.download_seq <![CDATA[<=]]>  #{paging.maxId}
+									<include refid="userConfigDownloadHistoriesCondition" />
+									ORDER  BY
+										<choose>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "DOWNLOAD_SEQ")'>
+												uh2.download_seq
+											</when>
+											<otherwise>
+												uh2.download_seq
+											</otherwise>
+										</choose>
+										<choose>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+												DESC
+											</when>
+											<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+												ASC
+											</when>
+											<otherwise>
+												DESC
+											</otherwise>
+										</choose>
+									LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+									) uhup
+									ON uhup.download_seq2 = uh.download_seq
+						INNER JOIN clusters cl ON cl.cluster_seq = uh.cluster_seq
+			) t_uh
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "DOWNLOAD_SEQ")'>
+					t_uh.download_seq
+				</when>
+				<otherwise>
+					t_uh.download_seq
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+ 	</select>
+
+	<select id="getUserConfigDownloadHistoriesCountAndMaxId" parameterType="UserClusterRoleIssueSearch" resultType="ListCount">
+		SELECT /* [User.xml].[getUserConfigDownloadHistoriesCountAndMaxId].[01] 변경일자(20200206) */
+			count(*) as cnt
+			,IFNULL(max(download_seq), 0) as maxId
+		FROM	user_config_download_history uh2
+					<if test="accountSeq != null">
+						<include refid="accountUserOfIssueRoleSql" />
+						ON a.user_seq = uh2.user_seq
+					</if>
+					<if test="systemUserSeq != null and userSeq != null">
+						<include refid="getAccountUserSql" />
+					</if>
+					INNER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'KUBECONFIG' AND uh2.download_account_name = ucrih.issue_account_name
+					INNER JOIN (
+						SELECT MAX(x_ucrih.history_seq) max_history_seq
+						FROM user_cluster_role_issue_history x_ucrih
+						<where>
+							AND x_ucrih.issue_type = 'KUBECONFIG'
+							<include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+						</where>
+						GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+					) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+					INNER JOIN clusters cl ON cl.cluster_seq = uh2.cluster_seq
+		<where>
+			<include refid="userConfigDownloadHistoriesCondition" />
+		</where>
+	</select>
+
+	<select id="getUserConfigDownloadHistoriesForExcel" parameterType="UserClusterRoleIssueSearch" resultType="UserConfigDownloadHistory" fetchSize="1">
+		SELECT	/* [User.xml].[getUserConfigDownloadHistoriesForExcel].[01] 변경일자(20200206) */
+			 t_uh.download_seq					AS downloadSeq
+			,t_uh.user_seq						AS userSeq
+			,t_uh.user_id						AS userId
+			,t_uh.user_name						AS userName
+			,t_uh.cluster_seq					AS clusterSeq
+			,t_uh.cluster_id					AS clusterId
+			,t_uh.cluster_name					AS clusterName
+			,t_uh.download_account_name			AS downloadAccountName
+			,t_uh.download_state				AS downloadState
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(t_uh.download_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as downloadDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(t_uh.download_datetime, '%Y-%m-%d %H:%i:%s') as downloadDatetime
+			</otherwise>
+		</choose>
+			,t_uh.download_message				AS downloadMessage
+			,DATE_FORMAT(t_uh.expiration_datetime, '%Y-%m-%d')			AS expirationDatetime
+			,t_uh.issue_user_seq				AS issueUserSeq
+			,t_uh.issue_user_id					AS issueUserId
+			,t_uh.issue_user_name				AS issueUserName
+			,t_uh.history_seq					AS historySeq
+			,t_uh.history_state					AS historyState
+		FROM
+			(
+				SELECT
+					 uh2.download_seq
+					,uh2.user_seq
+					,uh2.user_id
+					,uh2.user_name
+					,cl.cluster_seq
+					,cl.cluster_id
+					,cl.cluster_name
+					,uh2.download_account_name
+					,uh2.download_state
+					,uh2.download_datetime
+					,uh2.download_message
+					,uh2.issue_role
+					,ucrih.expiration_datetime
+					,ucrih.issue_user_seq
+					,ucrih.issue_user_id
+					,ucrih.issue_user_name
+					,ucrih.history_seq					AS history_seq
+					,ucrih.history_state				AS history_state
+				FROM	user_config_download_history uh2
+							<if test="accountSeq != null">
+								<include refid="accountUserOfIssueRoleSql" />
+								ON a.user_seq = uh2.user_seq
+							</if>
+							<if test="systemUserSeq != null and userSeq != null">
+								<include refid="getAccountUserSql" />
+							</if>
+							LEFT OUTER JOIN user_cluster_role_issue_history ucrih ON ucrih.user_seq = uh2.user_seq AND ucrih.cluster_seq = uh2.cluster_seq AND ucrih.issue_type = 'KUBECONFIG' AND uh2.download_account_name = ucrih.issue_account_name
+							INNER JOIN (
+								SELECT MAX(x_ucrih.history_seq) max_history_seq
+								FROM user_cluster_role_issue_history x_ucrih
+								<where>
+									AND x_ucrih.issue_type = 'KUBECONFIG'
+									<include refid="commonUserClusterRoleIssueHistoriesConditionForMax" />
+								</where>
+								GROUP BY x_ucrih.user_seq, x_ucrih.cluster_seq, x_ucrih.issue_type, x_ucrih.issue_account_name
+							) m_ucrih ON m_ucrih.max_history_seq = ucrih.history_seq
+							INNER JOIN clusters cl ON cl.cluster_seq = uh2.cluster_seq
+				<where>
+					<include refid="userConfigDownloadHistoriesCondition" />
+				</where>
+			) t_uh
+			ORDER  BY
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "DOWNLOAD_SEQ")'>
+						download_seq
+					</when>
+					<otherwise>
+						download_seq
+					</otherwise>
+				</choose>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+						DESC
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+						ASC
+					</when>
+					<otherwise>
+						DESC
+					</otherwise>
+				</choose>
+	</select>
+
+	<sql id="userClusterRoleIssueHistoriesCondition">
+        <if test="startDate != null and endDate != null">
+			AND uh2.history_datetime BETWEEN DATE_FORMAT(#{startDate}, '%Y-%m-%d %H:%i:%S') AND DATE_FORMAT(#{endDate}, '%Y-%m-%d %H:%i:%S')
+        </if>
+        <if test="userSeq != null">
+            AND uh2.user_seq = #{userSeq}
+        </if>
+        <if test="clusterSeq != null">
+            AND uh2.cluster_seq = #{clusterSeq}
+        </if>
+        <if test="issueType != null">
+            AND uh2.issue_type = #{issueType}
+        </if>
+        <if test="historyState != null">
+            AND uh2.history_state = #{historyState}
+        </if>
+        <if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchColumn) and @org.apache.commons.lang3.StringUtils@isNotBlank(searchKeyword)">
+            <choose>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ACCOUNT_NAME")'>
+                    AND uh2.issue_account_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_ID")'>
+                    AND uh2.user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "USER_NAME")'>
+                    AND uh2.user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_ID")'>
+                    AND uh2.issue_user_id LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+                <when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(searchColumn, "ISSUE_USER_NAME")'>
+                    AND uh2.issue_user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+                </when>
+            </choose>
+        </if>
+	</sql>
+
+	<select id="getUserClusterRoleIssueHistories" parameterType="UserClusterRoleIssueSearch" resultType="UserClusterRoleIssueHistory">
+		SELECT	/* [User.xml].[getUserClusterRoleIssueHistories].[01] 변경일자(20200206) */
+			uh.history_seq					AS historySeq
+			,uhup.user_seq					AS userSeq
+			,uhup.user_id					AS userId
+			,uhup.user_name					AS userName
+			,cl.cluster_seq					AS clusterSeq
+			,cl.cluster_id					AS clusterId
+			,cl.cluster_name				AS clusterName
+			,uh.issue_type					AS issueType
+			,uh.binding_type				AS bindingType
+			,uh.issue_account_name			AS issueAccountName
+			,uh.history_state				AS historyState
+			,uh.history_message				AS historyMessage
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(uh.history_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as historyDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(uh.history_datetime, '%Y-%m-%d %H:%i:%s') as historyDatetime
+			</otherwise>
+		</choose>
+		<if test='issueType != null and "KUBECONFIG".equals(issueType)'>
+			,IF(uh.issue_type = 'KUBECONFIG', DATE_FORMAT(uh.expiration_datetime, '%Y-%m-%d'), null)			AS expirationDatetime
+		</if>
+			,uhup.issue_user_seq			AS issueUserSeq
+			,uhup.issue_user_id				AS issueUserId
+			,uhup.issue_user_name			AS issueUserName
+			,uhup.namespace 				AS bindingNamespace
+			,(CASE WHEN uh.binding_type = 'CLUSTER' THEN uh.issue_role ELSE uhup.issue_role END) AS issueRole
+		FROM   user_cluster_role_issue_history uh
+				<if test="accountSeq != null">
+					<include refid="accountUserOfIssueRoleSql" />
+					ON a.user_seq = uh.user_seq
+				</if>
+			   INNER JOIN (	SELECT
+			   					 uh2.history_seq	AS history_seq2
+								,uh2.user_seq		AS user_seq
+								,uh2.user_id		AS user_id
+								,uh2.user_name		AS user_name
+								,uh2.issue_user_seq
+								,uh2.issue_user_id
+								,uh2.issue_user_name
+								,ucribh2.namespace  AS namespace
+								,ucribh2.issue_role AS issue_role
+							FROM	user_cluster_role_issue_history uh2
+									<if test="systemUserSeq != null and userSeq != null">
+										<include refid="getAccountUserSql" />
+									</if>
+										LEFT OUTER JOIN user_cluster_role_issue_binding_history ucribh2 ON ucribh2.history_seq=uh2.history_seq
+							WHERE  uh2.history_seq <![CDATA[<=]]>  #{paging.maxId}
+							<include refid="userClusterRoleIssueHistoriesCondition" />
+							ORDER  BY
+								<choose>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "HISTORY_SEQ")'>
+										uh2.history_seq
+									</when>
+									<otherwise>
+										uh2.history_seq
+									</otherwise>
+								</choose>
+								<choose>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+										DESC
+									</when>
+									<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+										ASC
+									</when>
+									<otherwise>
+										DESC
+									</otherwise>
+								</choose>
+							LIMIT  #{paging.nextPage}, #{paging.itemPerPage}
+							) uhup
+							ON uhup.history_seq2 = uh.history_seq
+				INNER JOIN clusters cl ON cl.cluster_seq = uh.cluster_seq
+ 		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "HISTORY_SEQ")'>
+					uh.history_seq
+				</when>
+				<otherwise>
+					uh.history_seq
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+ 	</select>
+
+	<select id="getUserClusterRoleIssueHistoriesCountAndMaxId" parameterType="UserClusterRoleIssueSearch" resultType="ListCount">
+		SELECT /* [User.xml].[getUserClusterRoleIssueHistoriesCountAndMaxId].[01] 변경일자(20200206) */
+			count(*) as cnt
+			,IFNULL(MAX(uh2.history_seq), 0) as maxId
+		FROM	user_cluster_role_issue_history uh2
+				<if test="accountSeq != null">
+					<include refid="accountUserOfIssueRoleSql" />
+					ON a.user_seq = uh2.user_seq
+				</if>
+				<if test="systemUserSeq != null and userSeq != null">
+					<include refid="getAccountUserSql" />
+				</if>
+					LEFT OUTER JOIN user_cluster_role_issue_binding_history ucribh2 ON ucribh2.history_seq=uh2.history_seq
+		<where>
+			<include refid="userClusterRoleIssueHistoriesCondition" />
+		</where>
+	</select>
+
+	<select id="getUserClusterRoleIssueHistoriesForExcel" parameterType="UserClusterRoleIssueSearch" resultType="UserClusterRoleIssueHistory" fetchSize="1">
+		SELECT	/* [User.xml].[getUserClusterRoleIssueHistoriesForExcel].[01] 변경일자(20200206) */
+			 uh2.history_seq				AS historySeq
+			,uh2.user_seq					AS userSeq
+			,uh2.user_id					AS userId
+			,uh2.user_name					AS userName
+			,cl.cluster_seq					AS clusterSeq
+			,cl.cluster_id					AS clusterId
+			,cl.cluster_name				AS clusterName
+			,uh2.issue_type					AS issueType
+			,uh2.binding_type				AS bindingType
+			,uh2.issue_account_name			AS issueAccountName
+			,uh2.history_state				AS historyState
+			,uh2.history_message			AS historyMessage
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+				,DATE_FORMAT(CONVERT_TZ(uh2.history_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as historyDatetime
+			</when>
+			<otherwise>
+				,DATE_FORMAT(uh2.history_datetime, '%Y-%m-%d %H:%i:%s') as historyDatetime
+			</otherwise>
+		</choose>
+		<if test='issueType != null and "KUBECONFIG".equals(issueType)'>
+			,DATE_FORMAT(uh2.expiration_datetime, '%Y-%m-%d')			AS expirationDatetime
+		</if>
+			,uh2.issue_user_seq				AS issueUserSeq
+			,uh2.issue_user_id				AS issueUserId
+			,uh2.issue_user_name			AS issueUserName
+			,ucribh.namespace 				AS bindingNamespace
+			,(CASE WHEN uh2.binding_type = 'CLUSTER' THEN uh2.issue_role ELSE ucribh.issue_role END) AS issueRole
+		FROM   user_cluster_role_issue_history uh2
+					<if test="accountSeq != null">
+						<include refid="accountUserOfIssueRoleSql" />
+						ON a.user_seq = uh2.user_seq
+					</if>
+					<if test="systemUserSeq != null and userSeq != null">
+						<include refid="getAccountUserSql" />
+					</if>
+					INNER JOIN clusters cl ON cl.cluster_seq = uh2.cluster_seq
+					LEFT OUTER JOIN user_cluster_role_issue_binding_history ucribh ON ucribh.history_seq=uh2.history_seq
+		<where>
+			<include refid="userClusterRoleIssueHistoriesCondition" />
+		</where>
+		ORDER  BY
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.orderColumn, "HISTORY_SEQ")'>
+					uh2.history_seq
+				</when>
+				<otherwise>
+					uh2.history_seq
+				</otherwise>
+			</choose>
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "DESC")'>
+					DESC
+				</when>
+				<when test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(paging.order, "ASC")'>
+					ASC
+				</when>
+				<otherwise>
+					DESC
+				</otherwise>
+			</choose>
+	</select>
+
+	<select id="getLatestUserClusterRoleIssueHistory" parameterType="UserClusterRoleIssueSearch" resultMap="UserClusterRoleIssueHistoryMap">
+		SELECT 	/* [User.xml].[getLatestUserClusterRoleIssueHistory].[01] 변경일자(20200722) */
+			 uh.history_seq
+			,uh.user_seq
+			,uh.user_id
+			,uh.user_name
+			,uh.cluster_seq
+			,uh.cluster_id
+			,uh.cluster_name
+			,uh.issue_type
+			,uh.binding_type
+			,uh.issue_account_name
+			,uh.history_state
+			,uh.history_message
+			<choose>
+				<when test='@org.apache.commons.lang3.StringUtils@isNotBlank(userTimezone)'>
+					,DATE_FORMAT(CONVERT_TZ(uh.history_datetime, 'GMT', IFNULL(#{userTimezone}, 'GMT')), '%Y-%m-%d %H:%i:%s') as historyDatetime
+				</when>
+				<otherwise>
+					,DATE_FORMAT(uh.history_datetime, '%Y-%m-%d %H:%i:%s') as historyDatetime
+				</otherwise>
+			</choose>
+			<if test='issueType != null and "KUBECONFIG".equals(issueType)'>
+				,DATE_FORMAT(uh.expiration_datetime, '%Y-%m-%d')			AS expirationDatetime
+			</if>
+			,uh.issue_user_seq
+			,uh.issue_user_id
+			,uh.issue_user_name
+			,uh.issue_role
+			,ucribh.binding_history_seq AS b_bindingHistorySeq
+			,uh.history_seq 			AS b_historySeq
+			,ucribh.namespace 			AS b_namespace
+			,ucribh.issue_role 			AS b_issueRole
+		FROM
+			(
+				SELECT
+					uh2.history_seq
+					,uh2.user_seq
+					,uh2.user_id
+					,uh2.user_name
+					,cl.cluster_seq
+					,cl.cluster_id
+					,cl.cluster_name
+					,uh2.issue_type
+					,uh2.binding_type
+					,uh2.issue_account_name
+					,uh2.history_state
+					,uh2.history_message
+					,uh2.history_datetime
+					<if test='issueType != null and "KUBECONFIG".equals(issueType)'>
+					,uh2.expiration_datetime
+					</if>
+					,uh2.issue_role
+					,uh2.issue_user_seq
+					,uh2.issue_user_id
+					,uh2.issue_user_name
+				FROM   user_cluster_role_issue_history uh2
+							<if test="accountSeq != null">
+								<include refid="accountUserOfIssueRoleSql" />
+								ON a.user_seq = uh2.user_seq
+							</if>
+							<if test="systemUserSeq != null and userSeq != null">
+								<include refid="getAccountUserSql" />
+							</if>
+							INNER JOIN clusters cl ON cl.cluster_seq = uh2.cluster_seq
+				<where>
+					<include refid="userClusterRoleIssueHistoriesCondition" />
+				</where>
+				ORDER  BY uh2.history_seq desc
+			  	LIMIT 1
+			) uh
+				LEFT OUTER JOIN user_cluster_role_issue_binding_history ucribh ON ucribh.history_seq = uh.history_seq
+	</select>
+
+	<select id="getUsersExistClusterRoleIssue" parameterType="map" resultMap="UserHaveRolesMap">
+		SELECT /* [User.xml].[getUsersExistClusterRoleIssue].[01] 변경일자(20200703) */
+			r.role_code AS userRole,
+			r.role_code AS r_role,
+			<include refid="userListColumnSql" />
+		FROM
+			users u
+				INNER JOIN user_role r 				ON 	u.user_seq = r.user_seq
+				<include refid="accountUserOfIssueRoleSql" /> ON a.user_seq = u.user_seq
+		WHERE u.use_yn = 'Y'
+		  AND EXISTS (
+				SELECT 1
+				FROM user_cluster_role_issue ucri
+				WHERE ucri.user_seq = u.user_seq
+			)
+	</select>
+
+	<select id="getUserOtpInfo" parameterType="map" resultMap="UserOtpMap">
+		SELECT /* [User.xml].[getUserOtpInfo].[01] 변경일자(20210611) */
+			u.user_seq AS userSeq
+			, u.otp_use_yn AS otpUseYn
+			, u.otp_qr AS otpQr
+			, u.otp_secret AS otpSecret
+			, u.otp_url AS otpUrl
+		FROM
+			users u
+		WHERE u.use_yn = 'Y'
+		  AND u.user_seq = #{userSeq}
+	</select>
+
+	<update id="updateUserOtpInfo" parameterType="map">
+		UPDATE  /* [User.xml].[updateUserOtpInfo].[01] 변경일자(20210611) */
+			users
+		SET
+			otp_use_yn = #{userOtp.otpUseYn}
+			<if test='@org.apache.commons.lang3.StringUtils@isNotBlank(userOtp.otpUseYn)'>
+				<choose>
+					<when test='"Y".equalsIgnoreCase(userOtp.otpUseYn)'>
+						<if test="userOtp.otpQr != null">
+							, otp_qr = #{userOtp.otpQr}
+						</if>
+						<if test="userOtp.otpSecret != null">
+							, otp_secret = #{userOtp.otpSecret}
+						</if>
+						<if test="userOtp.otpUrl != null">
+							, otp_url = #{userOtp.otpUrl}
+						</if>
+					</when>
+					<otherwise>
+						, otp_qr = null
+						, otp_secret = null
+						, otp_url = null
+					</otherwise>
+				</choose>
+			</if>
+			, updated = UTC_TIMESTAMP()
+		  <if test="updater != null">
+			  , updater = #{updater}
+		  </if>
+		WHERE user_seq = #{userOtp.userSeq}
+	</update>
+
+	<update id="updateUserInactiveYn" parameterType="map">
+		UPDATE  /* [User.xml].[updateUserInactiveYn].[01] 변경일자(20210611) */
+			users
+		SET
+			inactive_yn = #{inactiveYn}
+            , login_fail_count = 0
+		<if test='@org.apache.commons.lang3.StringUtils@equalsIgnoreCase(inactiveYn, "N")'>
+			, active_datetime = UTC_TIMESTAMP()
+		</if>
+			, updated = UTC_TIMESTAMP()
+			, updater = #{updater}
+		WHERE user_seq = #{userSeq}
+	</update>
+
+	<delete id="deleteUserClusterRoleIssueBindingHistoryByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserClusterRoleIssueBindingHistoryByCluster].[01] 변경일자(20210707) */
+		FROM user_cluster_role_issue_binding_history
+		WHERE history_seq IN (SELECT ucrih.history_seq FROM user_cluster_role_issue_history ucrih WHERE ucrih.cluster_seq = #{clusterSeq})
+	</delete>
+
+	<delete id="deleteUserClusterRoleIssueHistoryByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserClusterRoleIssueHistoryByCluster].[01] 변경일자(20210707) */
+		FROM user_cluster_role_issue_history
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+
+	<delete id="deleteUserConfigDownloadHistoryByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserConfigDownloadHistoryByCluster].[01] 변경일자(20210707) */
+		FROM user_config_download_history
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+
+	<delete id="deleteUserShellConnectHistoryByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserShellConnectHistoryByCluster].[01] 변경일자(20210707) */
+		FROM user_shell_connect_history
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+
+	<delete id="deleteUserClusterRoleIssueBindingByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserClusterRoleIssueBindingByCluster].[01] 변경일자(20210707) */
+		FROM user_cluster_role_issue_binding
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+
+	<delete id="deleteUserClusterRoleIssueByCluster" parameterType="map">
+		DELETE  /* [User.xml].[deleteUserClusterRoleIssueByCluster].[01] 변경일자(20210707) */
+		FROM user_cluster_role_issue
+		WHERE cluster_seq = #{clusterSeq}
+	</delete>
+</mapper>

@@ -1,0 +1,73 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.code.dao.ICodeMapper">
+	
+	<select id="getCodes" parameterType="string" resultType="Code">
+		SELECT /* [Code.xml].[getCodes].[01] 변경일자(20170313) */
+			cd.code_group_id			groupId,
+			cd.`code`,
+			cd.`value`,
+			cd.description
+		FROM codes cd
+		WHERE cd.code_group_id = #{groupId}
+		AND cd.use_yn = 'Y'
+		ORDER BY cd.sort_order
+	</select>
+	
+	<select id="getSubCodes" parameterType="map" resultType="SubCode">
+		SELECT /* [Code.xml].[getSubCodes].[01] 변경일자(20170313) */
+			cd.code_group_id			groupId,
+			cd.`code`					subGroupId,
+			sc.code_group_id			subCodeGroupId,
+			sc.`code`,
+			sc.`value`,
+			sc.description
+		FROM codes cd, codes sc
+		WHERE cd.code_group_id = #{groupId}
+		  AND cd.`code` = #{subGroupId}
+		  AND cd.`value` = sc.code_group_id
+		  AND cd.use_yn = 'Y'
+		  AND sc.use_yn = 'Y'
+		ORDER BY sc.sort_order
+	</select>
+
+    <select id="getCode" parameterType="map" resultType="Code">
+        SELECT /* [Code.xml].[getCode].[01] 변경일자(20170313) */
+			cd.code_group_id			groupId,
+			cd.`code`,
+			cd.`value`,
+			cd.description
+		FROM codes cd
+		WHERE cd.code_group_id = #{groupId}
+          AND cd.`code` = #{code}
+		  AND cd.use_yn = 'Y'
+    </select>
+
+	<insert id="addCode" parameterType="Code">
+		INSERT /* [Code.xml].[addCode].[01] 변경일자(20220819) */
+		INTO codes (
+			code_group_id
+			, code
+			, value
+			, description
+			, sort_order
+			, use_yn
+		)
+		VALUES(
+			#{groupId}
+			, #{code}
+			, #{value}
+			, #{description}
+			, 0
+			, 'Y'
+		)
+	</insert>
+
+	<update id="editCodeForLicense" parameterType="Code">
+		UPDATE /* [Code.xml].[editCode].[01] 변경일자(20220822) */
+		codes
+		SET   value = #{value}
+			, description = #{description}
+		WHERE code_group_id = #{groupId}
+		AND code = #{code}
+	</update>
+</mapper>

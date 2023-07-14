@@ -1,0 +1,522 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.catalog.dao.ITemplateMapper">
+	<!--  -->
+	<resultMap type="Template" id="TemplateMap" autoMapping="true">
+		<id property="templateSeq" column="templateSeq"/>
+	</resultMap>
+
+	<resultMap id="TemplateListMap" type="TemplateList" autoMapping="true">
+		<id 	property="templateSeq" 				column="templateSeq" /> <!-- 템플릿번호 -->
+	</resultMap>
+	
+	<resultMap id="TemplateDetailMap" type="TemplateDetail" autoMapping="true">
+		<id property="templateSeq" column="templateSeq" />
+		<collection property="templateVersions" ofType="TemplateVersion" columnPrefix="tv_" resultMap="TemplateVersionMap" />
+		<collection property="templateDeployments" ofType="TemplateDeployment" columnPrefix="td_" resultMap="TemplateDeploymentMap" />
+	</resultMap>
+	
+	<resultMap id="TemplateVersionMap" type="TemplateVersion" autoMapping="true">
+		<id property="templateVersionSeq" column="templateVersionSeq" />
+	</resultMap>
+	
+	<resultMap id="TemplateDeploymentMap" type="TemplateDeployment" autoMapping="true">
+		<id property="templateDeploymentSeq" column="templateDeploymentSeq" />
+	</resultMap>
+
+	<resultMap id="TemplateVersionForDelMap" type="TemplateVersionDel" autoMapping="true">
+		<id property="templateSeq" column="templateSeq" />
+		<id property="templateVersionSeqForDel" column="templateVersionSeqForDel" /> <!-- 삭제할 템플릿버전번호 -->
+	</resultMap>
+
+	<sql id="selectCondition">
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equals(templateType, "SERVICE")'>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equals(templateShareType, "SYSTEM_SHARE") and accountSeq != null'>
+						AND t.account_seq = #{accountSeq} AND	t.template_share_type = #{templateShareType}
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equals(templateShareType, "WORKSPACE_SHARE") and serviceSeq != null'>
+						AND t.service_seq = #{serviceSeq} AND	t.template_share_type = #{templateShareType}
+					</when>
+					<otherwise>
+						<choose>
+							<when test="accountSeq != null and serviceSeq != null">
+								AND ( (t.account_seq = #{accountSeq} AND	t.template_share_type = 'SYSTEM_SHARE')
+								OR (t.service_seq = #{serviceSeq} AND	t.template_share_type = 'WORKSPACE_SHARE') )
+							</when>
+							<when test="accountSeq != null">
+								AND t.account_seq = #{accountSeq}
+							</when>
+							<otherwise>
+								AND 1 = 2
+							</otherwise>
+						</choose>
+					</otherwise>
+				</choose>
+			</when>
+		</choose>
+	</sql>
+
+	<sql id="selectConditionToString">
+		<choose>
+			<when test='@org.apache.commons.lang3.StringUtils@equals(templateTypeToString, "SERVICE")'>
+				<choose>
+					<when test='@org.apache.commons.lang3.StringUtils@equals(templateShareTypeToString, "SYSTEM_SHARE") and accountSeq != null'>
+						AND t.account_seq = #{accountSeq} AND	t.template_share_type = #{templateShareType}
+					</when>
+					<when test='@org.apache.commons.lang3.StringUtils@equals(templateShareTypeToString, "WORKSPACE_SHARE") and serviceSeq != null'>
+						AND t.service_seq = #{serviceSeq} AND	t.template_share_type = #{templateShareType}
+					</when>
+					<otherwise>
+						<choose>
+							<when test="accountSeq != null and serviceSeq != null">
+								AND ( (t.account_seq = #{accountSeq} AND	t.template_share_type = 'SYSTEM_SHARE')
+								OR (t.service_seq = #{serviceSeq} AND	t.template_share_type = 'WORKSPACE_SHARE') )
+							</when>
+							<when test="accountSeq != null">
+								AND t.account_seq = #{accountSeq}
+							</when>
+							<otherwise>
+								AND 1 = 2
+							</otherwise>
+						</choose>
+					</otherwise>
+				</choose>
+			</when>
+		</choose>
+	</sql>
+
+	<!-- 템플릿 등록 -->
+	<insert id="addTemplate" parameterType="TemplateAdd" useGeneratedKeys="true" keyProperty="templateSeq">
+		INSERT /* [Template.xml].[addTemplate].[01] 변경일자(20170706) */
+		INTO templates (
+			template_type,
+			template_share_type,
+			template_name,
+			account_seq,
+			service_seq,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		VALUES (
+			#{templateType},
+			#{templateShareType},
+			TRIM(#{templateName}),
+			#{accountSeq},
+			#{serviceSeq},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+    </insert>
+
+	<select id="checkDuplTemplateVersion" parameterType="TemplateAdd" resultType="int">
+		SELECT /* [Template.xml].[checkDuplTemplateVersion].[01] 변경일자(20170706) */
+				COUNT(1)
+		FROM templates t
+				INNER JOIN template_version tv
+					ON tv.template_seq = t.template_seq
+					AND tv.version = #{version}
+					AND tv.use_yn = 'Y'
+		WHERE t.template_seq = #{templateSeq}
+		AND t.use_yn = 'Y'
+	</select>
+
+	<select id="checkDuplTemplateName" parameterType="TemplateAdd" resultType="int">
+		SELECT /* [Template.xml].[checkDuplTemplateName].[01] 변경일자(20170706) */
+				COUNT(1)
+		FROM templates t
+		WHERE t.template_name = trim(#{templateName})
+		AND t.template_type = #{templateType}
+		<include refid="selectConditionToString" />
+		AND t.use_yn = 'Y'
+	</select>
+
+	<!-- 템플릿 버전 최신여부 'N'로 초기화 처리 -->
+	<update id="updateTemplateVersionForNonLatest" parameterType="TemplateAdd">
+		UPDATE  /* [Template.xml].[updateTemplateVersionForNonLatest].[01] 변경일자(20170706) */
+			template_version
+		SET
+			latest_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{creator}
+		WHERE
+			template_seq = #{templateSeq}
+	</update>
+
+	<!-- 템플릿 버전 등록 -->
+	<insert id="addTemplateVersion" parameterType="TemplateAdd" useGeneratedKeys="true" keyProperty="templateVersionSeq">
+		INSERT /* [Template.xml].[addTemplateVersion].[01] 변경일자(20170706) */
+		INTO template_version (
+			template_seq,
+			version,
+			summary,
+			description,
+			latest_yn,
+			use_yn,
+			created,
+			creator,
+			updated,
+			updater
+		)
+		VALUES (
+			#{templateSeq},
+			#{version},
+			#{summary},
+			#{description},
+			'Y',
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+		)
+    </insert>
+	<!-- 템플릿 배치 등록 -->
+	<insert id="addTemplateDeployment" parameterType="TemplateDeployment" useGeneratedKeys="true" keyProperty="templateDeploymentSeq">
+		INSERT /* [Template.xml].[addTemplateDeployment].[02] 변경일자(20170719) */
+		INTO template_deployment (
+			template_version_seq,
+			template_deployment_type,
+			template_content,
+			workload_group_name,
+			sort_order,
+			run_order
+		)
+		VALUES (
+			#{templateVersionSeq},
+			#{templateDeploymentType},
+			#{templateContent},
+			TRIM(#{workloadGroupName}),
+			#{sortOrder},
+			#{runOrder}
+		)
+    </insert>
+
+	<!-- 템블릿 배치 편집 -->
+	<update id="updateTemplateDeployment" parameterType="TemplateDeployment">
+		UPDATE /* [Template.xml].[updateTemplateDeployment].[01] 변경일자(20170718) */
+			template_deployment td
+		<set>
+			td.template_content = #{templateContent},
+			td.workload_group_name = #{workloadGroupName},
+			td.sort_order = #{sortOrder},
+			<if test="runOrder != null">
+				td.run_order = #{runOrder}
+			</if>
+		</set>
+		WHERE td.template_deployment_seq = #{templateDeploymentSeq}
+	</update>
+
+	<update id="updateTemplateDeploymentAndType" parameterType="TemplateDeployment">
+		UPDATE /* [Template.xml].[updateTemplateDeploymentAndType].[01] 변경일자(20170718) */
+		template_deployment td
+		<set>
+			td.template_content = #{templateContent},
+			td.template_deployment_type = #{templateDeploymentType},
+			td.workload_group_name = #{workloadGroupName},
+			td.sort_order = #{sortOrder},
+			<if test="runOrder != null">
+				td.run_order = #{runOrder}
+			</if>
+		</set>
+		WHERE td.template_deployment_seq = #{templateDeploymentSeq}
+	</update>
+
+	<!-- 템플릿 조회 -->
+	<select id="getTemplate" parameterType="int" resultMap="TemplateMap">
+		SELECT /* [Template.xml].[getTemplate].[01] 변경일자(20190725) */
+			t.template_seq AS templateSeq,
+			t.template_type AS templateType,
+			t.template_share_type AS templateShareType,
+			t.account_seq AS accountSeq,
+			t.service_seq AS serviceSeq,
+			t.template_name AS templateName
+		FROM templates t
+		WHERE t.template_seq = #{templateSeq}
+		<if test="useYn != null">
+		AND t.use_yn = #{useYn}
+		</if>
+	</select>
+
+	<!-- SYSTEM_SHARE 템플릿 접근 권한 확인 (SYSTEM User, DEVOPS User) -->
+	<select id="getSystemTemplatePermission" parameterType="map" resultType="int">
+		SELECT Count(us.user_seq)
+		FROM   users us
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			   INNER JOIN account_system_user_mapping asum
+					   ON asum.user_seq = us.user_seq
+						  AND us.user_seq = #{loginUserSeq}
+			   INNER JOIN templates tpl
+					   ON tpl.account_seq = asum.account_seq
+						  AND tpl.template_seq = #{systemTemplateSeq}
+		</if>
+		<if test='loginUserRole == "DEVOPS"'>
+			   INNER JOIN account_user_mapping aum
+					   ON aum.user_seq = us.user_seq
+						  AND us.user_seq = #{loginUserSeq}
+			   INNER JOIN templates tpl
+					   ON tpl.account_seq = aum.account_seq
+						  AND tpl.template_seq = #{systemTemplateSeq}
+		</if>
+	</select>
+
+	<!-- WORKSPACE_SHARE 템플릿 접근 권한 확인 -->
+	<select id="getWorkspaceTemplatePermission" parameterType="map" resultType="int">
+		SELECT Count(us.user_seq)
+		FROM   users us
+		<if test='"SYSUSER".equals(loginUserRole) or "SYSTEM".equals(loginUserRole) or "SYSDEMO".equalsIgnoreCase(loginUserRole)'>
+			   INNER JOIN account_system_user_mapping asum
+					   ON asum.user_seq = us.user_seq
+						  AND us.user_seq = #{loginUserSeq}
+			   INNER JOIN templates tpl
+					   ON tpl.account_seq = asum.account_seq
+						  AND tpl.template_seq = #{workspaceTemplateSeq}
+		</if>
+		<if test='loginUserRole == "DEVOPS"'>
+			   INNER JOIN account_user_mapping aum
+					   ON aum.user_seq = us.user_seq
+						  AND us.user_seq = #{loginUserSeq}
+			   INNER JOIN templates tpl
+					   ON tpl.account_seq = aum.account_seq
+						  AND tpl.template_seq = #{workspaceTemplateSeq}
+		</if>
+
+		<if test="serviceSeq != null">
+						  AND tpl.service_seq = #{serviceSeq}
+		</if>
+	</select>
+
+	<!-- 템플릿 목록 조회 -->
+	<select id="getTemplateList" parameterType="map" resultMap="TemplateListMap">
+		SELECT /* [Template.xml].[getTemplateList].[01] 변경일자(20170707).[02] 변경일자(20180528) */
+				t.template_seq AS templateSeq,
+				t.template_type AS templateType,
+				t.template_share_type AS templateShareType,
+				t.account_seq AS accountSeq,
+				t.service_seq AS serviceSeq,
+				t.template_name AS templateName,
+				tv.template_version_seq AS templateVersionSeq,
+				tv.summary AS summary,
+				tv.version AS version,
+				(
+					SELECT COUNT(1)
+					FROM template_deployment x
+					WHERE x.template_version_seq = tv.template_version_seq
+				) AS templateDeploymentCount
+		FROM templates t
+				INNER JOIN template_version tv
+					ON tv.template_seq = t.template_seq
+					AND tv.latest_yn = 'Y'
+					AND tv.use_yn = 'Y'
+		WHERE t.use_yn = 'Y'
+		AND t.template_type = #{templateType}
+		<include refid="selectCondition" />
+		ORDER BY t.template_seq desc, t.template_name
+	</select>
+
+	<!-- 템플릿 상세 조회 -->
+	<select id="getTemplateDetail" parameterType="map" resultMap="TemplateDetailMap">
+		SELECT /* [Template.xml].[getTemplateDetail].[01] 변경일자(20170707) */
+			tp.template_seq				templateSeq,
+			tp.template_type 			templateType,
+			tp.template_name			templateName,
+			tp.template_share_type		templateShareType,
+			tl.template_version_seq		templateVersionSeq,
+			tl.version					version,
+			tl.summary					summary,
+			tl.description				description,
+			tv.template_version_seq		tv_templateVersionSeq,
+			tv.version					tv_version,
+			td.template_deployment_seq	td_templateDeploymentSeq,
+			td.template_deployment_type	td_templateDeploymentType,
+			td.template_content			td_templateContent,
+			td.workload_group_name		td_workloadGroupName,
+			td.sort_order				td_sortOrder,
+			td.run_order				td_runOrder
+		FROM templates tp
+		LEFT OUTER JOIN template_version tl		ON tl.template_seq = tp.template_seq
+												AND <choose>
+														<when test="templateVersionSeq != null">tl.template_version_seq = #{templateVersionSeq}</when>
+														<otherwise>tl.latest_yn = 'Y'</otherwise>
+													</choose>
+		LEFT OUTER JOIN template_version tv		ON tv.template_seq = tp.template_seq AND tv.use_yn = 'Y'
+		LEFT OUTER JOIN template_deployment td	ON td.template_version_seq = tl.template_version_seq
+		WHERE tp.template_seq = #{templateSeq}
+		ORDER BY tv.template_version_seq DESC,
+			(
+				CASE WHEN td.template_deployment_type = 'CONFIG_MAP' THEN 1
+					WHEN td.template_deployment_type = 'SECRET' THEN 2
+					ELSE 3
+				END
+			),
+			td.run_order, td.sort_order
+	</select>
+
+	<!-- 템플릿 버전 삭제를 위한 정보 조회 -->
+	<select id="getTemplateVersionForDel" parameterType="map" resultMap="TemplateVersionForDelMap">
+		SELECT /* [Template.xml].[getTemplateVersionForDel].[01] 변경일자(20170712) */
+				t.templateSeq,
+				t.templateVersionSeqForDel,
+				IFNULL(
+					(
+						SELECT x.latest_yn
+						FROM template_version x
+						WHERE x.template_seq = t.templateSeq
+						AND x.template_version_seq = t.templateVersionSeqForDel
+					)
+				, 'N') AS latestYnForDel,
+				t.latestTemplateVersionSeq,
+				t.versionTotalCount
+		FROM (
+				SELECT
+						t.template_seq AS templateSeq,
+						MAX(
+							CASE
+								WHEN tv.template_version_seq = #{templateVersionSeq} THEN tv.template_version_seq
+								ELSE 0
+							END
+						) AS templateVersionSeqForDel,
+						MAX(
+							CASE
+								WHEN tv.template_version_seq = #{templateVersionSeq} THEN 0
+								ELSE tv.template_version_seq
+							END
+						) AS latestTemplateVersionSeq, <!-- 가장 큰 템플릿버전번호가 가장 최근 버전으로 설정 -->
+						SUM(
+							CASE
+								WHEN tv.template_version_seq = #{templateVersionSeq} THEN 0
+								ELSE 1
+							END
+						) AS versionTotalCount
+				FROM templates t
+						INNER JOIN template_version tv
+							ON tv.template_seq = t.template_seq
+							AND tv.use_yn = 'Y'
+				WHERE t.template_seq = #{templateSeq}
+				AND t.use_yn = 'Y'
+				GROUP BY t.template_seq, t.template_seq
+			) t
+	</select>
+
+	<!-- 템플릿 버전 리스트 조회 -->
+	<select id="getTemplateVersionList" parameterType="Integer" resultType="Integer">
+		SELECT template_version_seq
+		FROM template_version
+		<if test="templateSeq != null">
+		WHERE template_seq = #{templateSeq}
+		</if>
+		ORDER BY template_version_seq ASC
+	</select>
+
+	<!-- 템플릿 버전 삭제 -->
+	<update id="deleteTemplateVersion" parameterType="map" >
+		UPDATE /* [Template.xml].[deleteTemplateVersion].[01] 변경일자(20170711) */
+				template_version tv
+		SET
+				tv.latest_yn = 'N',
+				tv.use_yn = 'N',
+				tv.updater = #{creator},
+				tv.updated = UTC_TIMESTAMP()
+		WHERE tv.template_seq = #{templateSeq}
+		AND tv.template_version_seq = #{templateVersionSeq}
+	</update>
+
+	<update id="deleteTemplateVersionByService" parameterType="map" >
+		UPDATE /* [Template.xml].[deleteTemplateVersionByService].[01] 변경일자(20200923) */
+				template_version tv
+		SET
+				tv.use_yn = 'N',
+				tv.updater = #{creator},
+				tv.updated = UTC_TIMESTAMP()
+		WHERE tv.template_seq IN (
+				SELECT x.template_seq
+				FROM templates x
+				WHERE x.template_share_type = 'WORKSPACE_SHARE'
+				  AND x.account_seq = #{accountSeq}
+				  AND x.service_seq IN (
+				    	SELECT #{serviceSeq} AS service_seq
+				    	UNION ALL
+						SELECT xs.service_seq
+						FROM services xs
+								 INNER JOIN account_service_mapping xasm ON xasm.service_seq = xs.service_seq AND xasm.account_seq = #{accountSeq}
+						WHERE xs.use_yn = 'N'
+					)
+				  AND x.use_yn = 'Y'
+			)
+		AND tv.use_yn = 'Y'
+	</update>
+
+	<update id="deleteTemplateByService" parameterType="map" >
+		UPDATE /* [Template.xml].[deleteTemplateByService].[01] 변경일자(20200923) */
+			templates t
+		SET
+			t.use_yn = 'N',
+			t.updater = #{creator},
+			t.updated = UTC_TIMESTAMP()
+		WHERE t.template_share_type = 'WORKSPACE_SHARE'
+		  AND t.account_seq = #{accountSeq}
+		  AND t.service_seq IN (
+					SELECT #{serviceSeq} AS service_seq
+					UNION ALL
+					SELECT xs.service_seq
+					FROM services xs
+							 INNER JOIN account_service_mapping xasm ON xasm.service_seq = xs.service_seq AND xasm.account_seq = #{accountSeq}
+					WHERE xs.use_yn = 'N'
+				)
+		  AND t.use_yn = 'Y'
+	</update>
+
+	<!-- 사용하는 템플릿 버전없다면 Master 삭제 -->
+	<update id="deleteTemplateByNoVersion" parameterType="map" >
+		UPDATE /* [Template.xml].[deleteTemplateByNoVersion].[01] 변경일자(20170711) */
+				templates t
+		SET
+			t.use_yn = 'N',
+			t.updater = #{creator},
+			t.updated = UTC_TIMESTAMP()
+		WHERE t.template_seq = #{templateSeq}
+	</update>
+
+	<!-- 최근 생성 여부 처리 -->
+	<update id="updateTemplateVersionForLatest" parameterType="map" >
+		UPDATE /* [Template.xml].[updateTemplateVersionForLatest].[01] 변경일자(20170711) */
+			template_version
+		SET
+			latest_yn = 'Y',
+			updater = #{creator},
+			updated = UTC_TIMESTAMP()
+		WHERE template_seq = #{templateSeq}
+		AND template_version_seq = #{templateVersionSeq}
+		AND use_yn = 'Y'
+	</update>
+
+	<!-- 템블릿 버전 편집 -->
+	<update id="updateTemplateVersion" parameterType="TemplateEdit">
+		UPDATE /* [Template.xml].[updateTemplateVersion].[02] 변경일자(20170718) */
+				template_version tv
+		SET
+				tv.summary = #{summary},
+				tv.description = #{description},
+				tv.updater = #{creator},
+				tv.updated = UTC_TIMESTAMP()
+		WHERE tv.template_version_seq = #{templateVersionSeq}
+	</update>
+
+	<select id="getAllTemplateDeployments" resultType="TemplateDeployment">
+		SELECT /* [Template.xml].[getAllTemplateDeployments].[01] 변경일자(20190703) */
+			template_deployment_seq	templateDeploymentSeq,
+			template_deployment_type	templateDeploymentType,
+			template_content			templateContent,
+			workload_group_name		workloadGroupName,
+			sort_order				sortOrder,
+			run_order				runOrder
+		FROM template_deployment
+		WHERE template_deployment_type = 'DEPLOYMENT'
+	</select>
+</mapper>

@@ -1,0 +1,337 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IProviderAccountMapper">
+	<resultMap type="ProviderAccount" id="ProviderAccountMap" autoMapping="true">
+		<id property="providerAccountSeq" column="providerAccountSeq"/>
+		<result property="config" column="providerAccountConfig" />
+		<collection property="clusterNames" ofType="java.lang.String" javaType="java.util.ArrayList" columnPrefix="c_">
+			<result column="clusterName" />
+		</collection>
+	</resultMap>
+
+	<resultMap type="ProviderAccountCount" id="ProviderAccountCountMap" autoMapping="true">
+		<id property="providerAccountSeq" column="providerAccountSeq"/>
+	</resultMap>
+
+	<sql id="selectColumnSql">
+        PA.PROVIDER_ACCOUNT_SEQ AS providerAccountSeq,
+        PA.PROVIDER_CODE AS providerCode,
+        PA.PROVIDER_NAME AS providerName,
+        PA.DESCRIPTION AS description,
+        PA.USE_YN AS useYn,
+        PA.ACCOUNT_USE_TYPE AS accountUseType,
+        PA.ACCOUNT_GROUP_ID AS accountGroupId,
+        PA.API_ACCOUNT_ID AS apiAccountId,
+		PA.API_ACCOUNT_PASSWORD AS apiAccountPassword,
+		PA.PROVIDER_ACCOUNT_CONFIG AS providerAccountConfig
+	</sql>
+
+	<select id="getGcpBillingAccounts" resultMap="ProviderAccountMap">
+		SELECT /* [ProviderAccount.xml].[getGcpBillingAccounts].[01] 변경일자(20180305) */
+			<include refid="selectColumnSql" />
+		FROM
+			PROVIDER_ACCOUNT PA
+		WHERE PA.PROVIDER_CODE = 'GCP'
+		  AND PA.ACCOUNT_USE_TYPE = 'METERING'
+		  AND PA.USE_YN = 'Y'
+	</select>
+
+	<select id="getProviderAccountByAccountId" parameterType="ProviderAccount" resultMap="ProviderAccountMap">
+		SELECT /* [ProviderAccount.xml].[getProviderAccountByAccountId].[01] 변경일자(20180305) */
+		<include refid="selectColumnSql" />
+		FROM provider_account pa
+				INNER JOIN account_provider_account_mapping apam 	ON 	apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a 								ON 	a.account_seq = apam.account_seq
+																	AND a.account_seq = #{accountSeq}
+																	AND a.use_yn = 'Y'
+		WHERE pa.use_yn = 'Y'
+	  <if test="providerAccountSeq != null">
+		AND pa.provider_account_seq <![CDATA[<>]]> #{providerAccountSeq}
+	  </if>
+		AND pa.provider_code = #{providerCode}
+		AND pa.account_use_type = #{accountUseType}
+		AND pa.account_group_id = #{accountGroupId}
+		AND pa.api_account_id = #{apiAccountId}
+	</select>
+
+	<select id="getProviderAccountUseTypes" resultType="Code">
+		SELECT /* [ProviderAccount.xml].[getProviderAccountUseTypes].[01] 변경일자(20180305) */
+			code_group_id,
+			code,
+			value,
+			description
+		FROM
+			CODES
+		WHERE
+			CODE_GROUP_ID = 'ACCOUNT_USE_TYPE'
+		ORDER BY SORT_ORDER
+	</select>
+
+    <select id="getProviderAccount" resultMap="ProviderAccountMap">
+        SELECT /* [ProviderAccount.xml].[getProviderAccount].[01] 변경일자(20180305) */
+			<include refid="selectColumnSql" />
+			,(SELECT x.account_seq FROM account_provider_account_mapping x WHERE x.provider_account_seq = pa.provider_account_seq) AS accountSeq
+        FROM
+            PROVIDER_ACCOUNT PA
+        WHERE
+        PA.PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq}
+    </select>
+
+    <select id="getProviderAccountByClusterSeq" resultMap="ProviderAccountMap">
+        SELECT /* [ProviderAccount.xml].[getProviderAccountByClusterSeq].[01] 변경일자(20200313) */
+			<include refid="selectColumnSql" />
+			,(SELECT x.account_seq FROM account_provider_account_mapping x WHERE x.provider_account_seq = pa.provider_account_seq) AS accountSeq
+        FROM provider_account pa
+			INNER JOIN clusters cl
+					ON cl.cloud_provider_account_seq = pa.provider_account_seq
+					AND pa.provider_code = #{providerCode}
+					AND pa.account_use_type = #{accountUseType}
+					AND cl.cluster_seq = #{clusterSeq}
+		LIMIT 1
+    </select>
+
+
+	<select id="getProviderAccounts" parameterType="map" resultMap="ProviderAccountMap">
+		SELECT /* [ProviderAccount.xml].[getProviderAccounts].[01] 변경일자(20180305) */
+			<include refid="selectColumnSql" />
+		FROM
+			PROVIDER_ACCOUNT PA
+			<if test="accountSeq != null">
+				INNER JOIN account_provider_account_mapping apam 	ON 	apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts a 								ON 	a.account_seq = apam.account_seq
+																	AND a.use_yn = 'Y'
+			</if>
+		<where>
+			<if test="useYn != null">
+				AND pa.use_yn = #{useYn}
+			</if>
+			<if test="accountUseType != null">
+				AND pa.account_use_type = #{accountUseType}
+			</if>
+			<if test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(accountUseTypes)">
+				AND pa.account_use_type IN (<foreach collection="accountUseTypes" item="accountUseType" separator=", ">#{accountUseType}</foreach>)
+			</if>
+			<if test="accountSeq != null">
+				AND a.account_seq = #{accountSeq}
+			</if>
+			<if test="providerAccountSeq != null">
+				AND PA.PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq}
+			</if>
+			<if test="serviceSeq != null">
+				AND EXISTS (
+					SELECT 1
+					FROM account_provider_account_mapping xapam
+							INNER JOIN accounts xa 						ON 	xa.account_seq = xapam.account_seq
+																		AND xa.use_yn = 'Y'
+							INNER JOIN account_service_mapping xasm 	ON 	xasm.account_seq = xa.account_seq
+							INNER JOIN services xs						ON 	xs.service_seq = xasm.service_seq
+																		AND xs.service_seq = #{serviceSeq}
+																		AND xs.use_yn = 'Y'
+					WHERE xapam.provider_account_seq = PA.provider_account_seq
+				)
+			</if>
+		</where>
+	</select>
+
+    <insert id="addProviderAccount2" parameterType="ProviderAccount" useGeneratedKeys="true" keyProperty="providerAccountSeq" keyColumn="provider_account_seq">
+        INSERT /* [ProviderAccount.xml].[addProviderAccount2].[01] 변경일자(20180305) */
+		INTO PROVIDER_ACCOUNT (
+			PROVIDER_CODE,
+			PROVIDER_NAME,
+			DESCRIPTION,
+			ACCOUNT_USE_TYPE,
+			ACCOUNT_GROUP_ID,
+			API_ACCOUNT_ID,
+			API_ACCOUNT_PASSWORD,
+			PROVIDER_ACCOUNT_CONFIG,
+			USE_YN,
+			created,
+			creator,
+			updated,
+			updater
+        )
+        VALUES (
+			#{providerCode},
+			#{providerName},
+			IFNULL(#{description}, ''),
+			#{accountUseType},
+			IFNULL(#{accountGroupId}, ''),
+			#{apiAccountId},
+			#{apiAccountPassword},
+			#{providerAccountConfig},
+			'Y',
+			UTC_TIMESTAMP(),
+			#{creator},
+			UTC_TIMESTAMP(),
+			#{creator}
+        )
+    </insert>
+
+	<insert id="addProviderAccount" parameterType="hashmap" useGeneratedKeys="true" keyProperty="providerAccountSeq" keyColumn="provider_account_seq">
+		INSERT /* [ProviderAccount.xml].[addProviderAccount].[01] 변경일자(20180305) */
+		INTO PROVIDER_ACCOUNT (
+		  PROVIDER_CODE,
+		  PROVIDER_NAME,
+		  DESCRIPTION,
+		  ACCOUNT_USE_TYPE,
+		  ACCOUNT_GROUP_ID,
+		  API_ACCOUNT_ID,
+		  API_ACCOUNT_PASSWORD,
+		  PROVIDER_ACCOUNT_CONFIG,
+		  USE_YN,
+		  created,
+		  creator,
+		  updated,
+		  updater)
+		VALUES (
+		  #{providerCode},
+		  #{providerName},
+		  #{description},
+		  #{accountUseType},
+		  IFNULL(#{accountGroupId}, ''),
+		  #{apiAccountId},
+		  #{apiAccountPassword},
+		  #{providerAccountConfig},
+		  #{status},
+		  UTC_TIMESTAMP(),
+		  1,
+		  UTC_TIMESTAMP(),
+		  1)
+	</insert>
+
+    <update id="editProviderAccount2" parameterType="ProviderAccount">
+        UPDATE /* [ProviderAccount.xml].[editProviderAccount2].[01] 변경일자(20180305) */
+			PROVIDER_ACCOUNT
+		SET
+        PROVIDER_NAME = #{providerName},
+        DESCRIPTION = IFNULL(#{description}, ''),
+        ACCOUNT_USE_TYPE = #{accountUseType},
+        <if test="accountGroupId != null">
+            ACCOUNT_GROUP_ID = #{accountGroupId},
+        </if>
+        <if test="apiAccountId != null">
+            API_ACCOUNT_ID = #{apiAccountId},
+        </if>
+        <if test="apiAccountPassword != null">
+            API_ACCOUNT_PASSWORD = #{apiAccountPassword},
+        </if>
+        <if test="providerAccountConfig != null">
+			PROVIDER_ACCOUNT_CONFIG = #{providerAccountConfig},
+        </if>
+ 		<!-- USE_YN = #{useYn}, -->
+		UPDATED = UTC_TIMESTAMP(),
+        UPDATER = #{updater}
+        WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq}
+    </update>
+
+	<update id="editProviderAccount" parameterType="hashmap">
+		UPDATE  /* [ProviderAccount.xml].[editProviderAccount].[01] 변경일자(20180305) */
+			PROVIDER_ACCOUNT
+		SET
+			PROVIDER_NAME = #{providerName},
+			DESCRIPTION = #{description},
+			ACCOUNT_USE_TYPE = #{accountUseType},
+			USE_YN = #{status},
+		<if test="accountGroupId != null">
+			ACCOUNT_GROUP_ID = #{accountGroupId},
+		</if>
+		<if test="apiAccountId != null">
+			API_ACCOUNT_ID = #{apiAccountId},
+		</if>
+		<if test="apiAccountPassword != null">
+			API_ACCOUNT_PASSWORD = #{apiAccountPassword},
+		</if>
+		<if test="providerAccountConfig != null">
+			PROVIDER_ACCOUNT_CONFIG = #{providerAccountConfig},
+		</if>
+			UPDATED = UTC_TIMESTAMP(),
+			UPDATER = 1
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq}
+	</update>
+
+	<update id="removeProviderAccount" parameterType="ProviderAccount">
+		UPDATE /* [ProviderAccount.xml].[removeProviderAccount].[01] 변경일자(20180305) */
+			PROVIDER_ACCOUNT
+		SET
+			USE_YN = 'N',
+            UPDATED = UTC_TIMESTAMP(),
+            UPDATER = #{updater}
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq}
+	</update>
+
+	<update id="deleteProviderAccount" parameterType="ProviderAccount">
+
+		UPDATE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+			PROVIDER_ACCOUNT
+		SET
+			account_group_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , provider_account_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+
+		UPDATE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+			PROVIDER_ACCOUNT
+		SET
+			account_group_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , provider_account_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+
+		UPDATE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+			PROVIDER_ACCOUNT
+		SET
+			account_group_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , provider_account_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+
+		UPDATE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+			PROVIDER_ACCOUNT
+		SET
+			account_group_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , provider_account_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+
+		UPDATE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+			PROVIDER_ACCOUNT
+		SET
+			account_group_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_id = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , api_account_password = LEFT(TO_BASE64(SHA(RAND())), 30)
+		  , provider_account_config = LEFT(TO_BASE64(SHA(RAND())), 30)
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+
+		DELETE /* [ProviderAccount.xml].[deleteProviderAccount].[01] 변경일자(20210702) */
+		FROM PROVIDER_ACCOUNT
+		WHERE PROVIDER_ACCOUNT_SEQ = #{providerAccountSeq};
+	</update>
+
+    <select id="selectClustersUsingAccount" parameterType="int" resultType="string">
+        SELECT /* [ProviderAccount.xml].[selectClustersUsingAccount].[01] 변경일자(20180305) */
+			cluster_name
+		  FROM clusters
+		 WHERE use_yn = 'Y'
+		   AND provider_account_seq = #{providerAccountSeq}
+    </select>
+
+    <select id="selectClustersUsingMeteringAccount" parameterType="int" resultType="string">
+        SELECT /* [ProviderAccount.xml].[selectClustersUsingMeteringAccount].[01] 변경일자(20180305) */
+			cluster_name
+		  FROM clusters
+		 WHERE use_yn = 'Y'
+		   AND billing_provider_account_seq = #{providerAccountSeq}
+    </select>
+
+	<select id="selectClustersUsingAccessKeyAccount" parameterType="int" resultType="string">
+		SELECT /* [ProviderAccount.xml].[selectClustersUsingAccessKeyAccount].[01] 변경일자(20200312) */
+			cluster_name
+		FROM clusters
+		WHERE use_yn = 'Y'
+		AND cloud_provider_account_seq = #{providerAccountSeq}
+	</select>
+
+</mapper>

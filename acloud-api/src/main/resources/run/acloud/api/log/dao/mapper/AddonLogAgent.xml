@@ -1,0 +1,78 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.log.dao.IAddonLogAgentMapper">
+    <select id="getAddonLogAgentSeq" resultType="java.lang.Integer">
+        SELECT
+            log_agent_seq
+        FROM
+            log_agent
+        WHERE
+            log_agent_name = #{agentName}
+          AND
+            cluster_seq = #{cluster.clusterSeq}
+          AND
+            namespace = #{cluster.namespaceName}
+          AND
+            addon_log_agent_yn = 'Y'
+        LIMIT 1
+    </select>
+
+    <insert id="addAddonLogAgent" parameterType="LogAgent">
+        INSERT INTO log_agent (
+            log_agent_name,
+            log_agent_description,
+            deploy_config,
+            cluster_seq,
+            cluster_id,
+            namespace,
+            controller_name,
+            application_name,
+            token,
+            addon_log_agent_yn,
+            created,
+            creator,
+            updated,
+            updater
+        ) VALUES (
+            #{agentName},
+            #{agentDescription},
+            #{deployConfig},
+            #{clusterSeq},
+            #{clusterId},
+            #{namespace},
+            #{controllerName},
+            #{applicationName},
+            #{token},
+            'Y',
+            UTC_TIMESTAMP(),
+            #{creator},
+            UTC_TIMESTAMP(),
+            #{creator}
+        )
+    </insert>
+
+    <delete id="removeAddonLogAgent" parameterType="java.lang.Integer">
+        DELETE
+        FROM
+            log_agent
+        WHERE
+            log_agent_seq = #{agentSeq}
+          AND
+            addon_log_agent_yn = 'Y'
+    </delete>
+
+    <select id="getAddonLogAgentToken" resultType="java.lang.String">
+        SELECT
+            token
+        FROM
+            log_agent
+        WHERE
+            log_agent_name = #{agentName}
+        AND
+            cluster_seq = #{cluster.clusterSeq}
+        AND
+            namespace = #{cluster.namespaceName}
+        AND
+            addon_log_agent_yn = 'Y'
+        LIMIT 1
+    </select>
+</mapper>

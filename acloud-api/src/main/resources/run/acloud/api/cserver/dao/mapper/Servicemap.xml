@@ -1,0 +1,638 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.cserver.dao.IServicemapMapper">
+
+	<resultMap id="ServicemapDetailMap" type="ServicemapDetail" autoMapping="true">
+		<id property="servicemapSeq" column="servicemapSeq" />
+		<collection property="components" ofType="Component" columnPrefix="cp_" autoMapping="true" />
+		<collection property="workloadGroups" column="servicemapSeq" select="run.acloud.api.cserver.dao.IWorkloadGroupMapper.getWorkloadGroupsOfServicemap" javaType="list" ofType="WorkloadGroup" />
+		<collection property="servicemapMappings" ofType="ServicemapMapping" columnPrefix="sm_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapMappingMap" />
+	</resultMap>
+
+	<resultMap id="ServicemapMap" type="Servicemap" autoMapping="true">
+		<id property="servicemapSeq" column="servicemapSeq" />
+		<collection property="workloadGroups" column="servicemapSeq" select="run.acloud.api.cserver.dao.IWorkloadGroupMapper.getWorkloadGroupsOfServicemap" javaType="list" ofType="WorkloadGroup" />
+		<collection property="servicemapMappings" ofType="ServicemapMapping" columnPrefix="sm_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapMappingMap" />
+	</resultMap>
+
+	<resultMap id="ServicemapDetailResourceMap" type="ServicemapDetailResource" autoMapping="true">
+		<id property="servicemapSeq" column="servicemapSeq" />
+		<collection property="workloadGroups" column="servicemapSeq" select="run.acloud.api.cserver.dao.IWorkloadGroupMapper.getWorkloadGroupsOfServicemap" javaType="list" ofType="WorkloadGroup" />
+		<collection property="servicemapMappings" ofType="ServicemapMapping" columnPrefix="sm_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapMappingMap" />
+	</resultMap>
+
+	<resultMap id="ServicemapSummaryMap" type="ServicemapSummary" autoMapping="true">
+		<id property="servicemapSeq" column="servicemapSeq" />
+		<collection property="workloadGroups" column="servicemapSeq" select="run.acloud.api.cserver.dao.IWorkloadGroupMapper.getWorkloadGroupsOfServicemap" javaType="list" ofType="WorkloadGroup" />
+		<collection property="servicemapMappings" ofType="ServicemapMapping" columnPrefix="sm_" resultMap="run.acloud.api.cserver.dao.IServicemapMapper.ServicemapMappingMap" />
+	</resultMap>
+
+	<resultMap id="ServicemapMappingMap" type="ServicemapMapping" autoMapping="true">
+		<id property="serviceSeq" column="serviceSeq" />
+		<id property="servicemapSeq" column="servicemapSeq" />
+		<association property="servicemapGroup" columnPrefix="sg_" javaType="ServicemapGroupMapping" autoMapping="true" />
+	</resultMap>
+
+	<sql id="servicemapColumnSql">
+			  sm.servicemap_seq				servicemapSeq
+			, sm.servicemap_name			servicemapName
+			, sm.cluster_seq				clusterSeq
+			, sm.namespace_name 			namespaceName
+			, sm.use_yn						useYn
+	</sql>
+
+	<sql id="servicemapMappingColumnSql">
+			, ssm.servicemap_seq			sm_servicemapSeq
+			, ssm.service_seq				sm_serviceSeq
+			, s.service_name				sm_serviceName
+			, s.service_type				sm_serviceType
+			, sg.servicemap_seq				sm_sg_servicemapSeq
+			, sg.service_seq				sm_sg_serviceSeq
+			, sg.servicemap_group_seq		sm_sg_servicemapGroupSeq
+			, sg.servicemap_group_name		sm_sg_servicemapGroupName
+			, sg.sort_order					sm_sg_sortOrder
+	</sql>
+
+	<sql id="servicemapJoinSql">
+				LEFT OUTER JOIN service_servicemap_mapping ssm ON sm.servicemap_seq = ssm.servicemap_seq
+				LEFT OUTER JOIN services s ON ssm.service_seq = s.service_seq AND s.use_yn = 'Y'
+				LEFT OUTER JOIN (
+					SELECT sgsm.servicemap_seq
+						, sgsm.sort_order
+						, sg.servicemap_group_seq
+						, sg.servicemap_group_name
+						, sg.service_seq
+					FROM servicemap_groups sg
+							INNER JOIN servicemapgroup_servicemap_mapping sgsm ON sgsm.servicemap_group_seq = sg.servicemap_group_seq
+					WHERE sg.use_yn = 'Y'
+				) sg ON ssm.servicemap_seq = sg.servicemap_seq AND ssm.service_seq = sg.service_seq
+				LEFT OUTER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+				LEFT OUTER JOIN provider_account pa ON pa.provider_account_seq = cl.provider_account_seq
+				LEFT OUTER JOIN service_cluster sc ON sc.cluster_seq = cl.cluster_seq AND sc.service_seq = s.service_seq
+	</sql>
+
+	<select id="getServicemap" parameterType="map" resultMap="ServicemapMap">
+		SELECT /* [Servicemap.xml].[getServicemap].[02] 변경일자(20220329) */
+				<include refid="servicemapColumnSql" />
+				<include refid="servicemapMappingColumnSql" />
+				, cl.cluster_id clusterId
+				, cl.cluster_name clusterName
+		FROM servicemaps sm
+		    	<include refid="servicemapJoinSql" />
+		WHERE sm.servicemap_seq = #{servicemapSeq}
+		<if test="serviceSeq != null">
+			AND s.service_seq = #{serviceSeq}
+		</if>
+		AND sm.use_yn = 'Y'
+	</select>
+
+	<select id="getServicemapsBySeqs" parameterType="map" resultMap="ServicemapMap">
+		SELECT /* [Servicemap.xml].[getServicemap].[02] 변경일자(20220329) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, cl.cluster_id clusterId
+			, cl.cluster_name clusterName
+		FROM servicemaps sm
+			<include refid="servicemapJoinSql" />
+		WHERE sm.servicemap_seq IN (<foreach collection="servicemapSeqs" item="servicemapSeq" separator=", ">#{servicemapSeq}</foreach>)
+			AND sm.use_yn = 'Y'
+	</select>
+
+	<select id="getServicemapDetail" parameterType="map" resultMap="ServicemapDetailMap">
+		SELECT /* [Servicemap.xml].[getServicemapDetail].[02] 변경일자(20220411) */
+				<include refid="servicemapColumnSql" />
+				<include refid="servicemapMappingColumnSql" />
+				, cl.cluster_id clusterId
+				, cl.cluster_name clusterName
+				, cp.component_seq				cp_componentSeq
+				, cp.workload_group_seq			cp_workloadGroupSeq
+				, cp.component_type				cp_componentType
+				, cp.component_name				cp_componentName
+				, cp.state_code					cp_stateCode
+		FROM servicemaps sm
+		    	<include refid="servicemapJoinSql" />
+				LEFT OUTER JOIN components cp ON cp.cluster_seq = sm.cluster_seq AND cp.namespace_name = sm.namespace_name AND cp.use_yn = 'Y'
+		WHERE sm.servicemap_seq = #{servicemapSeq}
+		<if test="serviceSeq != null">
+			AND s.service_seq = #{serviceSeq}
+		</if>
+		AND sm.use_yn = 'Y'
+	</select>
+
+	<select id="getServicemapByClusterAndName" parameterType="map" resultMap="ServicemapMap">
+		SELECT /* [Servicemap.xml].[getServicemapByClusterAndName].[02] 변경일자(20220329) */
+				<include refid="servicemapColumnSql" />
+				<include refid="servicemapMappingColumnSql" />
+				, cl.cluster_id clusterId
+				, cl.cluster_name clusterName
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+		WHERE sm.cluster_seq = #{clusterSeq}
+		AND sm.namespace_name = #{namespaceName}
+		AND sm.use_yn = 'Y'
+	</select>
+
+	<sql id="getServicemapsByServiceClustersSql">
+		SELECT /* [Servicemap.xml].[getServicemapsByServiceClusters].[01] 변경일자(20220329) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, cl.cluster_id clusterId
+			, cl.cluster_name clusterName
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+		<where>
+			AND sm.use_yn = 'Y'
+			<choose>
+				<when test="serviceSeq == null and @org.apache.commons.collections4.CollectionUtils@isEmpty(clusterSeqs)">
+					AND 1 = 2
+				</when>
+				<otherwise>
+					<if test="serviceType != null">
+						AND s.service_type = #{serviceType}
+					</if>
+					<if test="serviceSeq != null">
+						AND EXISTS (
+								SELECT 1
+								FROM services x_s
+										INNER JOIN service_servicemap_mapping x_ssm ON x_s.service_seq = x_ssm.service_seq
+								WHERE x_s.use_yn = 'Y'
+								AND x_ssm.servicemap_seq = sm.servicemap_seq
+								AND x_ssm.service_seq = ssm.service_seq
+								AND x_ssm.service_seq = #{serviceSeq}
+						)
+					</if>
+					<if test="clusterSeqs != null">
+						AND cl.cluster_seq IN (<foreach collection="clusterSeqs" item="clusterSeq" separator=", ">#{clusterSeq}</foreach>)
+					</if>
+				</otherwise>
+			</choose>
+		</where>
+	</sql>
+
+	<select id="getServicemapsByServiceClusters" parameterType="map" resultMap="ServicemapMap">
+		<include refid="getServicemapsByServiceClustersSql" />
+	</select>
+
+	<select id="getServicemapsByServiceClustersForResource" parameterType="map" resultMap="ServicemapDetailResourceMap">
+		<include refid="getServicemapsByServiceClustersSql" />
+	</select>
+
+	<select id="getServicemapByClusterForRef" parameterType="map" resultMap="ServicemapMap">
+		SELECT /* [Servicemap.xml].[getServicemapByClusterForRef].[02] 변경일자(20220404) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, cl.cluster_id clusterId
+			, cl.cluster_name clusterName
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+		WHERE sm.cluster_seq = #{clusterSeq}
+		AND sm.use_yn = 'Y'
+	</select>
+
+	<select id="getServicemapDetailByClusterForRef" parameterType="map" resultMap="ServicemapDetailMap">
+		SELECT /* [Servicemap.xml].[getServicemapDetailByClusterForRef].[02] 변경일자(20220404) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, cl.cluster_id clusterId
+			, cl.cluster_name clusterName
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+		WHERE sm.cluster_seq = #{clusterSeq}
+		AND sm.use_yn = 'Y'
+	</select>
+
+	<select id="getServicemapSummaries" parameterType="map" resultMap="ServicemapSummaryMap">
+		SELECT /* [Servicemap.xml].[getServicemapSummaries].[03] 변경일자(20220331) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, pa.provider_code			providerCode
+			, cl.region_code			regionCode
+			, cl.cluster_id				clusterId
+			, cl.cluster_name			clusterName
+			, cl.cluster_type			clusterType
+			, cl.cube_type              cubeType
+			, cl.cluster_state			clusterState
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+				INNER JOIN account_provider_account_mapping apam ON apam.provider_account_seq = pa.provider_account_seq
+				INNER JOIN accounts ac ON ac.account_seq = apam.account_seq AND ac.use_yn = 'Y'
+											<if test="accountSeq != null">
+												AND ac.account_seq = #{accountSeq}
+											</if>
+		<where>
+			AND sm.use_yn = 'Y'
+			<choose>
+				<when test="accountSeq == null and @org.apache.commons.collections4.CollectionUtils@isEmpty(serviceSeqs) and servicemapSeq == null and clusterSeq == null">
+					AND 1 = 2
+				</when>
+				<otherwise>
+				    <choose>
+						<when test="clusterSeq != null">
+							AND EXISTS (
+								SELECT 1
+								FROM services x_s
+										INNER JOIN service_cluster x_sc ON x_sc.service_seq = x_s.service_seq
+										INNER JOIN clusters x_c ON x_c.cluster_seq = x_sc.cluster_seq
+								WHERE x_s.use_yn = 'Y'
+								AND x_s.service_seq = s.service_seq
+								AND x_c.cluster_seq = cl.cluster_seq
+								AND x_c.cluster_seq = #{clusterSeq}
+							)
+						</when>
+						<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(serviceSeqs)">
+							AND EXISTS (
+								SELECT 1
+								FROM services x_s
+										INNER JOIN service_servicemap_mapping x_ssm ON x_s.service_seq = x_ssm.service_seq
+								WHERE x_s.use_yn = 'Y'
+								AND x_ssm.servicemap_seq = sm.servicemap_seq
+								AND x_ssm.service_seq = ssm.service_seq
+								AND x_ssm.service_seq IN <foreach collection="serviceSeqs" item="item" index="index" separator="," open="(" close=")">#{item.value}</foreach>
+							)
+						</when>
+						<when test="servicemapSeq != null">
+							AND sm.servicemap_seq = #{servicemapSeq}
+						</when>
+					</choose>
+				</otherwise>
+			</choose>
+		</where>
+		ORDER BY s.service_seq, sg.sort_order
+	</select>
+
+	<select id="getServicemapSummary" parameterType="map" resultMap="ServicemapSummaryMap">
+		SELECT /* [Servicemap.xml].[getServicemapSummary].[03] 변경일자(20220331) */
+			<include refid="servicemapColumnSql" />
+			<include refid="servicemapMappingColumnSql" />
+			, pa.provider_code			providerCode
+			, cl.region_code			regionCode
+			, cl.cluster_id				clusterId
+			, cl.cluster_name			clusterName
+			, cl.cluster_type			clusterType
+			, cl.cube_type              cubeType
+			, cl.cluster_state			clusterState
+		FROM servicemaps sm
+				<include refid="servicemapJoinSql" />
+		<where>
+			AND sm.use_yn = 'Y'
+			<choose>
+				<when test="servicemapSeq == null and (clusterSeq == null or @org.apache.commons.lang3.StringUtils@isBlank(namespaceName))">
+					AND 1 = 2
+				</when>
+				<otherwise>
+				    <choose>
+						<when test="clusterSeq != null and @org.apache.commons.lang3.StringUtils@isNotBlank(namespaceName)">
+							AND sm.cluster_seq = #{clusterSeq}
+							AND sm.namespace_name = #{namespaceName}
+						</when>
+						<when test="servicemapSeq != null">
+							AND sm.servicemap_seq = #{servicemapSeq}
+						</when>
+					</choose>
+				</otherwise>
+			</choose>
+		</where>
+		ORDER BY s.service_seq, sg.sort_order
+	</select>
+
+    <insert id="addServicemap" parameterType="ServicemapAdd" useGeneratedKeys="true" keyProperty="servicemapSeq">
+		INSERT /* [Servicemap.xml].[addServicemap].[02] 변경일자(20220331) */
+		INTO servicemaps (
+			cluster_seq
+			, namespace_name
+			, servicemap_name
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		)
+		VALUES (
+		   #{clusterSeq}
+		   , #{namespaceName}
+		   , #{servicemapName}
+		   , 'Y'
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		)
+    </insert>
+    
+    <insert id="addServiceServicemapMapping" parameterType="ServicemapMapping">
+		INSERT /* [Servicemap.xml].[addServiceServicemapMapping].[01] 변경일자(20220331) */
+		INTO service_servicemap_mapping (
+			 service_seq
+			 , servicemap_seq
+			 , created
+			 , creator
+		 )
+		VALUES (
+			 #{serviceSeq}
+			 , #{servicemapSeq}
+			 , UTC_TIMESTAMP()
+			 , #{creator}
+		)
+	</insert>
+
+    <insert id="addServiceServicemapMappings" parameterType="ServicemapMapping">
+		INSERT /* [Servicemap.xml].[addServiceServicemapMappings].[01] 변경일자(20220527) */
+		INTO service_servicemap_mapping (
+			 service_seq
+			 , servicemap_seq
+			 , created
+			 , creator
+		 )
+		VALUES
+		<foreach collection="servicemapSeqs" item="item" open="(" separator="), (" close=")">
+			#{serviceSeq},
+			#{item},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+    <insert id="addServicemapgroupServicemapMapping" parameterType="ServicemapGroupMapping">
+		INSERT /* [Servicemap.xml].[addServicemapgroupServicemapMapping].[01] 변경일자(20220331) */
+		INTO servicemapgroup_servicemap_mapping (
+			 servicemap_group_seq
+			 , servicemap_seq
+			 , sort_order
+			 , created
+			 , creator
+			 , updated
+			 , updater
+		 )
+		VALUES (
+			#{servicemapGroupSeq}
+		   , #{servicemapSeq}
+		   , IFNULL(
+				(
+					SELECT MAX(ssm.sort_order)
+					FROM servicemapgroup_servicemap_mapping ssm
+					WHERE ssm.servicemap_group_seq = #{servicemapGroupSeq}
+					GROUP BY ssm.servicemap_group_seq
+				),
+				0
+			) + 1
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		)
+	</insert>
+
+    <delete id="deleteServiceServicemapMapping" parameterType="map">
+		DELETE /* [Servicemap.xml].[deleteServiceServicemapMapping].[01] 변경일자(20220331) */
+		FROM
+			service_servicemap_mapping
+    	WHERE service_seq = #{serviceSeq}
+    	AND servicemap_seq = #{servicemapSeq}
+    </delete>
+
+    <delete id="deleteServiceServicemapMappings" parameterType="map">
+		DELETE /* [Servicemap.xml].[deleteServiceServicemapMappings].[01] 변경일자(20220527) */
+		FROM
+			service_servicemap_mapping
+    	WHERE service_seq = #{serviceSeq}
+    	AND servicemap_seq IN <foreach collection="servicemapSeqs" item="item" index="index" separator="," open="(" close=")">#{item.value}</foreach>
+    </delete>
+
+    <delete id="deleteServicemapgroupServicemapMapping" parameterType="map">
+		DELETE /* [Servicemap.xml].[deleteServicemapgroupServicemapMapping].[01] 변경일자(20220331) */
+		FROM
+			servicemapgroup_servicemap_mapping
+    	WHERE servicemap_group_seq = #{servicemapGroupSeq}
+		AND servicemap_seq = #{servicemapSeq}
+    </delete>
+
+    <delete id="deleteServicemapgroupServicemapMappings" parameterType="map">
+		DELETE ssm /* [Servicemap.xml].[deleteServicemapgroupServicemapMappings].[01] 변경일자(20220527) */
+		FROM
+			servicemapgroup_servicemap_mapping ssm
+				INNER JOIN servicemap_groups sg on ssm.servicemap_group_seq = sg.servicemap_group_seq AND sg.use_yn = 'Y' AND sg.service_seq = #{serviceSeq}
+    	WHERE ssm.servicemap_seq IN <foreach collection="servicemapSeqs" item="item" index="index" separator="," open="(" close=")">#{item.value}</foreach>
+    </delete>
+
+    <update id="removeServicemap" parameterType="Servicemap">
+    	UPDATE /* [Servicemap.xml].[removeServicemap].[01] 변경일자(20220331) */
+			servicemaps
+    	SET use_yn = 'N'
+    		, updated = UTC_TIMESTAMP()
+    		, updater = #{updater}
+    	WHERE servicemap_seq = #{servicemapSeq}
+    	AND use_yn = 'Y'
+    </update>
+    
+    <update id="updateServicemap" parameterType="Servicemap">
+    	UPDATE /* [Servicemap.xml].[updateServicemap].[01] 변경일자(20220331) */
+			servicemaps
+    	SET servicemap_name = #{servicemapName}
+			, updated = UTC_TIMESTAMP()
+    		, updater = #{updater}
+    	WHERE servicemap_seq = #{servicemapSeq}
+    </update>
+
+	<update id="updateServicemapInitSortOrder" parameterType="map">
+		UPDATE /* [Servicemap.xml].[updateServicemapInitSortOrder].[01] 변경일자(20220331) */
+			servicemapgroup_servicemap_mapping ssm
+					INNER JOIN (
+							SELECT
+								@rnum := @rnum + 1 AS rnum,
+								ssmt.servicemap_seq
+							FROM (SELECT servicemap_seq FROM servicemapgroup_servicemap_mapping WHERE servicemap_group_seq = #{servicemapGroupSeq} ORDER BY sort_order) ssmt
+								INNER JOIN (SELECT @rnum := 0) t
+						) t
+						ON t.servicemap_seq = ssm.servicemap_seq
+		SET
+			ssm.sort_order = t.rnum
+		WHERE ssm.servicemap_group_seq = #{servicemapGroupSeq}
+	</update>
+
+    <update id="updateServicemapSortOrder" parameterType="map">
+    	UPDATE /* [Servicemap.xml].[updateServicemapSortOrder].[01] 변경일자(20220331) */
+			servicemapgroup_servicemap_mapping ssm
+    			INNER JOIN servicemap_groups sg on ssm.servicemap_group_seq = sg.servicemap_group_seq AND sg.use_yn = 'Y' AND sg.service_seq = #{serviceSeq}
+    	SET
+			ssm.sort_order = ssm.sort_order + #{increment}
+    	WHERE ssm.servicemap_group_seq = #{servicemapGroupSeq}
+    	<if test="fromOrder != null">
+    		AND ssm.sort_order >= #{fromOrder}
+    	</if>
+    	<if test="toOrder != null">
+    		AND ssm.sort_order <![CDATA[<=]]> #{toOrder}
+    	</if>
+    </update>
+
+	<update id="updateServicemapSelfSortOrder" parameterType="map">
+		UPDATE /* [Servicemap.xml].[updateServicemapSelfSortOrder].[02] 변경일자(20220331) */
+			servicemapgroup_servicemap_mapping
+		SET
+			sort_order = #{servicemapGroupMapping.sortOrder}
+			, updated = UTC_TIMESTAMP()
+			, updater = #{servicemapGroupMapping.updater}
+		<if test="nextServicemapGroupSeq != null">
+			, servicemap_group_seq = #{nextServicemapGroupSeq}
+		</if>
+		WHERE servicemap_group_seq = #{servicemapGroupMapping.servicemapGroupSeq}
+		AND servicemap_seq = #{servicemapGroupMapping.servicemapSeq}
+	</update>
+
+	<update id="updateServicemapGroupChange" parameterType="map">
+		UPDATE /* [Servicemap.xml].[updateServicemapGroupChange].[02] 변경일자(20220527) */
+			servicemapgroup_servicemap_mapping
+		SET
+			  servicemap_group_seq = #{afterServicemapGroupSeq}
+			, sort_order = IFNULL(
+								   (
+									   SELECT MAX(sort_order)
+									   FROM servicemapgroup_servicemap_mapping
+									   WHERE servicemap_group_seq = #{afterServicemapGroupSeq}
+									   GROUP BY servicemap_group_seq
+								   ),
+								   0
+							   ) + 1
+			, updated = UTC_TIMESTAMP()
+			, updater = IFNULL(#{updater}, 1)
+		WHERE servicemap_group_seq = #{beforeServicemapGroupSeq}
+		AND servicemap_seq = #{servicemapSeq}
+	</update>
+
+    <select id="getNamespaceName" parameterType="int" resultType="string">
+        SELECT /* [Servicemap.xml].[getNamespaceName].[01]변경일자(20220331) */
+          	namespace_name
+        FROM servicemaps
+        WHERE servicemap_seq = #{servicemapSeq}
+    </select>
+
+	<select id="getServicemapSeqByNamespace" parameterType="map" resultType="int">
+		SELECT /* [Servicemap.xml].[getServicemapSeqByNamespace].[01]변경일자(20220331) */
+			MAX(servicemap_seq)
+		FROM servicemaps
+		WHERE cluster_seq = #{clusterSeq}
+		AND namespace_name = #{namespaceName}
+	</select>
+
+    <select id="getClusterSeq" parameterType="map" resultType="int">
+        SELECT /* [Servicemap.xml].[getClusterSeq].[01]변경일자(20220331) */
+        	cluster_seq
+        FROM servicemaps
+        WHERE servicemap_seq = #{servicemapSeq}
+    </select>
+
+	<select id="getServicemapSeqs" parameterType="int" resultType="int">
+        SELECT /* [Servicemap.xml].[getServicemapSeqs].[01]변경일자(20200616) */
+			sm.servicemap_seq
+        FROM servicemaps sm
+		<if test="serviceSeq != null">
+			INNER JOIN service_servicemap_mapping ssm ON ssm.servicemap_seq = sm.servicemap_seq
+		</if>
+		<where>
+			  AND sm.use_yn = 'Y'
+			<if test="serviceSeq != null">
+			  AND ssm.service_seq = #{serviceSeq}
+			</if>
+			<if test="clusterSeq != null">
+			  AND sm.cluster_seq = #{clusterSeq}
+			</if>
+		</where>
+    </select>
+
+	<update id="updateServiceAppmapClusterToTargetService" parameterType="map">
+		UPDATE /* [Appmap.xml].[updateAppmapCluster].[01] 변경일자(20200616) */
+			service_appmap_cluster
+		SET
+			service_seq = #{targetServiceSeq}
+		WHERE appmap_seq = #{appmapSeq}
+		  AND service_seq = #{sourceServiceSeq}
+		  AND cluster_seq = #{clusterSeq}
+	</update>
+
+    <select id="getNamespaceListOfCluster" parameterType="map" resultType="string">
+        SELECT /* [Servicemap.xml].[getNamespaceListOfCluster].[01]변경일자(20220401) */
+				namespace_name
+        FROM servicemaps
+        WHERE cluster_seq = #{clusterSeq}
+          AND use_yn = 'Y'
+    </select>
+
+    <select id="getServicemapListOfService" parameterType="map" resultType="run.acloud.api.monitoring.vo.ServiceMonitoringVO">
+        SELECT /* [Servicemap.xml].[getServicemapListOfService].[01]변경일자(20220413) */
+              s.service_seq     	AS serviceSeq
+            , sm.servicemap_seq     AS servicemapSeq
+            , cl.cluster_seq     	AS clusterSeq
+            , sm.namespace_name  	AS namespaceName
+            , sm.servicemap_name  	AS servicemapName
+            , s.service_name  		AS serviceName
+        FROM services s
+				INNER JOIN service_servicemap_mapping ssm ON ssm.service_seq = s.service_seq
+				INNER JOIN servicemaps sm ON sm.servicemap_seq = ssm.servicemap_seq AND sm.use_yn = 'Y'
+				INNER JOIN clusters cl ON cl.cluster_seq = sm.cluster_seq AND cl.use_yn = 'Y'
+        WHERE s.service_seq = #{serviceSeq}
+          AND s.use_yn = 'Y'
+    </select>
+
+	<update id="removeComponentsByServicemap" parameterType="map">
+		UPDATE /* [Servicemap.xml].[removeComponentsByServicemap].[01] 변경일자(20220401) */
+			components cp
+				INNER JOIN servicemaps sm ON sm.cluster_seq = cp.cluster_seq AND sm.namespace_name = cp.namespace_name AND sm.servicemap_seq = #{servicemapSeq}
+		SET
+			  cp.use_yn                = 'N'
+			, cp.updated               = UTC_TIMESTAMP()
+			, cp.updater               = #{updater}
+		WHERE cp.use_yn = 'Y'
+	</update>
+
+	<update id="removeWorkloadGroupsByServicemap" parameterType="map">
+		UPDATE /* [Servicemap.xml].[removeWorkloadGroupsByServicemap].[01] 변경일자(20220401) */
+			workload_groups wg
+				INNER JOIN servicemaps sm ON sm.servicemap_seq = wg.servicemap_seq AND sm.servicemap_seq = #{servicemapSeq}
+		SET
+			  wg.use_yn                = 'N'
+			, wg.updated               = UTC_TIMESTAMP()
+			, wg.updater               = #{updater}
+		WHERE wg.use_yn = 'Y'
+	</update>
+
+	<update id="removePipelineRunByServicemap" parameterType="map">
+		UPDATE /* [Servicemap.xml].[removePipelineRunByServicemap].[01] 변경일자(20220401) */
+			pipeline_run pr
+		SET
+			  pr.use_yn                = 'N'
+			, pr.updated               = UTC_TIMESTAMP()
+			, pr.updater               = #{updater}
+		WHERE pr.use_yn = 'Y'
+		  AND pr.pipeline_container_seq IN (
+			SELECT pc.pipeline_container_seq
+			FROM
+				pipeline_workload pw
+					INNER JOIN pipeline_container pc ON pc.pipeline_workload_seq = pw.pipeline_workload_seq AND pc.use_yn = 'Y'
+			WHERE (pw.cluster_seq, pw.namespace_name) IN (SELECT sm.cluster_seq, sm.namespace_name FROM servicemaps sm WHERE sm.servicemap_seq = #{servicemapSeq})
+		)
+	</update>
+
+	<update id="removePipelineContainerByServicemap" parameterType="map">
+		UPDATE /* [Servicemap.xml].[removePipelineContainerByServicemap].[01] 변경일자(20220401) */
+			pipeline_container pc
+		SET
+			  pc.use_yn                = 'N'
+			, pc.updated               = UTC_TIMESTAMP()
+			, pc.updater               = #{updater}
+		WHERE pc.use_yn = 'Y'
+		  AND pc.pipeline_workload_seq IN (
+			SELECT pw.pipeline_workload_seq
+			FROM pipeline_workload pw
+			WHERE (pw.cluster_seq, pw.namespace_name) IN (SELECT sm.cluster_seq, sm.namespace_name FROM servicemaps sm WHERE sm.servicemap_seq = #{servicemapSeq})
+		)
+	</update>
+
+	<update id="removePipelineWorkloadByServicemap" parameterType="map">
+		UPDATE /* [Servicemap.xml].[removePipelineWorkloadByServicemap].[01] 변경일자(20220401) */
+			pipeline_workload pw
+		SET
+			  pw.use_yn                = 'N'
+			, pw.updated               = UTC_TIMESTAMP()
+			, pw.updater               = #{updater}
+		WHERE pw.use_yn = 'Y'
+		  AND (pw.cluster_seq, pw.namespace_name) IN (SELECT sm.cluster_seq, sm.namespace_name FROM servicemaps sm WHERE sm.servicemap_seq = #{servicemapSeq})
+	</update>
+</mapper>

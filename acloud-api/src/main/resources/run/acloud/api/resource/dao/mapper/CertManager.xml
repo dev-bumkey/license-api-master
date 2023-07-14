@@ -1,0 +1,229 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.resource.dao.ICertManagerMapper">
+	<resultMap type="PublicCertificate" id="PublicCertificateMap" autoMapping="true">
+		<id property="publicCertificateSeq" column="publicCertificateSeq"/>
+	</resultMap>
+	<resultMap type="PublicCertificateDetail" id="PublicCertificateDetailMap" autoMapping="true">
+		<id property="publicCertificateSeq" column="publicCertificateSeq"/>
+	</resultMap>
+
+	<insert id="insertPublicCertificate" parameterType="PublicCertificateAdd" useGeneratedKeys="true" keyProperty="publicCertificateSeq" keyColumn="public_certificate_seq">
+		INSERT /* [CertManager.xml].[insertPublicCertificate].[01] 변경일자(20230608) */
+		INTO public_certificate (
+			  public_certificate_name
+			, description
+			, server_auth_data
+			, client_auth_data
+			, client_key_data
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES (
+		   #{publicCertificateName}
+		   , #{description}
+		   , #{serverAuthData}
+		   , #{clientAuthData}
+		   , #{clientKeyData}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+	   )
+	</insert>
+
+	<insert id="insertPublicCertificateAccountMapping" parameterType="map">
+		INSERT /* [CertManager.xml].[insertPublicCertificateAccountMapping].[01] 변경일자(20230608) */
+		INTO public_certificate_account_mapping (
+		      account_seq
+		    , public_certificate_seq
+			, created
+			, creator
+		) VALUES (
+			  #{accountSeq}
+			, #{publicCertificateSeq}
+			, UTC_TIMESTAMP()
+			, #{creator}
+		)
+	</insert>
+
+	<update id="updatePublicCertificate" parameterType="PublicCertificateAdd">
+		UPDATE /* [CertManager.xml].[updatePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+			public_certificate_name = #{publicCertificateName}
+		  , description = #{description}
+		  , server_auth_data = #{serverAuthData}
+		  , client_auth_data = #{clientAuthData}
+		  , client_key_data = #{clientKeyData}
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE public_certificate_seq = #{publicCertificateSeq}
+	</update>
+
+	<delete id="deletePublicCertificate" parameterType="map">
+
+		UPDATE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+		  server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_key_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		;
+
+		UPDATE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+		  server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_key_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		;
+
+		UPDATE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+		  server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_key_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		;
+
+		UPDATE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+		  server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_key_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		;
+
+		UPDATE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+			public_certificate
+		SET
+		  server_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_auth_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		, client_key_data = LEFT(TO_BASE64(SHA(RAND())), 30)
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq}
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+		</where>
+		;
+
+		DELETE /* [CertManager.xml].[deletePublicCertificate].[01] 변경일자(20230608) */
+		FROM public_certificate
+		<where>
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq};
+				</when>
+				<otherwise>
+					AND 1 = 2;
+				</otherwise>
+			</choose>
+		</where>
+	</delete>
+
+	<delete id="deletePublicCertificateAccountMapping" parameterType="map">
+		DELETE /* [CertManager.xml].[deletePublicCertificateAccountMapping].[01] 변경일자(20230608) */
+		FROM
+			public_certificate_account_mapping
+		<where>
+			AND account_seq = #{accountSeq}
+			<choose>
+				<when test="publicCertificateSeq != null">
+					AND public_certificate_seq = #{publicCertificateSeq};
+				</when>
+				<otherwise>
+					AND 1 = 2;
+				</otherwise>
+			</choose>
+		</where>
+	</delete>
+
+	<select id="getPublicCertificates" parameterType="map" resultMap="PublicCertificateMap">
+		SELECT  /* [CertManager.xml].[getPublicCertificates].[01] 변경일자(20230608) */
+			  pc.public_certificate_seq 	AS publicCertificateSeq
+			, ac.account_seq            	AS accountSeq
+			, pc.public_certificate_name    AS publicCertificateName
+			, pc.description           		AS description
+			, pc.server_auth_data          	AS serverAuthData
+			, pc.client_auth_data			AS clientAuthData
+			, pc.client_key_data			AS clientKeyData
+			, pc.created               		AS created
+			, pc.creator               		AS creator
+			, pc.updated               		AS updated
+			, pc.updater               		AS updater
+		FROM
+			public_certificate pc
+			  	INNER JOIN public_certificate_account_mapping pcam ON pcam.public_certificate_seq = pc.public_certificate_seq
+				INNER JOIN accounts ac ON ac.account_seq = pcam.account_seq AND ac.use_yn = 'Y'
+		WHERE ac.account_seq = #{accountSeq}
+	</select>
+
+	<select id="getPublicCertificate" parameterType="map" resultMap="PublicCertificateDetailMap">
+		SELECT  /* [CertManager.xml].[getPublicCertificate].[01] 변경일자(20230608) */
+			  pc.public_certificate_seq 	AS publicCertificateSeq
+			, ac.account_seq            	AS accountSeq
+			, pc.public_certificate_name    AS publicCertificateName
+			, pc.description           		AS description
+			, pc.server_auth_data          	AS serverAuthData
+			, pc.client_auth_data			AS clientAuthData
+			, pc.client_key_data			AS clientKeyData
+			, pc.created               		AS created
+			, pc.creator               		AS creator
+			, pc.updated               		AS updated
+			, pc.updater               		AS updater
+		FROM
+			public_certificate pc
+				INNER JOIN public_certificate_account_mapping pcam ON pcam.public_certificate_seq = pc.public_certificate_seq
+				INNER JOIN accounts ac ON ac.account_seq = pcam.account_seq AND ac.use_yn = 'Y'
+		WHERE pc.public_certificate_seq = #{publicCertificateSeq}
+		<if test="accountSeq != null">
+			AND ac.account_seq = #{accountSeq}
+		</if>
+	</select>
+</mapper>

@@ -1,0 +1,129 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IGradePlanChargeBaseMapper">
+
+	<select id="getGradePlanChargeBases" parameterType="map" resultType="GradePlanChargeBase">
+		SELECT /* [GradePlanChargeBase.xml].[getGradePlanChargeBases].[01] 변경일자(20190626) */
+		      charge_base_seq AS chargeBaseSeq
+			, grade_seq AS gradeSeq
+			, charge_area_name AS chargeAreaName
+			, charge_name AS chargeName
+			, charge_type AS chargeType
+			, base_term AS baseTerm
+			, base_qty_unit AS baseQtyUnit
+			, base_qty AS baseQty
+			, base_price AS basePrice
+			, base_price_per_hour AS basePricePerHour
+			, base_currency AS baseCurrency
+			, description  AS description
+			, sort_order AS SortOrder
+			, use_yn AS useYn
+			, created AS created
+			, creator AS creator
+			, updated AS updated
+			, updater AS updater
+		 FROM grade_plan_charge_base
+		<where>
+			<if test="gradeSeq != null">
+				AND grade_seq = #{gradeSeq}
+			</if>
+			AND use_yn = 'Y'
+		</where>
+		ORDER BY grade_seq, sort_order ASC
+	</select>
+
+	<select id="getGradePlanChargeBase" parameterType="int" resultType="GradePlanChargeBase">
+		SELECT /* [GradePlanChargeBase.xml].[getGradePlanChargeBase].[01] 변경일자(20190626) */
+			   charge_base_seq AS chargeBaseSeq
+			 , grade_seq AS gradeSeq
+			 , charge_area_name AS chargeAreaName
+			 , charge_name AS chargeName
+			 , charge_type AS chargeType
+			 , base_term AS baseTerm
+			 , base_qty_unit AS baseQtyUnit
+			 , base_qty AS baseQty
+			 , base_price AS basePrice
+			 , base_price_per_hour AS basePricePerHour
+			 , base_currency AS baseCurrency
+			 , description  AS description
+			 , sort_order AS SortOrder
+			 , use_yn AS useYn
+			 , created AS created
+			 , creator AS creator
+			 , updated AS updated
+			 , updater AS updater
+		FROM grade_plan_charge_base
+		WHERE charge_base_seq = #{chargeBaseSeq}
+	</select>
+
+	<insert id="addGradePlanChargeBase" parameterType="GradePlanChargeBase" useGeneratedKeys="true" keyProperty="chargeBaseSeq" keyColumn="charge_base_seq">
+		INSERT INTO /* [GradePlanChargeBase.xml].[addGradePlanChargeBase].[01] 변경일자(20190626) */ grade_plan_charge_base (
+			  grade_seq
+			, charge_area_name
+			, charge_name
+			, charge_type
+			, base_term
+			, base_qty_unit
+			, base_qty
+			, base_price
+			, base_price_per_hour
+			, base_currency
+			, description
+			, sort_order
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES (
+			  #{gradeSeq}
+			, #{chargeAreaName}
+			, #{chargeName}
+			, #{chargeType}
+			, #{baseTerm}
+			, #{baseQtyUnit}
+			, #{baseQty}
+			, #{basePrice}
+			, #{basePricePerHour}
+			, #{baseCurrency}
+			, #{description}
+			, #{sortOrder}
+			, 'Y'
+			, UTC_TIMESTAMP()
+			, #{creator}
+			, UTC_TIMESTAMP()
+			, #{updater}
+		)
+	</insert>
+
+	<update id="editGradePlanChargeBase" parameterType="GradePlanChargeBase">
+		UPDATE /* [GradePlanChargeBase.xml].[editGradePlanChargeBase].[01] 변경일자(20190626) */ grade_plan_charge_base
+		SET grade_seq=#{gradeSeq}
+		  , charge_area_name=#{chargeAreaName}
+		  , charge_name=#{chargeName}
+		  , charge_type=#{chargeType}
+		  , base_term=#{baseTerm}
+		  , base_qty_unit=#{baseQtyUnit}
+		  , base_qty=#{baseQty}
+		  , base_price=#{basePrice}
+		  , base_price_per_hour=#{basePricePerHour}
+		  , base_currency=#{baseCurrency}
+		  , description=#{description}
+		  , sort_order=#{sortOrder}
+		  , use_yn=#{useYn}
+		  , updated=UTC_TIMESTAMP()
+		  , updater=#{updater}
+		WHERE charge_base_seq=#{chargeBaseSeq}
+	</update>
+
+	<update id="removeGradePlanChargeBase" parameterType="GradePlanChargeBase">
+		UPDATE /* [GradePlanChargeBase.xml].[removeGradePlanChargeBase].[01] 변경일자(20190626) */
+			grade_plan_charge_base
+		SET
+			use_yn = 'N',
+			updated = UTC_TIMESTAMP(),
+			updater = #{updater}
+		WHERE charge_base_seq=#{chargeBaseSeq}
+	</update>
+
+
+</mapper>

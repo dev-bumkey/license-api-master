@@ -1,0 +1,318 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="run.acloud.api.configuration.dao.IExternalRegistryMapper">
+	<resultMap type="ExternalRegistry" id="ExternalRegistryMap" autoMapping="true">
+		<id property="externalRegistrySeq" column="externalRegistrySeq"/>
+	</resultMap>
+
+	<resultMap type="ExternalRegistryDetail" id="ExternalRegistryDetailMap" autoMapping="true">
+		<id property="externalRegistrySeq" column="externalRegistrySeq"/>
+		<collection property="services" ofType="Service" javaType="java.util.ArrayList" columnPrefix="sv_" resultMap="run.acloud.api.cserver.dao.IServiceMapper.ServiceMap" />
+	</resultMap>
+
+	<insert id="insertExternalRegistry" parameterType="ExternalRegistry" useGeneratedKeys="true" keyProperty="externalRegistrySeq" keyColumn="external_registry_seq">
+		INSERT /* [ExternalRegistry.xml].[insertExternalRegistry].[01] 변경일자(20210408) */
+		INTO external_registry (
+			  provider
+			, name
+			, description
+			, endpoint_url
+			, registry_name
+			, access_id
+			, access_secret
+			, private_certificate_use_yn
+			, private_certificate
+			, insecure_yn
+			, use_yn
+			, created
+			, creator
+			, updated
+			, updater
+		) VALUES (
+		   #{provider}
+		   , #{name}
+		   , IFNULL(#{description}, '')
+		   , #{endpointUrl}
+		   , #{registryName}
+		   , #{accessId}
+		   , #{accessSecret}
+		   , #{privateCertificateUseYn}
+		   , #{privateCertificate}
+		   , #{insecureYn}
+		   , 'Y'
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+		   , UTC_TIMESTAMP()
+		   , #{creator}
+	   )
+	</insert>
+
+	<insert id="insertExternalRegistryAccountMapping" parameterType="map">
+		INSERT /* [ExternalRegistry.xml].[insertExternalRegistryAccountMapping].[01] 변경일자(20210408) */
+		INTO external_registry_account_mapping (
+		      account_seq
+		    , external_registry_seq
+			, created
+			, creator
+		) VALUES (
+			  #{accountSeq}
+			, #{externalRegistrySeq}
+			, UTC_TIMESTAMP()
+			, #{creator}
+		)
+	</insert>
+
+	<insert id="insertExternalRegistryServiceMapping" parameterType="map">
+		INSERT /* [ExternalRegistry.xml].[insertExternalRegistryServiceMapping].[01] 변경일자(20210408) */
+		INTO external_registry_service_mapping (
+		      service_seq
+		    , external_registry_seq
+			, created
+			, creator
+		) VALUES (
+			  #{serviceSeq}
+			, #{externalRegistrySeq}
+			, UTC_TIMESTAMP()
+			, #{creator}
+		)
+	</insert>
+
+	<insert id="insertExternalRegistryServiceMappings" parameterType="map">
+		INSERT /* [ExternalRegistry.xml].[insertExternalRegistryServiceMappings].[01] 변경일자(20210408) */
+		INTO external_registry_service_mapping (
+		      service_seq
+		    , external_registry_seq
+			, created
+			, creator
+		) VALUES
+		<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" open="(" separator="), (" close=")">
+			#{serviceSeq},
+			#{externalRegistrySeq},
+			UTC_TIMESTAMP(),
+			#{creator}
+		</foreach>
+	</insert>
+
+	<update id="updateExternalRegistry" parameterType="ExternalRegistry">
+		UPDATE /* [ExternalRegistry.xml].[updateExternalRegistry].[01] 변경일자(20210408) */
+			external_registry
+		SET
+			name = #{name}
+		  , description = #{description}
+		  <if test="accessId != null">
+			  , access_id = #{accessId}
+		  </if>
+		  <if test="accessSecret != null">
+			  , access_secret = #{accessSecret}
+		  </if>
+		  <if test="privateCertificateUseYn != null">
+		      , private_certificate_use_yn = #{privateCertificateUseYn}
+		  </if>
+		  <if test="privateCertificate != null">
+			  , private_certificate = #{privateCertificate}
+		  </if>
+		  <if test="insecureYn != null">
+		  	  , insecure_yn = #{insecureYn}
+		  </if>
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		AND external_registry_seq = #{externalRegistrySeq}
+	</update>
+
+	<update id="removeExternalRegistry" parameterType="map">
+		UPDATE /* [ExternalRegistry.xml].[removeExternalRegistry].[01] 변경일자(20210408) */
+			external_registry
+		SET
+			use_yn = 'N'
+		  , access_id = null
+		  , access_secret = null
+		  , private_certificate = null
+		  , updated = UTC_TIMESTAMP()
+		  , updater = #{updater}
+		WHERE use_yn = 'Y'
+		AND external_registry_seq = #{externalRegistrySeq}
+	</update>
+
+	<delete id="deleteExternalRegistry" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistry].[01] 변경일자(20210706) */
+		FROM external_registry
+		<where>
+			<choose>
+				<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(externalRegistrySeqs)">
+					AND external_registry_seq IN (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", ">#{externalRegistrySeq}</foreach>)
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+
+		</where>
+	</delete>
+
+	<delete id="deleteExternalRegistryAccountMapping" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryAccountMapping].[01] 변경일자(20170601) */
+		FROM
+			external_registry_account_mapping
+		WHERE account_seq = #{accountSeq}
+		AND external_registry_seq IN (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", ">#{externalRegistrySeq}</foreach>)
+	</delete>
+
+	<delete id="deleteExternalRegistryServiceMappingOfAccount" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryServiceMappingOfAccount].[01] 변경일자(20210706) */
+		FROM
+			external_registry_service_mapping
+		WHERE service_seq = #{accountSeq}
+	</delete>
+
+	<delete id="deleteExternalRegistryServiceMappingByService" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryServiceMappingByService].[01] 변경일자(20170601) */
+		FROM
+			external_registry_service_mapping
+		WHERE service_seq = #{serviceSeq}
+		AND external_registry_seq IN (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", ">#{externalRegistrySeq}</foreach>)
+	</delete>
+
+	<delete id="deleteExternalRegistryServiceMappings" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryServiceMappingByService].[01] 변경일자(20170601) */
+		FROM
+			external_registry_service_mapping
+		<where>
+			<choose>
+				<when test="@org.apache.commons.collections4.CollectionUtils@isNotEmpty(externalRegistrySeqs)">
+					AND external_registry_seq IN (<foreach collection="externalRegistrySeqs" item="externalRegistrySeq" separator=", ">#{externalRegistrySeq}</foreach>)
+				</when>
+				<otherwise>
+					AND 1 = 2
+				</otherwise>
+			</choose>
+
+		</where>
+	</delete>
+
+	<delete id="deleteExternalRegistryServiceMappingOfService" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryServiceMappingOfService].[01] 변경일자(20170601) */
+		FROM
+			external_registry_service_mapping
+		WHERE service_seq = #{serviceSeq}
+	</delete>
+
+	<delete id="deleteExternalRegistryServiceMapping" parameterType="map">
+		DELETE /* [ExternalRegistry.xml].[deleteExternalRegistryServiceMappingByService].[01] 변경일자(20170601) */
+		FROM
+			external_registry_service_mapping
+		WHERE external_registry_seq = #{externalRegistrySeq}
+		AND service_seq IN (<foreach collection="serviceSeqs" item="serviceSeq" separator=", ">#{serviceSeq}</foreach>)
+	</delete>
+
+	<select id="getExternalRegistries" parameterType="map" resultMap="ExternalRegistryMap">
+		SELECT  /* [ExternalRegistry.xml].[getExternalRegistries].[01] 변경일자(20210408) */
+			  er.external_registry_seq 	AS externalRegistrySeq
+			, ac.account_seq            AS accountSeq
+			, er.provider              	AS provider
+			, er.name                  	AS name
+			, er.description           	AS description
+			, er.endpoint_url          	AS endpointUrl
+			, er.registry_name          AS registryName
+			, er.access_id				AS accessId
+			, er.access_secret			AS accessSecret
+			, er.private_certificate_use_yn	AS privateCertificateUseYn
+			, er.private_certificate	AS privateCertificate
+			, er.insecure_yn			AS insecureYn
+			, er.use_yn                	AS use_yn
+			, er.created               	AS created
+			, er.creator               	AS creator
+			, er.updated               	AS updated
+			, er.updater               	AS updater
+		FROM
+			external_registry er
+			  	INNER JOIN external_registry_account_mapping eram ON eram.external_registry_seq = er.external_registry_seq
+				INNER JOIN accounts ac ON ac.account_seq = eram.account_seq AND ac.use_yn = 'Y'
+			<if test="serviceSeq != null or servicemapSeq != null">
+				INNER JOIN (
+					SELECT asm.account_seq
+						, ersm.external_registry_seq
+					FROM servicemaps sm
+							INNER JOIN service_servicemap_mapping ssm ON ssm.servicemap_seq = sm.servicemap_seq
+							INNER JOIN account_service_mapping asm ON asm.service_seq = ssm.service_seq
+							INNER JOIN external_registry_service_mapping ersm ON ersm.service_seq = asm.service_seq
+							INNER JOIN services sv ON sv.service_seq = ersm.service_seq AND sv.use_yn = 'Y'
+					WHERE sm.use_yn = 'Y'
+				<if test="servicemapSeq != null">
+					AND sm.servicemap_seq = #{servicemapSeq}
+				</if>
+				<if test="serviceSeq != null">
+					AND sv.service_seq = #{serviceSeq}
+				</if>
+					GROUP BY asm.account_seq, ersm.external_registry_seq
+				) erm ON erm.account_seq = ac.account_seq AND erm.external_registry_seq = er.external_registry_seq
+			</if>
+		WHERE er.use_yn = 'Y'
+		<if test="accountSeq != null">
+			AND ac.account_seq = #{accountSeq}
+		</if>
+		<if test="name != null">
+			AND er.name = #{name}
+		</if>
+		<if test="endpointUrl != null and registryName != null">
+			AND (er.endpoint_url, er.registry_name) = (#{endpointUrl}, #{registryName})
+		</if>
+	</select>
+
+	<select id="getExternalRegistrySeqsOfAccountMapping" parameterType="map" resultType="int">
+		SELECT /* [ExternalRegistry.xml].[getExternalRegistrySeqsOfAccountMapping].[01] 변경일자(20210706) */
+			external_registry_seq
+		FROM external_registry_account_mapping
+		WHERE account_seq = #{accountSeq}
+	</select>
+
+	<select id="getExternalRegistrySeqsOfServiceMappingByAccount" parameterType="map" resultType="int">
+		SELECT  /* [ExternalRegistry.xml].[getExternalRegistrySeqsOfServiceMappingByAccount].[01] 변경일자(20210706) */
+			external_registry_seq
+		FROM external_registry_service_mapping
+		WHERE service_seq IN (
+			SELECT sv.service_seq
+			FROM accounts ac
+					 INNER JOIN account_service_mapping asm ON asm.account_seq = ac.account_seq
+					 INNER JOIN services sv ON sv.service_seq = asm.service_seq
+			WHERE ac.account_seq = #{accountSeq}
+		)
+	</select>
+
+	<select id="getExternalRegistry" parameterType="map" resultMap="ExternalRegistryDetailMap">
+		SELECT  /* [ExternalRegistry.xml].[getExternalRegistry].[01] 변경일자(20210408) */
+			  er.external_registry_seq 	AS externalRegistrySeq
+			, ac.account_seq            AS accountSeq
+			, er.provider              	AS provider
+			, er.name                  	AS name
+			, er.description           	AS description
+			, er.endpoint_url          	AS endpointUrl
+			, er.registry_name          AS registryName
+			, er.access_id				AS accessId
+			, er.access_secret			AS accessSecret
+			, er.private_certificate_use_yn	AS privateCertificateUseYn
+			, er.private_certificate	AS privateCertificate
+			, er.insecure_yn			AS insecureYn
+			, er.use_yn                	AS use_yn
+			, er.created               	AS created
+			, er.creator               	AS creator
+			, er.updated               	AS updated
+			, er.updater               	AS updater
+
+			, sv.service_seq 			AS sv_serviceSeq
+			, sv.service_name 			AS sv_serviceName
+			, sv.service_type			AS sv_serviceType
+			, sv.description			AS sv_description
+		FROM
+			external_registry er
+			  	INNER JOIN external_registry_account_mapping eram ON eram.external_registry_seq = er.external_registry_seq
+				INNER JOIN accounts ac ON ac.account_seq = eram.account_seq AND ac.use_yn = 'Y'
+				LEFT OUTER JOIN account_service_mapping asm ON asm.account_seq = ac.account_seq
+				LEFT OUTER JOIN external_registry_service_mapping ersm ON ersm.service_seq = asm.service_seq AND ersm.external_registry_seq = er.external_registry_seq
+				LEFT OUTER JOIN services sv ON sv.service_seq = asm.service_seq AND sv.service_seq = ersm.service_seq AND sv.use_yn = 'Y'
+				<if test="serviceType != null">
+					AND sv.service_type = #{serviceType}
+				</if>
+		WHERE er.use_yn = 'Y'
+		AND er.external_registry_seq = #{externalRegistrySeq}
+	</select>
+</mapper>

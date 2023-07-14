@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello WebSocket</title>
+    <link href="/bootstrap.min.css" rel="stylesheet">
+    <link href="/main.css" rel="stylesheet">
+    <script src="/jquery-1.10.2.min.js"></script>
+    <script src="/terminal_test.js"></script>
+    <script src="/stomp.js"></script>
+
+</head>
+<body>
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
+    enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+<div id="main-content" class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label for="connect" class="col-md-12">WebSocket connection Infomation:</label>
+                <label for="clusterSeq" class="col-md-4">Cluster Sequesnce :</label>
+                <input type="text" class="col-md-8" id="clusterSeq" value="1" placeholder="Cluster Sequence here...">
+                <label for="namespace" class="col-md-4">Namespace :</label>
+                <input type="text" class="col-md-8" id="namespace" value="odmwn2-1-49-1" placeholder="name space here...ex.odmwn2-1-69-1">
+                <label for="podName" class="col-md-4">podName :</label>
+                <input type="text" class="col-md-8" id="podName" value="logsview-6686579cd4-crtw4" placeholder="Pod name here... ex) monitoring-tester-03-7d8f4f7b8c-4f696">
+                <label for="containerName" class="col-md-4">containerName :</label>
+                <input type="text" class="col-md-8" id="containerName" value="accesslogs" placeholder="Container Name here... ex) monitoring-tester-03-011">
+            </div>
+        </div>
+        <br>
+        <div class="col-md-6">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="connect">WebSocket connection:</label>
+                    <button id="connect" class="btn btn-default" type="submit">Connect</button>
+                    <button id="disconnect" class="btn btn-default" type="submit" disabled="disabled">Disconnect
+                    </button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="command">Terminal Command Input</label>
+                    <input type="text" id="command" class="form-control" placeholder="Terminal Command here...">
+                </div>
+                <button id="send" class="btn btn-default" type="button">Send</button>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="conversation" class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Terminal</th>
+                </tr>
+                </thead>
+                <tbody id="terminal">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>
